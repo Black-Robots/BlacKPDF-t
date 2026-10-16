@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#26262B"/>
+      <stop offset="1" stop-color="#0C0C0E"/>
+    </linearGradient>
+    <linearGradient id="sheet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#ECECF0"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F0646A"/>
+      <stop offset="1" stop-color="#C93A40"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#bg)"/>
+  <rect x="8.75" y="8.75" width="238.5" height="238.5" rx="55.25" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="1.5"/>
+  <path d="M84 40 H154 L196 82 V200 a16 16 0 0 1 -16 16 H84 a16 16 0 0 1 -16 -16 V56 a16 16 0 0 1 16 -16 Z" fill="url(#sheet)"/>
+  <path d="M154 40 V70 a12 12 0 0 0 12 12 H196 Z" fill="url(#fold)"/>
+  <path fill="#111114" fill-rule="evenodd" d="M98 104 H139 C154 104 163 112 163 124 C163 132 159 138 152 141 C162 144 168 152 168 163 C168 177 158 186 142 186 H98 Z M116 119 V134 H136 C142 134 145 131 145 126.5 C145 122 142 119 136 119 Z M116 148 V171 H139 C146 171 150 167 150 159.5 C150 152 146 148 139 148 Z"/>
+  <rect x="98" y="196" width="70" height="7" rx="3.5" fill="#E5484D"/>
+</svg>

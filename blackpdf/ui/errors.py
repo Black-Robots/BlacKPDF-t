@@ -1,0 +1,139 @@
+"""Mensajes de error claros para el usuario y registro técnico en archivo.
+
+Las trazas nunca se muestran: van al registro (blackpdf.log) por si hace
+falta diagnosticar un problema.
+"""
+
+from __future__ import annotations
+
+import logging
+import sys
+import traceback
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+
+from PySide6.QtCore import QCoreApplication, QStandardPaths
+from PySide6.QtWidgets import QApplication, QMessageBox, QWidget
+
+from ..core import errors as core_errors
+
+log = logging.getLogger("blackpdf")
+
+
+def _tr(text: str) -> str:
+    return QCoreApplication.translate("Errors", text)
+
+
+def log_path() -> Path:
+    base = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppLocalDataLocation)
+    folder = Path(base) if base else Path.home() / ".blackpdf"
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder / "blackpdf.log"
+
+
+def setup_logging() -> None:
+    if log.handlers:
+        return
+    try:
+        handler = RotatingFileHandler(log_path(), maxBytes=1_000_000, backupCount=2, encoding="utf-8")
+    except OSError:
+        handler = logging.NullHandler()
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    log.addHandler(handler)
+    log.setLevel(logging.INFO)
+
+
+def _name(path: str) -> str:
+    return Path(path).name if path else _tr("el documento")
+
+
+def user_message(exc: BaseException) -> tuple[str, str]:
+    """(título, explicación) para mostrar al usuario."""
+    params = getattr(exc, "params", {}) or {}
+    path = str(params.get("path", "") or "")
+    if isinstance(exc, core_errors.PasswordRequiredError):
+        return _tr("Documento protegido"), _tr("«{0}» está protegido con contraseña.").format(_name(path))
+    if isinstance(exc, core_errors.WrongPasswordError):
+        return _tr("Contraseña incorrecta"), _tr("La contraseña no es correcta. Inténtalo de nuevo.")
+    if isinstance(exc, core_errors.FileOpenError):
+        return _tr("No se puede abrir el archivo"), _tr(
+            "No se ha podido leer «{0}». Comprueba que existe y que tienes permiso para abrirlo."
+        ).format(_name(path))
+    if isinstance(exc, core_errors.NotPdfError):
+        return _tr("Formato no compatible"), _tr(
+            "«{0}» no es un PDF válido o está dañado y no se puede recuperar."
+        ).format(_name(path))
+    if isinstance(exc, core_errors.InvalidRangeError):
+        count = params.get("page_count", 0)
+        return _tr("Rango de páginas no válido"), _tr(
+            "Escribe páginas entre 1 y {0}, separadas por comas. Ejemplo: 1-3, 5, 8-10."
+        ).format(count)
+    if isinstance(exc, core_errors.LastPageError):
+        return _tr("No se puede eliminar"), _tr("Un PDF debe conservar al menos una página.")
+    if isinstance(exc, core_errors.EmptyInputError):
+        return _tr("Falta información"), _tr("Selecciona al menos un archivo o una página para continuar.")
+    if isinstance(exc, core_errors.WriteError):
+        return _tr("No se puede guardar"), _tr(
+            "No se ha podido escribir «{0}». Comprueba que la carpeta existe, que hay espacio libre "
+            "y que el archivo no está abierto en otro programa."
+        ).format(_name(path))
+    if isinstance(exc, core_errors.OcrUnavailableError):
+        return _tr("Reconocimiento de texto no disponible"), _tr(
+            "Para reconocer texto hace falta instalar Tesseract OCR con el idioma español."
+        )
+    if isinstance(exc, core_errors.InvalidOptionError):
+        return _tr("Opción no válida"), _tr("Revisa las opciones marcadas e inténtalo de nuevo.")
+    if isinstance(exc, core_errors.BlackPdfError):
+        return _tr("No se ha podido completar"), _tr("La operación no se ha podido completar.")
+    if isinstance(exc, MemoryError):
+        return _tr("Memoria insuficiente"), _tr("El documento es demasiado grande para la memoria disponible.")
+    if isinstance(exc, PermissionError):
+        return _tr("Permiso denegado"), _tr("No tienes permiso para acceder a ese archivo o carpeta.")
+    if isinstance(exc, OSError):
+        return _tr("Error de archivo"), _tr("No se ha podido acceder al archivo. Comprueba la ruta y los permisos.")
+    return _tr("Error inesperado"), _tr(
+        "Ha ocurrido un error inesperado. Los detalles se han guardado en el registro de la aplicación."
+    )
+
+
+def show_error(parent: QWidget | None, exc: BaseException, context: str = "") -> None:
+    if not isinstance(exc, core_errors.BlackPdfError):
+        log.error("%s\n%s", context or "Error", "".join(traceback.format_exception(exc)))
+    title, text = user_message(exc)
+    box = QMessageBox(parent)
+    box.setIcon(QMessageBox.Icon.Warning)
+    box.setWindowTitle(title)
+    box.setText(f"<b>{title}</b>")
+    box.setInformativeText(text)
+    box.setStandardButtons(QMessageBox.StandardButton.Ok)
+    box.exec()
+
+
+def show_crash(parent: QWidget | None, details: str) -> None:
+    """Fallo en un subproceso: se registra la traza y se muestra un aviso genérico."""
+    log.error("Fallo en operación en segundo plano\n%s", details)
+    box = QMessageBox(parent)
+    box.setIcon(QMessageBox.Icon.Warning)
+    box.setWindowTitle(_tr("Error inesperado"))
+    box.setText("<b>" + _tr("No se ha podido completar la operación") + "</b>")
+    box.setInformativeText(
+        _tr("Puede que el archivo esté dañado o use una característica no compatible. "
+            "Los detalles se han guardado en el registro.")
+    )
+    box.exec()
+
+
+def install_excepthook() -> None:
+    def hook(exc_type, exc, tb):
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc, tb)
+            return
+        log.error("Excepción no controlada\n%s", "".join(traceback.format_exception(exc_type, exc, tb)))
+        app = QApplication.instance()
+        if app is not None:
+            try:
+                show_error(app.activeWindow(), exc)
+            except Exception:
+                pass
+
+    sys.excepthook = hook
