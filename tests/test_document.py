@@ -1,7 +1,6 @@
 import os
 import stat
 
-import pymupdf
 import pytest
 
 from blackpdf.core.document import (

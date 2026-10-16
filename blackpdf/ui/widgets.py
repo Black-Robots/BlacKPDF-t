@@ -7,7 +7,6 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from PySide6.QtCore import (
-    QEasingCurve,
     QEvent,
     QPoint,
     QPropertyAnimation,

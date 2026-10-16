@@ -14,7 +14,6 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QSlider,
     QSpinBox,
-    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -404,8 +403,8 @@ class PageNumbersDialog(_PreviewDialog):
         options = self.options()
         try:
             options.validate()
-        except Exception:
-            raise ValidationError(self.tr("El formato personalizado debe incluir {n}."))
+        except Exception as exc:
+            raise ValidationError(self.tr("El formato personalizado debe incluir {n}.")) from exc
         output = self.require_output(self.output, [self.source.original_path()])
         return "blackpdf.core.numbering:add_page_numbers", (source, output, options), self.common_kwargs()
 

@@ -1,5 +1,4 @@
 import pymupdf
-import pytest
 
 from blackpdf.core.files import human_size, safe_filename, unique_path, with_suffix_name
 from blackpdf.core.navigation import get_outline, page_links, page_text, search_page

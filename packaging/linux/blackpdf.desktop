@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=BlackPDF
+GenericName=Editor de PDF
+GenericName[en]=PDF editor
+Comment=Visor y editor de PDF libre, gratuito y sin conexión
+Comment[en]=Free offline PDF viewer and editor
+Exec=blackpdf %F
+Icon=blackpdf
+Terminal=false
+StartupNotify=true
+StartupWMClass=BlackPDF
+Categories=Office;Viewer;Graphics;
+MimeType=application/pdf;application/x-pdf;image/png;image/jpeg;image/tiff;
+Keywords=pdf;unir;dividir;comprimir;firmar;anotar;ocr;merge;split;compress;sign;

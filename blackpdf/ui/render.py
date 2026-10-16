@@ -44,6 +44,18 @@ class Tile:
     """Posición en píxeles de dispositivo dentro de la página."""
 
 
+def invert_luminance(pix: pymupdf.Pixmap) -> None:
+    """Invierte la luminosidad conservando el tono (el rojo sigue siendo rojo)."""
+    native = getattr(pymupdf.mupdf, "fz_invert_pixmap_luminance", None)
+    if native is not None:
+        try:
+            native(pix.this)
+            return
+        except Exception:
+            pass
+    pix.invert_irect(pix.irect)
+
+
 def _rgb_int(color: QColor) -> int:
     return (color.red() << 16) | (color.green() << 8) | color.blue()
 
@@ -177,7 +189,7 @@ class PageRenderer(QObject):
     def _pixmap_to_image(self, pix: pymupdf.Pixmap, night: bool) -> QImage:
         if night:
             p = theme.current()
-            pix.invert_irect(pix.irect)
+            invert_luminance(pix)
             pix.tint_with(_rgb_int(p.qcolor("night_page")), _rgb_int(p.qcolor("night_ink")))
         image = QImage(pix.samples_mv, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
         return image.copy()

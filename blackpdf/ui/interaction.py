@@ -524,6 +524,8 @@ class ShapeTool(AnnotationTool):
             return
         page, start, end = self._page, self._start, self._end
         self.cancel()
+        if (end - start).manhattanLength() * self.viewer.scale < DRAG_THRESHOLD * 2:
+            return
         style, kind = self.style, self.kind
         labels = {
             "rect": self.tr("Rectángulo"),

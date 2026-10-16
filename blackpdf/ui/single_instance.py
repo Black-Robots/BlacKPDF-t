@@ -5,6 +5,7 @@ from __future__ import annotations
 import getpass
 import json
 import re
+import sys
 
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
@@ -32,6 +33,14 @@ class SingleInstance(QObject):
         socket.connectToServer(self._name)
         if not socket.waitForConnected(400):
             return False
+        if sys.platform.startswith("win"):
+            # Permite que la instancia abierta pase al frente al recibir el archivo.
+            try:
+                import ctypes
+
+                ctypes.windll.user32.AllowSetForegroundWindow(-1)
+            except Exception:
+                pass
         socket.write(json.dumps({"open": paths}).encode("utf-8"))
         socket.flush()
         socket.waitForBytesWritten(1000)

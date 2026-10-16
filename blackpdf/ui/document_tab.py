@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QPoint, QSize, Qt, QTimer, QVariantAnimation, Signal
-from PySide6.QtGui import QAction, QKeySequence, QShortcut
+from PySide6.QtCore import QPoint, Qt, QTimer, QVariantAnimation, Signal
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMenu,
+    QMessageBox,
     QSplitter,
     QStackedWidget,
     QToolButton,
@@ -324,7 +325,7 @@ class DocumentTab(QWidget):
             ("Ctrl+M", lambda: self.set_night_mode(not self.viewer.night_mode)),
             ("Ctrl+E", self.toggle_annotation_bar),
             ("Ctrl+C", self.copy),
-            ("Ctrl+A", lambda: self.viewer.select_page_text()),
+            ("Ctrl+A", self._select_all),
             ("Ctrl+D", self.show_properties),
             ("F4", self.toggle_sidebar),
             ("Escape", self._escape),
@@ -453,8 +454,17 @@ class DocumentTab(QWidget):
         self.search_bar.open_bar(text if text and "\n" not in text else "")
         self.area.layout_overlays()
 
+    def _select_all(self) -> None:
+        """Ctrl+A: todas las páginas si el foco está en las miniaturas; si no, el texto de la página."""
+        if self.thumbnails.hasFocus():
+            self.thumbnails.selectAll()
+        else:
+            self.viewer.select_page_text()
+
     def _escape(self) -> None:
-        if self.search_bar.isVisible():
+        if self.window().isFullScreen():
+            self.fullscreenRequested.emit()
+        elif self.search_bar.isVisible():
             self.search_bar.close_bar()
         elif self._tool_name not in ("select", "hand"):
             self.set_tool("select")
@@ -727,9 +737,9 @@ class DocumentTab(QWidget):
         if not self.document.is_modified:
             return True
         answer = confirm_discard(self, self.document.display_name)
-        if answer == answer.Save:
+        if answer == QMessageBox.StandardButton.Save:
             return self.save()
-        return answer == answer.Discard
+        return answer == QMessageBox.StandardButton.Discard
 
     def print_document(self) -> None:
         try:

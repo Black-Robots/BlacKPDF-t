@@ -108,7 +108,7 @@ class FormFillDialog(QDialog):
 
     def _values(self) -> dict:
         values = {}
-        for key, (kind, editor) in self._editors.items():
+        for key, (_kind, editor) in self._editors.items():
             if isinstance(editor, QCheckBox):
                 values[key] = editor.isChecked()
             elif isinstance(editor, QComboBox):

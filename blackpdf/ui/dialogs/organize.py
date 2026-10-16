@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QCoreApplication
-from PySide6.QtWidgets import QCheckBox, QSpinBox, QStackedWidget, QWidget
+from PySide6.QtWidgets import QCheckBox, QSpinBox, QWidget
 
 from ...core.document import needs_password, open_pdf
 from ...core.errors import BlackPdfError, WrongPasswordError

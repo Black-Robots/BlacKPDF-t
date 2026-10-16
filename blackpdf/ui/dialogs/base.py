@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pymupdf
-from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QImage, QPainter
 from PySide6.QtWidgets import (
     QDialog,

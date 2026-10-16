@@ -27,6 +27,12 @@ def main() -> int:
     # arrancan con este mismo ejecutable.
     multiprocessing.freeze_support()
 
+    for arg in sys.argv[1:]:
+        if arg == "--self-test" or arg.startswith("--self-test="):
+            from .selftest import run
+
+            return run(arg.partition("=")[2] or None)
+
     from PySide6.QtCore import QLibraryInfo, QLocale, Qt, QTranslator
     from PySide6.QtGui import QGuiApplication
     from PySide6.QtWidgets import QApplication
@@ -57,9 +63,11 @@ def main() -> int:
 
     paths = _arguments(sys.argv[1:])
     instance = SingleInstance()
-    if "--new-window" not in sys.argv and instance.send_to_running(paths):
-        return 0
-    instance.listen()
+    standalone = "--new-window" in sys.argv
+    if not standalone:
+        if instance.send_to_running(paths):
+            return 0
+        instance.listen()
 
     set_app_user_model_id()
     theme.load_fonts()

@@ -26,7 +26,6 @@ from PySide6.QtGui import (
     QMouseEvent,
     QNativeGestureEvent,
     QPainter,
-    QPen,
     QWheelEvent,
 )
 from PySide6.QtWidgets import QAbstractScrollArea, QMessageBox
@@ -334,7 +333,7 @@ class PdfViewer(QAbstractScrollArea):
             return
         index = max(0, min(index, len(self._rects) - 1))
         rect = self._rects[index]
-        target = rect.top() - MARGIN / 2
+        target = rect.top() - MARGIN / 2 - self._top_inset
         if y_pt is not None:
             target = rect.top() + y_pt * self.scale - self.viewport().height() / 4
         self._scroll_to(target, smooth)
