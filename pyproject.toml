@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "blackpdf"
+version = "1.0.0"
+description = "Visor y editor de PDF de escritorio, libre, gratuito y sin conexión."
+readme = "README.md"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
+authors = [{ name = "BlackPDF" }]
+requires-python = ">=3.12"
+dependencies = [
+    "PySide6-Essentials>=6.10",
+    "PyMuPDF>=1.26",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Environment :: X11 Applications :: Qt",
+    "Topic :: Office/Business",
+    "Natural Language :: Spanish",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pyinstaller>=6.10", "pillow>=11"]
+
+[project.gui-scripts]
+blackpdf = "blackpdf.app:main"
+
+[tool.setuptools.packages.find]
+include = ["blackpdf*"]
+
+[tool.setuptools.package-data]
+blackpdf = ["resources/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
