@@ -274,6 +274,7 @@ class CommentsPanel(QWidget):
         self._refresh_timer.setInterval(120)
         self._refresh_timer.timeout.connect(self.refresh)
         document.changed.connect(self._on_changed)
+        theme.manager().changed.connect(lambda: self._on_changed(None))
 
     # ---------- actualización ----------
     def _on_changed(self, pages) -> None:

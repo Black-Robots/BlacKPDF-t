@@ -158,7 +158,7 @@ class SplitPane(QWidget):
         viewer.set_night_mode(self.primary.night_mode)
         viewer.currentPageChanged.connect(self._update_page_label)
         viewer.verticalScrollBar().valueChanged.connect(self._secondary_scrolled)
-        model.changed.connect(lambda _: self._update_page_label())
+        model.changed.connect(self._update_page_label, Qt.ConnectionType.UniqueConnection)
         self.holder.addWidget(viewer)
         self.viewer = viewer
         viewer.set_fit_mode("auto")
