@@ -11,6 +11,7 @@ Disponible para **Windows 10/11** y **Linux**.
 - Scroll continuo con render por teselas (solo se dibuja lo visible), zoom con Ctrl+rueda, ajuste al ancho o a la página.
 - Modo noche que conserva los colores, pantalla completa, miniaturas, índice y búsqueda con resaltado.
 - Historial de navegación (Alt+Izquierda o botón Atrás del ratón) y enlaces internos y externos.
+- Vista dividida (Ctrl+\\): el mismo documento en dos puntos, otro PDF abierto o cualquier PDF del disco, con desplazamiento sincronizado opcional para comparar versiones.
 - Abre también imágenes, XPS y EPUB convirtiéndolos a PDF.
 
 **Organizar**
@@ -25,6 +26,11 @@ Disponible para **Windows 10/11** y **Linux**.
 - Proteger con AES-256 y desbloquear, recortar márgenes (automático o manual), cambiar el tamaño de página.
 - Rellenar formularios y aplanar.
 - Reconocimiento de texto (OCR) en español e inglés incluido, sin instalar nada más.
+
+**Comentarios**
+- Panel de comentarios por página con autor y fecha, cita del texto resaltado y respuestas en hilo.
+- Comentar una página, una anotación o un resaltado («Resaltar y comentar»); editar y eliminar con deshacer.
+- Compatibles con Acrobat y otros lectores (notas PDF estándar con respuestas /IRT).
 
 **Anotar y firmar**
 - Lápiz, resaltador, subrayado, tachado, rectángulo, elipse, flecha, línea, cuadro de texto y notas.
