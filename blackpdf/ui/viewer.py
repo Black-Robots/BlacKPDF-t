@@ -81,6 +81,8 @@ class PdfViewer(QAbstractScrollArea):
         self._tool = None
         self._pan_origin: QPointF | None = None
         self._pan_scroll = (0, 0)
+        self._back: list[tuple[int, float]] = []
+        self._forward: list[tuple[int, float]] = []
 
         self.setFrameShape(QAbstractScrollArea.Shape.NoFrame)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -340,6 +342,43 @@ class PdfViewer(QAbstractScrollArea):
         self._current = index
         self.currentPageChanged.emit(index)
 
+    # ---------- historial de navegación ----------
+    def _position(self) -> tuple[int, float]:
+        """Página actual y desplazamiento dentro de ella (en puntos)."""
+        page = self._current
+        if not self._rects:
+            return 0, 0.0
+        offset = (self.verticalScrollBar().value() - self._rects[page].top()) / self.scale
+        return page, offset
+
+    def _restore(self, position: tuple[int, float]) -> None:
+        page, offset = position
+        if 0 <= page < len(self._rects):
+            self._scroll_to(self._rects[page].top() + offset * self.scale, smooth=True)
+            self._current = page
+            self.currentPageChanged.emit(page)
+
+    def jump_to_page(self, index: int, y_pt: float | None = None) -> None:
+        """Salto (enlace, índice, número de página) que se puede deshacer con Atrás."""
+        self._back.append(self._position())
+        del self._back[:-50]
+        self._forward.clear()
+        self.go_to_page(index, y_pt)
+
+    def go_back(self) -> bool:
+        if not self._back:
+            return False
+        self._forward.append(self._position())
+        self._restore(self._back.pop())
+        return True
+
+    def go_forward(self) -> bool:
+        if not self._forward:
+            return False
+        self._back.append(self._position())
+        self._restore(self._forward.pop())
+        return True
+
     def ensure_visible(self, page: int, rect_pt: QRectF) -> None:
         rect = self.page_rect_to_viewport(page, rect_pt)
         view = QRectF(self.viewport().rect()).adjusted(24, 24, -24, -24)
@@ -416,7 +455,7 @@ class PdfViewer(QAbstractScrollArea):
 
     def follow_link(self, link: navigation.PageLink) -> None:
         if link.page >= 0:
-            self.go_to_page(link.page)
+            self.jump_to_page(link.page)
             return
         url = QUrl(link.uri)
         if url.scheme().lower() not in ("http", "https", "mailto"):
@@ -493,6 +532,8 @@ class PdfViewer(QAbstractScrollArea):
     # ======================================================================
     def _on_model_changed(self, pages) -> None:
         if pages is None:
+            self._back.clear()
+            self._forward.clear()
             self._words.clear()
             self._links.clear()
             self._search_hits.clear()
@@ -643,6 +684,12 @@ class PdfViewer(QAbstractScrollArea):
     # ---------- ratón ----------
     def mousePressEvent(self, event: QMouseEvent) -> None:
         self.setFocus(Qt.FocusReason.MouseFocusReason)
+        if event.button() == Qt.MouseButton.BackButton:
+            self.go_back()
+            return
+        if event.button() == Qt.MouseButton.ForwardButton:
+            self.go_forward()
+            return
         if event.button() == Qt.MouseButton.MiddleButton:
             self._start_pan(event.position())
             return

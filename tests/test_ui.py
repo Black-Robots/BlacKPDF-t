@@ -318,3 +318,65 @@ def test_home_tools_and_theme(qapp, window):
     window.toggle_theme()
     assert theme.current().is_dark
     assert window.home.recent_grid is not None
+
+
+def test_organizer_mode_reorders_and_acts(qapp, opened):
+    _, tab, _ = opened
+    tab.set_organize_mode(True)
+    pump(qapp, 0.3)
+    assert tab.view_stack.currentWidget() is tab.organizer_panel
+    view = tab.organizer
+    model = tab.thumb_model
+    mime = model.mimeData([model.index(0, 0)])
+    last = view.visualRect(model.index(3, 0))
+    _drop(view, mime, QPoint(last.right() - 4, last.center().y()))
+    assert page_labels(tab.document.doc) == ["P2", "P3", "P4", "P1"]
+    view.rotateRequested.emit([1], 90)
+    assert tab.document.doc[1].rotation == 90
+    view.select_pages([0, 1])
+    tab.delete_pages()
+    assert tab.document.page_count == 2
+    view.openPage.emit(1)
+    assert tab.view_stack.currentWidget() is tab.area
+    assert tab.viewer.current_page == 1
+
+
+def test_redact_tool_removes_content(qapp, opened):
+    _, tab, _ = opened
+    tab.set_tool("redact")
+    drag(tab.viewer, 0, QPointF(60, 120), QPointF(400, 150))
+    text = tab.document.doc[0].get_text()
+    assert "ejemplo" not in text and "P1" in text
+    tab.undo()
+    assert "ejemplo" in tab.document.doc[0].get_text()
+
+
+def test_navigation_history(qapp, opened):
+    _, tab, _ = opened
+    viewer = tab.viewer
+    viewer.go_to_page(0, smooth=False)
+    pump(qapp, 0.05)
+    viewer.jump_to_page(3)
+    pump(qapp, 0.3)
+    assert viewer.current_page == 3
+    assert viewer.go_back()
+    pump(qapp, 0.3)
+    assert viewer.current_page == 0
+    assert viewer.go_forward()
+    assert viewer.current_page == 3
+
+
+def test_reading_position_is_restored(qapp, window, tmp_path):
+    from blackpdf.ui.settings import settings
+
+    path = tmp_path / "largo.pdf"
+    build_pdf(6).save(path)
+    settings().set_reading_position(str(path), 4, 1.0, "auto")
+    window.open_files([str(path)])
+    pump(qapp, 0.5)
+    tab = window.current_tab()
+    assert tab.viewer.current_page == 4
+    tab.viewer.go_to_page(2, smooth=False)
+    pump(qapp, 0.1)
+    window.close_current_tab()
+    assert settings().reading_position(str(path))["page"] == 2

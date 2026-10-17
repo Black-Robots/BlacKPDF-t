@@ -7,6 +7,7 @@ va bien. Pensado para validar las compilaciones de Windows y Linux.
 
 from __future__ import annotations
 
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -22,6 +23,46 @@ def _report(lines: list[str], target: str | None) -> None:
             sys.stdout.flush()
         except (OSError, ValueError):
             pass
+
+
+def _gui_check() -> bool:
+    """Crea la ventana principal sin pantalla, abre un PDF y renderiza una página."""
+    import time
+
+    import pymupdf
+    from PySide6.QtWidgets import QApplication
+
+    from PySide6.QtCore import QSettings
+
+    app = QApplication.instance() or QApplication(["BlackPDF", "-platform", "offscreen"])
+    from .ui import theme
+    from .ui.main_window import MainWindow
+
+    theme.load_fonts()
+    theme.manager().apply("dark")
+    with tempfile.TemporaryDirectory() as folder:
+        # Preferencias en una carpeta temporal: la prueba no toca las del usuario.
+        QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, folder)
+        path = Path(folder) / "interfaz.pdf"
+        doc = pymupdf.open()
+        doc.new_page().insert_text((72, 72), "Interfaz", fontsize=18)
+        doc.save(path)
+        doc.close()
+        window = MainWindow()
+        window.resize(1100, 760)
+        window.show()
+        window.open_files([str(path)])
+        end = time.monotonic() + 1.5
+        while time.monotonic() < end:
+            app.processEvents()
+            time.sleep(0.01)
+        tab = window.current_tab()
+        ok = tab is not None and tab.renderer.thumbnail(0) is not None and not window.grab().isNull()
+        if tab is not None:
+            tab.document._modified = False
+        window.close()
+        app.processEvents()
+        return ok
 
 
 def run(target: str | None = None) -> int:
@@ -61,6 +102,13 @@ def run(target: str | None = None) -> int:
             check("subproceso de trabajo", output.exists() and result.compressed_size > 0)
     except Exception as exc:  # cualquier fallo debe quedar en el informe
         check("ejecución", False, repr(exc))
+    if os.environ.get("BLACKPDF_SELFTEST_SKIP_GUI"):
+        lines.append("SKIP interfaz")
+    else:
+        try:
+            check("interfaz", _gui_check())
+        except Exception as exc:
+            check("interfaz", False, repr(exc))
     lines.append("RESULTADO: " + ("OK" if ok else "FALLO"))
     _report(lines, target)
     return 0 if ok else 1

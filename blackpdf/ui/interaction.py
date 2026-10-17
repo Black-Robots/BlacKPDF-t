@@ -903,6 +903,62 @@ class EraserTool(AnnotationTool):
         painter.drawRect(self._hover[2].adjusted(-2, -2, 2, 2))
 
 
+class RedactTool(AnnotationTool):
+    """Censura: arrastra sobre una zona para eliminar su contenido de forma definitiva."""
+
+    name = "redact"
+
+    def __init__(self, viewer):
+        super().__init__(viewer, "redact")
+        self._page = -1
+        self._start = QPointF()
+        self._end = QPointF()
+
+    def cursor(self):
+        return QCursor(Qt.CursorShape.CrossCursor)
+
+    def press(self, event):
+        hit = self.viewer.hit_test(event.position())
+        if hit is None:
+            return
+        self._page = hit.page
+        self._start = self._end = hit.point
+
+    def move(self, event):
+        if self._page < 0:
+            return
+        hit = self.viewer.hit_test(event.position(), clamp=True)
+        if hit is not None and hit.page == self._page:
+            self._end = hit.point
+            self.update()
+
+    def release(self, event):
+        if self._page < 0:
+            return
+        page = self._page
+        area = QRectF(self._start, self._end).normalized()
+        self.cancel()
+        if area.width() * self.viewer.scale < 4 or area.height() * self.viewer.scale < 4:
+            return
+        rect = pymupdf.Rect(area.left(), area.top(), area.right(), area.bottom())
+        if self.apply(self.tr("Censurar"), page, lambda pg: core_annots.redact_areas(pg, [rect])):
+            self.finished.emit()
+
+    def cancel(self):
+        self._page = -1
+        self.update()
+
+    def paint_page(self, painter, page):
+        if page != self._page:
+            return
+        area = QRectF(self._start, self._end).normalized()
+        fill = QColor(0, 0, 0)
+        fill.setAlphaF(0.55)
+        painter.setBrush(fill)
+        painter.setPen(QPen(theme.color("accent"), 1.0 / max(self.viewer.scale, 0.1) * 1.5, Qt.PenStyle.DashLine))
+        painter.drawRect(area)
+
+
 TOOL_CLASSES = {
     "select": SelectTool,
     "hand": HandTool,
@@ -918,6 +974,7 @@ TOOL_CLASSES = {
     "note": NoteTool,
     "signature": SignatureTool,
     "eraser": EraserTool,
+    "redact": RedactTool,
 }
 
 STYLED_TOOLS = ("pen", "highlight", "underline", "strikeout", "rect", "ellipse", "line", "arrow", "text", "note", "signature")

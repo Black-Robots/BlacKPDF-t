@@ -14,7 +14,7 @@ TOOL_GROUPS = (
     (("pen", "pencil"), ("highlight", "highlighter"), ("underline", "underline"), ("strikeout", "strikethrough")),
     (("rect", "square"), ("ellipse", "circle"), ("arrow", "move-up-right"), ("line", "minus")),
     (("text", "type"), ("note", "sticky-note"), ("signature", "signature")),
-    (("eraser", "eraser"),),
+    (("redact", "eye-off"), ("eraser", "eraser")),
 )
 
 
@@ -34,12 +34,13 @@ def tool_labels(tr) -> dict[str, str]:
         "note": tr("Nota (N)"),
         "signature": tr("Firma (F)"),
         "eraser": tr("Goma: borra la anotación bajo el cursor (E)"),
+        "redact": tr("Censurar: elimina de forma definitiva lo que cubras (C)"),
     }
 
 
 TOOL_SHORTCUTS = {
     "select": "V", "hand": "H", "pen": "P", "highlight": "R", "underline": "U",
-    "strikeout": "T", "text": "X", "note": "N", "signature": "F", "eraser": "E",
+    "strikeout": "T", "text": "X", "note": "N", "signature": "F", "eraser": "E", "redact": "C",
 }
 
 

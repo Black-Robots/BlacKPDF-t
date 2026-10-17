@@ -1,23 +1,25 @@
-# PDF Black — guía para Claude Code
+# BlackPDF — guía para Claude Code
 
 Visor y editor de PDF de escritorio, libre y gratuito. Todo lo de iLovePDF, pero offline y en local.
 Para todo el mundo. Estética muy cuidada y moderna.
 
 ## Stack
-- Python 3.10+, PySide6 (Qt 6), PyMuPDF (`pymupdf`) para render y edición.
+- Python 3.12+ (se usa la última estable, gestionada con `uv`), PySide6-Essentials (Qt 6), PyMuPDF (`pymupdf`).
 - Licencia del proyecto: AGPL-3.0 (obligatoria por PyMuPDF).
-- Empaquetado: PyInstaller (Linux AppImage, Windows .exe).
+- Empaquetado: PyInstaller (Linux AppImage + .deb, Windows instalador Inno Setup con «Abrir con»). Ver `packaging/` y README.
 - Gestión: `pyproject.toml` + venv. Tests con `pytest`.
 
 ## Arquitectura (respetar SIEMPRE)
 ```
-pdfblack/core/   → operaciones PDF puras con PyMuPDF. PROHIBIDO importar Qt.
-pdfblack/ui/     → ventanas, visor, miniaturas, diálogos, tema.
-pdfblack/app.py  → punto de entrada.
+blackpdf/core/   → operaciones PDF puras con PyMuPDF. PROHIBIDO importar Qt.
+blackpdf/ui/     → ventanas, visor, miniaturas, diálogos, tema.
+blackpdf/procworker.py → ejecuta herramientas en un subproceso (sin Qt).
+blackpdf/app.py  → punto de entrada.
 tests/           → tests de core con PDFs generados en el propio test.
 ```
 - Cada herramienta = función en `core` (entrada: rutas o `fitz.Document`, salida: documento/archivo) + diálogo en `ui`.
-- Operaciones largas en hilo aparte (`QThreadPool`) con barra de progreso; la UI nunca se congela.
+- Operaciones largas fuera del hilo de la UI con barra de progreso: un `QRunnable` del `QThreadPool` supervisa un subproceso (`procworker`), porque PyMuPDF se inicializa en modo monohilo y no es seguro usarlo desde varios hilos. El render del visor va troceado en el hilo de la UI.
+- Coordenadas: `core/annotations.py` y la UI trabajan en coordenadas *visibles* (`page.rect`); la conversión a PDF sin rotar se hace en core con `derotation_matrix`.
 - Deshacer/rehacer en el editor (snapshot `doc.tobytes()` por operación, máx. 30).
 - Nunca sobrescribir el original sin "Guardar"; "Guardar como" por defecto en herramientas.
 
@@ -44,7 +46,7 @@ tests/           → tests de core con PDFs generados en el propio test.
 - Proteger con contraseña (AES-256) y desbloquear.
 - Recortar márgenes, redimensionar a A4/Carta.
 - Rellenar formularios y aplanar.
-- OCR: fase 2 (Tesseract opcional).
+- OCR con el Tesseract integrado en MuPDF; datos de español e inglés incluidos en `resources/tessdata`.
 
 **Anotar y pintar**
 - Lápiz libre (color, grosor), resaltador, subrayado, tachado.
@@ -53,8 +55,8 @@ tests/           → tests de core con PDFs generados en el propio test.
 - Goma: borra la anotación bajo el cursor. Las anotaciones se guardan como anotaciones PDF estándar.
 
 ## Diseño visual (prioridad alta)
-- Tema oscuro grafito por defecto + claro. Colores SOLO desde `pdfblack/ui/theme.py`.
-- Acento: rojo `#E5484D` (identidad PDF Black) sobre negro/grafito.
+- Tema oscuro grafito por defecto + claro. Colores SOLO desde `blackpdf/ui/theme.py`.
+- Acento: rojo `#E5484D` (identidad BlackPDF) sobre negro/grafito. Icono: folio con borde rojo sobre negro. Sin emojis.
 - Tipografía Inter, iconos Lucide (SVG), bordes redondeados 8 px, espaciado múltiplo de 4.
 - Pantalla de inicio con las herramientas en tarjetas (como iLovePDF) + zona para soltar archivos.
 - Barra de anotación flotante sobre el visor. Animaciones cortas (150-200 ms).
@@ -64,7 +66,7 @@ tests/           → tests de core con PDFs generados en el propio test.
 1. Toda función de `core` lleva test en `tests/`.
 2. Textos de UI en español con `self.tr()`.
 3. Errores al usuario con mensajes claros, nunca trazas.
-4. Antes de dar una tarea por terminada: `pytest` en verde y la app arranca.
+4. Antes de dar una tarea por terminada: `pytest` en verde y la app arranca (`python -m blackpdf --self-test`).
 5. Cambios pequeños y enfocados.
 
 ## Orden de trabajo

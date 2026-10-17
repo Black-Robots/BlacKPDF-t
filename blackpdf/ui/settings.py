@@ -129,6 +129,23 @@ class Settings:
             folder = folder.parent
         self._qs.setValue("files/lastDirectory", str(folder))
 
+    # ---------- posición de lectura ----------
+    def reading_position(self, path: str) -> dict | None:
+        data = self._json("files/positions", {})
+        entry = data.get(os.path.normcase(str(Path(path).resolve()))) if isinstance(data, dict) else None
+        return entry if isinstance(entry, dict) else None
+
+    def set_reading_position(self, path: str, page: int, zoom: float, fit: str) -> None:
+        data = self._json("files/positions", {})
+        if not isinstance(data, dict):
+            data = {}
+        key = os.path.normcase(str(Path(path).resolve()))
+        data.pop(key, None)
+        data[key] = {"page": int(page), "zoom": round(float(zoom), 4), "fit": fit}
+        while len(data) > 200:
+            data.pop(next(iter(data)))
+        self._set_json("files/positions", data)
+
     # ---------- anotaciones ----------
     def tool_style(self, tool: str) -> dict:
         return self._json(f"annotate/{tool}", {})

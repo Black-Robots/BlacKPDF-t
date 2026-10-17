@@ -38,7 +38,8 @@ WizardStyle=modern
 WizardSizePercent=110
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-MinVersion=10.0
+; Qt 6 usa la ICU de Windows (icuuc.dll), disponible desde Windows 10 1903.
+MinVersion=10.0.18362
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 ChangesAssociations=yes

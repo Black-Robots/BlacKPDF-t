@@ -115,6 +115,7 @@ class SearchBar(QFrame):
     """Barra flotante de búsqueda (Ctrl+F)."""
 
     closed = Signal()
+    redactRequested = Signal(str)
 
     def __init__(self, controller: SearchController, parent=None):
         super().__init__(parent)
@@ -140,7 +141,10 @@ class SearchBar(QFrame):
         self.prev_button = IconButton("chevron-up", self.tr("Anterior (Mayús+Intro)"), size=28, icon_size=16)
         self.next_button = IconButton("chevron-down", self.tr("Siguiente (Intro)"), size=28, icon_size=16)
         self.close_button = IconButton("x", self.tr("Cerrar (Esc)"), size=28, icon_size=16)
-        for button in (self.prev_button, self.next_button, self.close_button):
+        self.redact_button = IconButton("eye-off", self.tr("Censurar todas las apariciones"), size=28, icon_size=16)
+        self.redact_button.clicked.connect(lambda: self.redactRequested.emit(self.controller.query))
+        self.redact_button.setEnabled(False)
+        for button in (self.prev_button, self.next_button, self.redact_button, self.close_button):
             layout.addWidget(button)
         self.prev_button.clicked.connect(controller.previous)
         self.next_button.clicked.connect(controller.next)
@@ -171,6 +175,7 @@ class SearchBar(QFrame):
         self.closed.emit()
 
     def _on_progress(self, count: int, done: bool) -> None:
+        self.redact_button.setEnabled(done and count > 0)
         if not self.controller.query:
             self.count.setText("")
         elif count == 0:

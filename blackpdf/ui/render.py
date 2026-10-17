@@ -20,10 +20,10 @@ from . import theme
 from .document import PdfDocument
 
 TILE = 512
-THUMB_WIDTH = 168
+THUMB_WIDTH = 240
 MAX_TILE_BYTES = 320 * 1024 * 1024
 MAX_DISPLAY_LISTS = 32
-MAX_THUMBS = 2000
+MAX_THUMBS = 600
 SLICE_SECONDS = 0.012
 
 

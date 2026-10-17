@@ -299,3 +299,41 @@ def set_note_text(page: pymupdf.Page, xref: int, text: str) -> bool:
             annot.update()
             return True
     return False
+
+
+def redact_areas(
+    page: pymupdf.Page,
+    rects: Sequence[pymupdf.Rect],
+    fill: Color = (0.0, 0.0, 0.0),
+) -> int:
+    """Censura definitiva: elimina texto, imágenes y dibujos bajo cada zona.
+
+    No es una anotación: el contenido desaparece del archivo y en su lugar
+    queda un recuadro del color indicado. Devuelve cuántas zonas se aplicaron.
+    """
+    areas = [pymupdf.Rect(r).normalize() for r in rects]
+    areas = [r for r in areas if r.width >= 1 and r.height >= 1]
+    if not areas:
+        raise InvalidOptionError("zona vacía", option="rects")
+    for area in areas:
+        page.add_redact_annot(_rect_to_page(page, area), fill=fill, cross_out=False)
+    page.apply_redactions(
+        images=pymupdf.PDF_REDACT_IMAGE_PIXELS,
+        graphics=pymupdf.PDF_REDACT_LINE_ART_REMOVE_IF_COVERED,
+        text=pymupdf.PDF_REDACT_TEXT_REMOVE,
+    )
+    return len(areas)
+
+
+def redact_text(doc: pymupdf.Document, query: str, fill: Color = (0.0, 0.0, 0.0)) -> int:
+    """Censura todas las apariciones de `query` en el documento. Devuelve cuántas."""
+    query = query.strip()
+    if not query:
+        raise InvalidOptionError("texto vacío", option="query")
+    total = 0
+    for page in doc:
+        hits = page.search_for(query)
+        if hits:
+            redact_areas(page, [pymupdf.Rect(h) * page.rotation_matrix for h in hits], fill)
+            total += len(hits)
+    return total

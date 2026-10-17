@@ -32,13 +32,13 @@ from .dialogs.common import PropertiesDialog, ask_password, confirm_discard
 from .dialogs.signature import SignatureDialog
 from .document import PdfDocument
 from .errors import show_error
-from .interaction import STYLED_TOOLS, SignatureTool, create_tool
+from .interaction import STYLED_TOOLS, RedactTool, SignatureTool, create_tool
 from .outline import OutlinePanel
 from .printing import print_document
 from .render import PageRenderer
 from .search import SearchBar, SearchController
 from .settings import settings
-from .thumbnails import ThumbnailModel, ThumbnailView
+from .thumbnails import OrganizerView, ThumbnailModel, ThumbnailView
 from .viewer import PdfViewer
 from .widgets import Button, IconButton, SegmentedControl, Toast, open_filter, pdf_filter, separator
 
@@ -105,8 +105,14 @@ class DocumentTab(QWidget):
         self.splitter.setHandleWidth(1)
         self.sidebar = self._build_sidebar()
         self.area = ViewerArea(self.viewer)
+        self.organizer_panel = self._build_organizer()
+        self.view_stack = QStackedWidget(self)
+        self.view_stack.addWidget(self.area)
+        self.view_stack.addWidget(self.organizer_panel)
+        self._organizing = False
+        self._sidebar_before_organize = True
         self.splitter.addWidget(self.sidebar)
-        self.splitter.addWidget(self.area)
+        self.splitter.addWidget(self.view_stack)
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
         self.splitter.splitterMoved.connect(self._sidebar_resized)
@@ -116,6 +122,7 @@ class DocumentTab(QWidget):
         self.search_bar = SearchBar(self.search_controller, self.area)
         self.search_bar.hide()
         self.search_bar.closed.connect(self.viewer.setFocus)
+        self.search_bar.redactRequested.connect(self.redact_search_results)
         self.area.search_bar = self.search_bar
 
         self.annotation_bar = AnnotationBar(self.area)
@@ -166,6 +173,8 @@ class DocumentTab(QWidget):
 
         self.sidebar_button = self._button("panel-left", self.tr("Panel lateral"), self.toggle_sidebar, "F4", True)
         layout.addWidget(self.sidebar_button)
+        self.organize_button = self._button("layout-grid", self.tr("Organizar páginas"), self.toggle_organize, "Ctrl+G", True)
+        layout.addWidget(self.organize_button)
         layout.addSpacing(4)
         layout.addWidget(separator(True))
         layout.addSpacing(4)
@@ -285,7 +294,7 @@ class DocumentTab(QWidget):
         self.thumb_model.movePages.connect(self.move_pages)
         self.thumb_model.insertFiles.connect(self.insert_files)
         self.outline = OutlinePanel(self.document, frame)
-        self.outline.pageRequested.connect(lambda p: self.viewer.go_to_page(p))
+        self.outline.pageRequested.connect(lambda p: self.viewer.jump_to_page(p))
         self.sidebar_stack.addWidget(self.thumbnails)
         self.sidebar_stack.addWidget(self.outline)
         layout.addWidget(self.sidebar_stack, 1)
@@ -309,13 +318,106 @@ class DocumentTab(QWidget):
         self.add_pdf_button.setVisible(pages)
         self.sidebar_hint.setVisible(pages)
 
+    def _build_organizer(self) -> QWidget:
+        panel = QWidget(self)
+        panel.setObjectName("OrganizerPanel")
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        bar = QFrame(panel)
+        bar.setObjectName("DocToolbar")
+        bar_layout = QHBoxLayout(bar)
+        bar_layout.setContentsMargins(20, 10, 16, 10)
+        bar_layout.setSpacing(6)
+        texts = QVBoxLayout()
+        texts.setSpacing(2)
+        title = QLabel(self.tr("Organizar páginas"))
+        title.setProperty("role", "cardtitle")
+        hint = QLabel(self.tr("Arrastra las páginas para reordenarlas. Ctrl+rueda cambia el tamaño. "
+                              "Doble clic abre la página."))
+        hint.setProperty("role", "caption")
+        texts.addWidget(title)
+        texts.addWidget(hint)
+        bar_layout.addLayout(texts, 1)
+        for icon_name, text, slot in (
+            ("file-plus", self.tr("Añadir PDF"), self.add_document_pages),
+            ("file-plus-2", self.tr("Página en blanco"), lambda: self.insert_blank(True)),
+        ):
+            button = Button(text, "ghost", icon_name, bar)
+            button.clicked.connect(slot)
+            bar_layout.addWidget(button)
+        bar_layout.addWidget(separator(True))
+        for icon_name, tip, slot in (
+            ("rotate-ccw", self.tr("Girar a la izquierda"), lambda: self.rotate_pages(-90)),
+            ("rotate-cw", self.tr("Girar a la derecha"), lambda: self.rotate_pages(90)),
+            ("copy", self.tr("Duplicar"), self.duplicate_pages),
+            ("file-output", self.tr("Extraer a un PDF nuevo"), self.extract_pages),
+            ("trash-2", self.tr("Eliminar"), self.delete_pages),
+        ):
+            button = IconButton(icon_name, tip, bar)
+            button.clicked.connect(slot)
+            bar_layout.addWidget(button)
+        bar_layout.addWidget(separator(True))
+        done = Button(self.tr("Volver al documento"), "primary", "check", bar)
+        done.clicked.connect(lambda: self.set_organize_mode(False))
+        bar_layout.addWidget(done)
+        layout.addWidget(bar)
+        self.organizer = OrganizerView(panel)
+        self.organizer.setModel(self.thumb_model)
+        self.organizer.setObjectName("Organizer")
+        self.organizer.rotateRequested.connect(lambda pages, angle: self.rotate_pages(angle, pages))
+        self.organizer.deleteRequested.connect(lambda pages: self.delete_pages(pages))
+        self.organizer.openPage.connect(self._open_from_organizer)
+        self.organizer.contextMenuAt.connect(lambda pos: self._thumbnail_menu(pos, self.organizer))
+        layout.addWidget(self.organizer, 1)
+        return panel
+
+    def toggle_organize(self) -> None:
+        self.set_organize_mode(not self._organizing)
+
+    def set_organize_mode(self, on: bool) -> None:
+        if on == self._organizing:
+            self.organize_button.setChecked(on)
+            return
+        self._organizing = on
+        self.organize_button.setChecked(on)
+        if on:
+            if self.viewer.tool is not None:
+                self.viewer.tool.cancel()
+            if self.search_bar.isVisible():
+                self.search_bar.close_bar()
+            self._sidebar_before_organize = self.splitter.sizes()[0] > 20
+            self.organizer.select_pages(self.thumbnails.selected_pages() or [self.viewer.current_page])
+            self.view_stack.setCurrentWidget(self.organizer_panel)
+            self._apply_sidebar_width(0)
+            self.organizer.setFocus()
+        else:
+            self.view_stack.setCurrentWidget(self.area)
+            if self._sidebar_before_organize:
+                self._apply_sidebar_width(self._sidebar_width)
+            self.viewer.setFocus()
+        for widget in (self.zoom_out_button, self.zoom_box, self.zoom_in_button, self.fit_width_button,
+                       self.fit_page_button, self.annotate_button, self.search_button, self.sidebar_button):
+            widget.setEnabled(not on)
+
+    def _open_from_organizer(self, page: int) -> None:
+        self.set_organize_mode(False)
+        self.viewer.go_to_page(page, smooth=False)
+
+    def page_view(self) -> ThumbnailView:
+        """Vista de páginas activa: la cuadrícula de organizar o el panel lateral."""
+        return self.organizer if self._organizing else self.thumbnails
+
     def _install_shortcuts(self) -> None:
         context = Qt.ShortcutContext.WidgetWithChildrenShortcut
         for name, key in TOOL_SHORTCUTS.items():
             shortcut = QShortcut(QKeySequence(key), self, context=context)
             shortcut.activated.connect(lambda n=name: self.set_tool(n))
-        delete = QShortcut(QKeySequence(QKeySequence.StandardKey.Delete), self.thumbnails, context=Qt.ShortcutContext.WidgetShortcut)
-        delete.activated.connect(self.delete_pages)
+        for view in (self.thumbnails, self.organizer):
+            delete = QShortcut(QKeySequence(QKeySequence.StandardKey.Delete), view, context=Qt.ShortcutContext.WidgetShortcut)
+            delete.activated.connect(self.delete_pages)
+        organize = QShortcut(QKeySequence("Ctrl+G"), self, context=context)
+        organize.activated.connect(self.toggle_organize)
         for key, slot in (
             ("Ctrl+Shift+L", lambda: self.rotate_pages(-90)),
             ("Ctrl+Shift+R", lambda: self.rotate_pages(90)),
@@ -331,6 +433,8 @@ class DocumentTab(QWidget):
             ("Escape", self._escape),
             ("Right", self.viewer.next_page),
             ("Left", self.viewer.previous_page),
+            ("Alt+Left", self.viewer.go_back),
+            ("Alt+Right", self.viewer.go_forward),
         ):
             shortcut = QShortcut(QKeySequence(key), self, context=context)
             shortcut.activated.connect(slot)
@@ -341,8 +445,23 @@ class DocumentTab(QWidget):
         self._apply_sidebar_width(self._sidebar_width if visible else 0)
         self._update_top_inset()
         self.area.layout_overlays()
-        self.viewer.set_fit_mode("auto")
+        saved = settings().reading_position(self.document.path) if self.document.path else None
+        if saved and 0 <= int(saved.get("page", 0)) < self.document.page_count:
+            fit = str(saved.get("fit", "auto"))
+            if fit:
+                self.viewer.set_fit_mode(fit)
+            else:
+                self.viewer.set_zoom(float(saved.get("zoom", 1.0)))
+            self.viewer.go_to_page(int(saved["page"]), smooth=False)
+        else:
+            self.viewer.set_fit_mode("auto")
         self.viewer.setFocus()
+
+    def remember_position(self) -> None:
+        if self.document.path:
+            settings().set_reading_position(
+                self.document.path, self.viewer.current_page, self.viewer.zoom, self.viewer.fit_mode
+            )
 
     # ======================================================================
     # Estado
@@ -387,7 +506,7 @@ class DocumentTab(QWidget):
         except ValueError:
             self._on_page(self.viewer.current_page)
             return
-        self.viewer.go_to_page(number - 1)
+        self.viewer.jump_to_page(number - 1)
         self.viewer.setFocus()
 
     def _zoom_from_text(self) -> None:
@@ -487,6 +606,9 @@ class DocumentTab(QWidget):
             tool = create_tool(name, self.viewer)
             if isinstance(tool, SignatureTool):
                 tool.finished.connect(lambda: self.set_tool("select"))
+            if isinstance(tool, RedactTool):
+                tool.finished.connect(lambda: Toast.show_message(
+                    self.window(), self.tr("Contenido censurado de forma definitiva"), self.tr("Deshacer"), self.undo))
             self._tools[name] = tool
         if isinstance(tool, SignatureTool) and strokes:
             tool.set_strokes(strokes)
@@ -508,7 +630,7 @@ class DocumentTab(QWidget):
     # Páginas
     # ======================================================================
     def target_pages(self) -> list[int]:
-        selected = self.thumbnails.selected_pages()
+        selected = self.page_view().selected_pages()
         return selected if selected else [self.viewer.current_page]
 
     def _edit(self, label: str, operation, pages=None):
@@ -520,12 +642,12 @@ class DocumentTab(QWidget):
             show_error(self, exc, label)
         return None
 
-    def rotate_pages(self, angle: int) -> None:
-        pages = self.target_pages()
+    def rotate_pages(self, angle: int, pages: list[int] | None = None) -> None:
+        pages = pages or self.target_pages()
         self._edit(self.tr("Girar páginas"), lambda doc: core_pages.rotate_pages(doc, pages, angle), pages)
 
-    def delete_pages(self) -> None:
-        pages = self.target_pages()
+    def delete_pages(self, pages: list[int] | None = None) -> None:
+        pages = pages or self.target_pages()
         try:
             self.document.edit(self.tr("Eliminar páginas"), lambda doc: core_pages.delete_pages(doc, pages))
         except BlackPdfError as exc:
@@ -539,21 +661,21 @@ class DocumentTab(QWidget):
         pages = self.target_pages()
         result = self._edit(self.tr("Duplicar páginas"), lambda doc: core_pages.duplicate_pages(doc, pages))
         if result:
-            self.thumbnails.select_pages(result)
+            self.page_view().select_pages(result)
 
     def move_pages(self, rows: list, target: int) -> None:
         if not rows:
             return
         result = self._edit(self.tr("Mover páginas"), lambda doc: core_pages.move_pages(doc, rows, target))
         if result:
-            QTimer.singleShot(0, lambda: self.thumbnails.select_pages(result))
+            QTimer.singleShot(0, lambda: self.page_view().select_pages(result))
 
     def insert_blank(self, after: bool = True) -> None:
         pages = self.target_pages()
         index = (max(pages) + 1) if after else min(pages)
         result = self._edit(self.tr("Insertar página en blanco"), lambda doc: core_pages.insert_blank_page(doc, index))
         if result is not None:
-            QTimer.singleShot(0, lambda: (self.thumbnails.select_pages([result]), self.viewer.go_to_page(result)))
+            QTimer.singleShot(0, lambda: (self.page_view().select_pages([result]), self.viewer.go_to_page(result)))
 
     def add_document_pages(self) -> None:
         """Añade otro PDF (o imágenes) al final del documento."""
@@ -605,7 +727,31 @@ class DocumentTab(QWidget):
             text = self.tr("1 página añadida") if count == 1 else self.tr("{0} páginas añadidas").format(count)
             Toast.show_message(self.window(), text + ". " + self.tr("Arrastra las miniaturas para colocarlas."),
                                kind="success")
-            QTimer.singleShot(0, lambda: (self.thumbnails.select_pages(result), self.viewer.go_to_page(result[0])))
+            QTimer.singleShot(0, lambda: (self.page_view().select_pages(result), self.viewer.go_to_page(result[0])))
+
+    def redact_search_results(self, query: str) -> None:
+        from ..core.annotations import redact_text
+
+        count = len(self.search_controller.hits)
+        if not query or not count:
+            return
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle(self.tr("Censurar"))
+        box.setText("<b>" + self.tr("¿Censurar {0} apariciones de «{1}»?").format(count, query) + "</b>")
+        box.setInformativeText(self.tr(
+            "El texto se eliminará del documento y quedará un recuadro negro en su lugar. "
+            "Puedes deshacerlo con Ctrl+Z mientras no cierres el documento."))
+        box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+        box.button(QMessageBox.StandardButton.Yes).setText(self.tr("Censurar"))
+        box.button(QMessageBox.StandardButton.Cancel).setText(self.tr("Cancelar"))
+        if box.exec() != QMessageBox.StandardButton.Yes:
+            return
+        result = self._edit(self.tr("Censurar"), lambda doc: redact_text(doc, query))
+        if result:
+            self.search_bar.close_bar()
+            Toast.show_message(self.window(), self.tr("{0} apariciones censuradas").format(result),
+                               self.tr("Deshacer"), self.undo)
 
     def extract_pages(self) -> None:
         pages = self.target_pages()
@@ -614,7 +760,8 @@ class DocumentTab(QWidget):
 
     def request_tool(self, tool_id: str, preset: dict | None = None) -> None:
         options = dict(preset or {})
-        options.setdefault("pages", format_page_ranges(self.thumbnails.selected_pages()) if len(self.thumbnails.selected_pages()) > 1 else "")
+        selected = self.page_view().selected_pages()
+        options.setdefault("pages", format_page_ranges(selected) if len(selected) > 1 else "")
         self.toolRequested.emit(tool_id, options)
 
     # ======================================================================
@@ -639,13 +786,14 @@ class DocumentTab(QWidget):
                                 self.tr("Eliminar páginas") if plural else self.tr("Eliminar página"), self.delete_pages)
         delete.setShortcut(QKeySequence(QKeySequence.StandardKey.Delete))
 
-    def _thumbnail_menu(self, pos: QPoint) -> None:
-        index = self.thumbnails.indexAt(pos)
-        if index.isValid() and index.row() not in self.thumbnails.selected_pages():
-            self.thumbnails.select_pages([index.row()])
+    def _thumbnail_menu(self, pos: QPoint, view: ThumbnailView | None = None) -> None:
+        view = view or self.thumbnails
+        index = view.indexAt(pos)
+        if index.isValid() and index.row() not in view.selected_pages():
+            view.select_pages([index.row()])
         menu = QMenu(self)
         self._page_actions(menu)
-        menu.exec(self.thumbnails.viewport().mapToGlobal(pos))
+        menu.exec(view.viewport().mapToGlobal(pos))
 
     def _viewer_menu(self, global_pos, hit) -> None:
         menu = QMenu(self)
@@ -751,6 +899,7 @@ class DocumentTab(QWidget):
         PropertiesDialog(document_info(self.document.doc), self.document.path, self).exec()
 
     def shutdown(self) -> None:
+        self.remember_position()
         self.search_controller.stop()
         if self.viewer.tool is not None:
             self.viewer.tool.cancel()

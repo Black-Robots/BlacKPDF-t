@@ -11,6 +11,7 @@ import json
 from PySide6.QtCore import (
     QAbstractListModel,
     QByteArray,
+    QEvent,
     QMimeData,
     QModelIndex,
     QPoint,
@@ -20,11 +21,11 @@ from PySide6.QtCore import (
     Qt,
     Signal,
 )
-from PySide6.QtGui import QColor, QDrag, QFont, QPainter, QPen, QPixmap
+from PySide6.QtGui import QColor, QCursor, QDrag, QFont, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QAbstractItemView, QListView, QStyle, QStyledItemDelegate, QStyleOptionViewItem
 
 from ..core.document import OPENABLE_EXTENSIONS
-from . import theme
+from . import icons, theme
 from .document import PdfDocument
 from .render import PageRenderer
 from .widgets import dropped_paths
@@ -62,8 +63,6 @@ class ThumbnailModel(QAbstractListModel):
             if image is None:
                 self.renderer.request_thumbnail(row, self.night)
             return image
-        if role == Qt.ItemDataRole.SizeHintRole:
-            return QSize(THUMB_BOX + 2 * PADDING, THUMB_BOX + LABEL_HEIGHT + 2 * PADDING)
         if role == Qt.ItemDataRole.UserRole:
             return self.document.page_size(row) if row < self.document.page_count else None
         return None
@@ -131,13 +130,70 @@ class ThumbnailModel(QAbstractListModel):
             self.endResetModel()
 
 
+ACTION_SIZE = 28
+
+
 class ThumbnailDelegate(QStyledItemDelegate):
-    def __init__(self, view: "ThumbnailView"):
+    """Dibuja una miniatura con sombra, número y estado (actual, seleccionada).
+
+    En la vista de organizar muestra además botones de girar y eliminar al
+    pasar el ratón.
+    """
+
+    rotateClicked = Signal(int, int)
+    deleteClicked = Signal(int)
+
+    def __init__(self, view: "ThumbnailView", box: int = THUMB_BOX, actions: bool = False, grid: bool = False):
         super().__init__(view)
         self.view = view
+        self.box = box
+        self.actions = actions
+        self.grid = grid
 
     def sizeHint(self, option, index) -> QSize:
-        return QSize(max(option.rect.width(), THUMB_BOX + 2 * PADDING), THUMB_BOX + LABEL_HEIGHT + 2 * PADDING)
+        height = self.box + LABEL_HEIGHT + 2 * PADDING
+        if self.grid:
+            return QSize(int(self.box * 0.82) + 2 * PADDING, height)
+        return QSize(max(option.rect.width(), self.box + 2 * PADDING), height)
+
+    def _page_rect(self, rect: QRect, index: QModelIndex) -> QRectF:
+        size = index.data(Qt.ItemDataRole.UserRole)
+        box = QRectF(rect.left() + PADDING, rect.top() + PADDING, rect.width() - 2 * PADDING, self.box)
+        if size is not None and size.width() > 0 and size.height() > 0:
+            ratio = size.width() / size.height()
+            if ratio >= box.width() / box.height():
+                w, h = box.width(), box.width() / ratio
+            else:
+                w, h = box.height() * ratio, box.height()
+        else:
+            w, h = box.width() * 0.7, box.height()
+        return QRectF(box.center().x() - w / 2, box.top() + (box.height() - h) / 2, w, h)
+
+    def action_rects(self, rect: QRect, index: QModelIndex) -> dict[str, QRectF]:
+        page = self._page_rect(rect, index)
+        y = page.top() + 6
+        right = page.right() - 6
+        names = ("delete", "rotate-cw", "rotate-ccw")
+        result = {}
+        for position, name in enumerate(names):
+            x = right - (position + 1) * ACTION_SIZE - position * 4
+            result[name] = QRectF(x, y, ACTION_SIZE, ACTION_SIZE)
+        return result
+
+    def editorEvent(self, event, model, option, index) -> bool:
+        if not self.actions or event.type() not in (QEvent.Type.MouseButtonPress, QEvent.Type.MouseButtonRelease,
+                                                    QEvent.Type.MouseButtonDblClick):
+            return False
+        pos = event.position()
+        for name, area in self.action_rects(option.rect, index).items():
+            if area.contains(pos):
+                if event.type() == QEvent.Type.MouseButtonRelease:
+                    if name == "delete":
+                        self.deleteClicked.emit(index.row())
+                    else:
+                        self.rotateClicked.emit(index.row(), 90 if name == "rotate-cw" else -90)
+                return True
+        return False
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         p = theme.current()
@@ -149,17 +205,8 @@ class ThumbnailDelegate(QStyledItemDelegate):
         hovered = bool(option.state & QStyle.StateFlag.State_MouseOver)
         current = index.row() == self.view.current_page
 
-        size = index.data(Qt.ItemDataRole.UserRole)
-        box = QRectF(rect.left() + PADDING, rect.top() + PADDING, rect.width() - 2 * PADDING, THUMB_BOX)
-        if size is not None and size.width() > 0 and size.height() > 0:
-            ratio = size.width() / size.height()
-            if ratio >= box.width() / box.height():
-                w, h = box.width(), box.width() / ratio
-            else:
-                w, h = box.height() * ratio, box.height()
-        else:
-            w, h = box.width() * 0.7, box.height()
-        page_rect = QRectF(box.center().x() - w / 2, box.top() + (box.height() - h) / 2, w, h)
+        box = QRectF(rect.left() + PADDING, rect.top() + PADDING, rect.width() - 2 * PADDING, self.box)
+        page_rect = self._page_rect(rect, index)
 
         if selected or hovered:
             frame = QRectF(rect).adjusted(3, 3, -3, -3)
@@ -191,7 +238,25 @@ class ThumbnailDelegate(QStyledItemDelegate):
         painter.setPen(p.qcolor("text") if current or selected else p.qcolor("text_muted"))
         label_rect = QRect(rect.left(), int(box.bottom()) + 4, rect.width(), LABEL_HEIGHT - 4)
         painter.drawText(label_rect, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter, index.data())
+        if self.actions and hovered:
+            self._paint_actions(painter, option, index)
         painter.restore()
+
+    def _paint_actions(self, painter: QPainter, option, index) -> None:
+        p = theme.current()
+        cursor = self.view.viewport().mapFromGlobal(QCursor.pos())
+        dpr = self.view.devicePixelRatioF()
+        for name, area in self.action_rects(option.rect, index).items():
+            hot = area.contains(cursor.toPointF())
+            painter.setPen(QPen(p.qcolor("border_strong"), 1))
+            if hot and name == "delete":
+                painter.setBrush(p.qcolor("danger"))
+            else:
+                painter.setBrush(p.qcolor("hover") if hot else p.qcolor("surface"))
+            painter.drawEllipse(area)
+            role = icons.ROLE_ON_ACCENT if hot and name == "delete" else icons.ROLE_TEXT
+            glyph = icons.pixmap("trash-2" if name == "delete" else name, 16, role, dpr)
+            painter.drawPixmap(int(area.center().x() - 8), int(area.center().y() - 8), glyph)
 
 
 class ThumbnailView(QListView):
@@ -256,6 +321,17 @@ class ThumbnailView(QListView):
         if count == 0:
             return 0
         index = self.indexAt(pos)
+        if self.viewMode() == QListView.ViewMode.IconMode:
+            if not index.isValid():
+                for dx in (-16, 16, -32, 32):
+                    index = self.indexAt(pos + QPoint(dx, 0))
+                    if index.isValid():
+                        break
+            if not index.isValid():
+                last = self.visualRect(model.index(count - 1, 0))
+                return count if pos.y() > last.top() else 0
+            rect = self.visualRect(index)
+            return index.row() + (1 if pos.x() > rect.center().x() else 0)
         if not index.isValid():
             first = self.visualRect(model.index(0, 0))
             return 0 if pos.y() < first.top() else count
@@ -402,6 +478,18 @@ class ThumbnailView(QListView):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         color = theme.color("accent")
         painter.setPen(QPen(color, 3, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        if self.viewMode() == QListView.ViewMode.IconMode and count:
+            if self._drop_row >= count:
+                x = rect.right() + 2
+            else:
+                x = rect.left() - 2
+            top, bottom = rect.top() + 10, rect.bottom() - 10
+            painter.drawLine(x, top, x, bottom)
+            painter.setBrush(color)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawEllipse(QRectF(x - 5, top - 5, 10, 10))
+            painter.drawEllipse(QRectF(x - 5, bottom - 5, 10, 10))
+            return
         left, right = rect.left() + 14, rect.right() - 14
         painter.drawLine(left, y, right, y)
         painter.setBrush(color)
@@ -416,3 +504,85 @@ class ThumbnailView(QListView):
             index = self.currentIndex()
             if index.isValid():
                 self.pageActivated.emit(index.row())
+
+
+class OrganizerView(ThumbnailView):
+    """Cuadrícula grande de páginas para organizar el documento entero."""
+
+    rotateRequested = Signal(list, int)
+    deleteRequested = Signal(list)
+    openPage = Signal(int)
+    MIN_BOX, MAX_BOX = 120, 360
+
+    def __init__(self, parent=None, box: int = 210):
+        super().__init__(parent)
+        self.setViewMode(QListView.ViewMode.IconMode)
+        self.setFlow(QListView.Flow.LeftToRight)
+        self.setWrapping(True)
+        self.setResizeMode(QListView.ResizeMode.Adjust)
+        self.setMovement(QListView.Movement.Static)
+        # setMovement(Static) desactiva el arrastre: se reactiva, lo gestiona esta clase.
+        self.setDragEnabled(True)
+        self.setAcceptDrops(True)
+        self.viewport().setAcceptDrops(True)
+        self.setDragDropMode(QAbstractItemView.DragDropMode.DragDrop)
+        self.setSpacing(6)
+        self.setUniformItemSizes(True)
+        self.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.verticalScrollBar().setSingleStep(40)
+        self.organizer_delegate = ThumbnailDelegate(self, box=box, actions=True, grid=True)
+        self.setItemDelegate(self.organizer_delegate)
+        self.organizer_delegate.rotateClicked.connect(self._rotate_clicked)
+        self.organizer_delegate.deleteClicked.connect(self._delete_clicked)
+        self.doubleClicked.connect(lambda index: self.openPage.emit(index.row()))
+        try:
+            self.clicked.disconnect()
+        except (RuntimeError, TypeError):
+            pass
+
+    def _targets(self, row: int) -> list[int]:
+        selected = self.selected_pages()
+        return selected if row in selected and len(selected) > 1 else [row]
+
+    def _rotate_clicked(self, row: int, angle: int) -> None:
+        self.rotateRequested.emit(self._targets(row), angle)
+
+    def _delete_clicked(self, row: int) -> None:
+        self.deleteRequested.emit(self._targets(row))
+
+    def set_box(self, box: int) -> None:
+        box = max(self.MIN_BOX, min(self.MAX_BOX, box))
+        if box != self.organizer_delegate.box:
+            self.organizer_delegate.box = box
+            self._center()
+            self.scheduleDelayedItemsLayout()
+            self.viewport().update()
+
+    def _center(self) -> None:
+        """Centra la cuadrícula repartiendo el espacio sobrante a ambos lados."""
+        item = self.organizer_delegate.sizeHint(self.viewOptions() if hasattr(self, "viewOptions") else None, QModelIndex())
+        cell = item.width() + self.spacing()
+        scrollbar = self.verticalScrollBar().sizeHint().width()
+        available = max(cell, self.width() - scrollbar - 4)
+        columns = max(1, (available - self.spacing()) // cell)
+        if self.model() is not None:
+            columns = max(1, min(columns, self.model().rowCount()))
+        side = max(0, (available - columns * cell - self.spacing()) // 2)
+        if self.viewportMargins().left() != side:
+            self.setViewportMargins(side, 8, 0, 8)
+
+    def resizeEvent(self, event) -> None:
+        self._center()
+        super().resizeEvent(event)
+
+    def wheelEvent(self, event) -> None:
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            steps = event.angleDelta().y() / 120
+            self.set_box(int(self.organizer_delegate.box * (1.1 ** steps)))
+            event.accept()
+            return
+        super().wheelEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        super().mouseMoveEvent(event)
+        self.viewport().update()

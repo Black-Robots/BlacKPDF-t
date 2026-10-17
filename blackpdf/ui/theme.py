@@ -243,6 +243,8 @@ QFrame[role="separator"] {{
     background: {p.border};
     border: none;
 }}
+QListView#Organizer, QWidget#OrganizerPanel {{ background: {p.viewer}; }}
+QListView#Organizer::item, QListView#Organizer::item:hover, QListView#Organizer::item:selected {{ background: transparent; }}
 QWidget#HomePage, QScrollArea#HomeScroll, QWidget#HomeContent {{
     background: {p.window};
 }}

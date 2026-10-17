@@ -133,3 +133,32 @@ def test_hit_testing_on_rotated_page():
     assert annotation_at(page, (30, 25)) == shape.xref
     visual = list_annotations(page)[0].rect
     assert visual.x0 == pytest.approx(9, abs=2) and visual.x1 == pytest.approx(61, abs=2)
+
+
+def test_redaction_removes_text_for_real():
+    from blackpdf.core.annotations import redact_areas, redact_text
+
+    doc = build_pdf(2)
+    page = doc[0]
+    words = [w for w in page.get_text("words") if w[4] == "ejemplo"]
+    rect = pymupdf.Rect(words[0][:4])
+    assert redact_areas(page, [rect]) == 1
+    assert "ejemplo" not in page.get_text()
+    assert "texto" in page.get_text(), "el resto del texto se conserva"
+    assert len(list(page.annots())) == 0
+    pix = page.get_pixmap(clip=rect)
+    assert min(pix.samples) < 30, "queda un recuadro negro"
+    assert redact_text(doc, "buscar") == 2
+    assert all("buscar" not in p.get_text() for p in doc)
+    with pytest.raises(InvalidOptionError):
+        redact_text(doc, "  ")
+
+
+def test_redaction_on_rotated_page_uses_visual_coordinates():
+    from blackpdf.core.annotations import redact_areas
+
+    doc, page = _page(rotation=90)
+    page.insert_text(pymupdf.Point(20, 40) * page.derotation_matrix, "SECRETO", fontsize=20, rotate=90)
+    assert "SECRETO" in page.get_text()
+    redact_areas(page, [pymupdf.Rect(10, 10, 200, 60)])
+    assert "SECRETO" not in page.get_text()

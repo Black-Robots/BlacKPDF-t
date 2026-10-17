@@ -12,7 +12,8 @@ fi
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
-PY_VERSION="${PY_VERSION:-3.15.0}"
+# Python 3.15 aún no funciona bajo Wine (strftime %OB); en Windows nativo se usa 3.15.
+PY_VERSION="${PY_VERSION:-3.14.8}"
 INNO_VERSION="${INNO_VERSION:-6.7.3}"
 export WINEPREFIX="${WINEPREFIX:-$ROOT/build/wineprefix}"
 export WINEARCH=win64
@@ -43,16 +44,26 @@ if [ ! -f "$PYEXE" ]; then
 fi
 
 echo "==> Dependencias"
+if ! $WINE 'C:\Python\python.exe' -m pip --version >/dev/null 2>&1; then
+    $WINE 'C:\Python\python.exe' -m ensurepip --upgrade
+fi
 $WINE 'C:\Python\python.exe' -m pip install --disable-pip-version-check -q --upgrade pip
 $WINE 'C:\Python\python.exe' -m pip install --disable-pip-version-check -q PySide6-Essentials pymupdf pyinstaller
 
 echo "==> PyInstaller"
+if [ -n "${SKIP_PYINSTALLER:-}" ] && [ -f build/dist-win/BlackPDF/BlackPDF.exe ]; then
+    echo "(se reutiliza build/dist-win)"
+else
 rm -rf build/dist-win build/work-win
 $WINE 'C:\Python\python.exe' -m PyInstaller --noconfirm --clean \
     --distpath 'build\dist-win' --workpath 'build\work-win' 'packaging\blackpdf.spec'
 wineserver -w
+fi
 
 echo "==> Autocomprobación"
+# Wine no incluye icuuc.dll (ICU de Windows 10 1903+), que Qt 6 usa en Windows: la prueba
+# de interfaz se hace en Windows real (GitHub Actions o build_windows.ps1).
+export BLACKPDF_SELFTEST_SKIP_GUI=1
 $WINE 'build\dist-win\BlackPDF\BlackPDF.exe' --self-test='build\selftest-win.txt' || true
 wineserver -w
 cat build/selftest-win.txt
@@ -62,7 +73,8 @@ ISCC="$WINEPREFIX/drive_c/InnoSetup/ISCC.exe"
 if [ ! -f "$ISCC" ]; then
     echo "==> Instalando Inno Setup $INNO_VERSION"
     INNO="$CACHE/innosetup-$INNO_VERSION.exe"
-    [ -f "$INNO" ] || curl -fsSL -o "$INNO" "https://files.jrsoftware.org/is/6/innosetup-$INNO_VERSION.exe"
+    INNO_TAG="is-${INNO_VERSION//./_}"
+    [ -f "$INNO" ] || curl -fsSL -o "$INNO" "https://github.com/jrsoftware/issrc/releases/download/$INNO_TAG/innosetup-$INNO_VERSION.exe"
     $WINE "$INNO" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /CURRENTUSER '/DIR=C:\InnoSetup'
     wineserver -w
 fi

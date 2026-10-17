@@ -100,7 +100,9 @@ class MainWindow(QMainWindow):
         self.tab_bar = QTabBar(header)
         self.tab_bar.setDocumentMode(True)
         self.tab_bar.setTabsClosable(True)
-        self.tab_bar.setMovable(False)
+        self.tab_bar.setMovable(True)
+        self.tab_bar.tabMoved.connect(self._tab_moved)
+        self._fixing_home = False
         self.tab_bar.setExpanding(False)
         self.tab_bar.setElideMode(Qt.TextElideMode.ElideMiddle)
         self.tab_bar.setUsesScrollButtons(True)
@@ -182,6 +184,15 @@ class MainWindow(QMainWindow):
             close.clicked.connect(lambda _=False, w=widget: self.close_tab(self._tabs.index(w)))
             self.tab_bar.setTabButton(index, QTabBar.ButtonPosition.RightSide, close)
         return index
+
+    def _tab_moved(self, origin: int, target: int) -> None:
+        widget = self._tabs.pop(origin)
+        self._tabs.insert(target, widget)
+        if self._tabs[0] is not self.home and not self._fixing_home:
+            # La pestaña de inicio siempre va la primera.
+            self._fixing_home = True
+            self.tab_bar.moveTab(self._tabs.index(self.home), 0)
+            self._fixing_home = False
 
     def current_tab(self) -> DocumentTab | None:
         index = self.tab_bar.currentIndex()
@@ -407,10 +418,7 @@ class MainWindow(QMainWindow):
                 tab.toggle_annotation_bar()
             tab.set_tool("pen")
         elif tool_id == "organize":
-            if tab.splitter.sizes()[0] < 20:
-                tab.toggle_sidebar()
-            tab.sidebar_switch.set_value("pages")
-            Toast.show_message(self, self.tr("Arrastra las miniaturas para reordenar. Clic derecho para más opciones."))
+            tab.set_organize_mode(True)
 
     # ======================================================================
     # Acciones globales
@@ -503,6 +511,8 @@ class MainWindow(QMainWindow):
                 Command(tr("Tamaño real"), tr("Vista"), "zoom-in", lambda: tab.viewer.set_zoom(1.0), shortcut_text("Ctrl+0")),
                 Command(tr("Modo noche"), tr("Vista"), "moon", lambda: tab.set_night_mode(not tab.viewer.night_mode), shortcut_text("Ctrl+M")),
                 Command(tr("Panel lateral"), tr("Vista"), "panel-left", tab.toggle_sidebar, "F4"),
+                Command(tr("Organizar páginas"), tr("Páginas"), "layout-grid", tab.toggle_organize, shortcut_text("Ctrl+G")),
+                Command(tr("Añadir PDF al documento"), tr("Páginas"), "file-plus", tab.add_document_pages),
                 Command(tr("Pantalla completa"), tr("Vista"), "maximize", self.toggle_fullscreen, "F11"),
             ]
             for name, icon_name, title in (
