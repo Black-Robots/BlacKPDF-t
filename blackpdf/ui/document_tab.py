@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMenu,
     QMessageBox,
+    QSizePolicy,
     QSplitter,
     QStackedWidget,
     QToolButton,
@@ -42,7 +43,7 @@ from .split_view import SplitPane
 from .settings import settings
 from .thumbnails import OrganizerView, ThumbnailModel, ThumbnailView
 from .viewer import PdfViewer
-from .widgets import Button, IconButton, SectionLabel, SegmentedControl, Toast, open_filter, pdf_filter, separator
+from .widgets import AutoStack, Button, IconButton, SectionLabel, SegmentedControl, Toast, open_filter, pdf_filter, separator
 
 ZOOM_PRESETS = (50, 75, 100, 125, 150, 200, 300, 400)
 
@@ -115,7 +116,7 @@ class DocumentTab(QWidget):
         self.view_splitter.addWidget(self.area)
         self.split_pane: SplitPane | None = None
         self.documents_provider = None
-        self.view_stack = QStackedWidget(self)
+        self.view_stack = AutoStack(self)
         self.view_stack.addWidget(self.view_splitter)
         self.view_stack.addWidget(self.organizer_panel)
         self._organizing = False
@@ -176,6 +177,8 @@ class DocumentTab(QWidget):
         bar = QFrame(self)
         bar.setObjectName("DocToolbar")
         bar.setFixedHeight(48)
+        # El ancho mínimo lo gestiona _adapt_toolbar ocultando grupos: así la ventana puede estrecharse.
+        bar.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(8, 0, 8, 0)
         layout.setSpacing(2)
@@ -234,7 +237,8 @@ class DocumentTab(QWidget):
         layout.addWidget(self.fit_width_button)
         layout.addWidget(self.fit_page_button)
         layout.addSpacing(4)
-        layout.addWidget(separator(True))
+        self._rotate_separator = separator(True)
+        layout.addWidget(self._rotate_separator)
         layout.addSpacing(4)
         self.rotate_left_button = self._button("rotate-ccw", self.tr("Girar a la izquierda"), lambda: self.rotate_pages(-90), "Ctrl+Shift+L")
         self.rotate_right_button = self._button("rotate-cw", self.tr("Girar a la derecha"), lambda: self.rotate_pages(90), "Ctrl+Shift+R")
@@ -364,18 +368,52 @@ class DocumentTab(QWidget):
 
     def show_comments(self, edit_xref: int | None = None) -> None:
         if self.splitter.sizes()[0] < 20:
-            self.toggle_sidebar()
+            settings().sidebar_visible = True
+            self.sidebar_button.setChecked(True)
+            self._animate_sidebar(0, self.COMMENTS_WIDTH)
         self.sidebar_switch.set_value("comments")
         if edit_xref is not None:
             self.comments.edit_comment_later(edit_xref)
 
+    COMMENTS_WIDTH = 320
+
     def _sidebar_view_changed(self, key: str) -> None:
+        current = self.splitter.sizes()[0]
+        if key == "comments" and 20 < current < self.COMMENTS_WIDTH:
+            self._animate_sidebar(current, self.COMMENTS_WIDTH)
+        elif key != "comments" and current > self._sidebar_width and current == self.COMMENTS_WIDTH:
+            self._animate_sidebar(current, self._sidebar_width)
         pages = key == "pages"
         widget = {"pages": self.thumbnails, "outline": self.outline, "comments": self.comments}[key]
         self.sidebar_stack.setCurrentWidget(widget)
         self.add_pdf_button.setVisible(pages)
         self.sidebar_hint.setVisible(pages)
         self._update_sidebar_header()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._adapt_toolbar()
+
+    def _adapt_toolbar(self) -> None:
+        """Con poco ancho se ocultan primero los controles menos usados (siguen en menús y atajos)."""
+        width = self.width()
+        self.tools_button.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon if width >= 1180 else Qt.ToolButtonStyle.ToolButtonIconOnly
+        )
+        self.tools_button.setProperty("variant", "text" if width >= 1180 else "")
+        groups = (
+            ((self._rotate_separator, self.rotate_left_button, self.rotate_right_button), 1080),
+            ((self.fit_width_button, self.fit_page_button), 980),
+            ((self.night_button, self.fullscreen_button), 900),
+            ((self.page_total,), 820),
+            ((self.zoom_box,), 760),
+        )
+        for widgets, threshold in groups:
+            for widget in widgets:
+                widget.setVisible(width >= threshold)
+        compact = width < 1100
+        for button in getattr(self, "_organizer_text_buttons", []):
+            button.setText("" if compact else button.property("label"))
 
     def _build_organizer(self) -> QWidget:
         panel = QWidget(self)
@@ -395,16 +433,22 @@ class DocumentTab(QWidget):
         hint = QLabel(self.tr("Arrastra las páginas para reordenarlas. Ctrl+rueda cambia el tamaño. "
                               "Doble clic abre la página."))
         hint.setProperty("role", "caption")
+        hint.setWordWrap(True)
+        hint.setMinimumWidth(120)
         texts.addWidget(title)
         texts.addWidget(hint)
         bar_layout.addLayout(texts, 1)
+        self._organizer_text_buttons = []
         for icon_name, text, slot in (
             ("file-plus", self.tr("Añadir PDF"), self.add_document_pages),
             ("file-plus-2", self.tr("Página en blanco"), lambda: self.insert_blank(True)),
         ):
             button = Button(text, "ghost", icon_name, bar)
+            button.setProperty("label", text)
+            button.setToolTip(text)
             button.clicked.connect(slot)
             bar_layout.addWidget(button)
+            self._organizer_text_buttons.append(button)
         bar_layout.addWidget(separator(True))
         for icon_name, tip, slot in (
             ("rotate-ccw", self.tr("Girar a la izquierda"), lambda: self.rotate_pages(-90)),
@@ -626,13 +670,19 @@ class DocumentTab(QWidget):
         self._sidebar_anim.setEndValue(end)
         self._sidebar_anim.start()
 
+    def _animate_sidebar(self, start: int, end: int) -> None:
+        self._sidebar_anim.stop()
+        self._sidebar_anim.setStartValue(start)
+        self._sidebar_anim.setEndValue(end)
+        self._sidebar_anim.start()
+
     def _apply_sidebar_width(self, width) -> None:
         total = sum(self.splitter.sizes()) or self.width()
         self.splitter.setSizes([int(width), max(0, total - int(width))])
 
     def _sidebar_resized(self, pos: int, index: int) -> None:
         width = self.splitter.sizes()[0]
-        if width >= 160:
+        if width >= 160 and self.sidebar_switch.value() != "comments":
             self._sidebar_width = width
             settings().sidebar_width = width
         self.sidebar_button.setChecked(width > 20)

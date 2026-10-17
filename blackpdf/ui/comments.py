@@ -11,7 +11,6 @@ from PySide6.QtWidgets import (
     QMenu,
     QPlainTextEdit,
     QScrollArea,
-    QSizePolicy,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -136,7 +135,6 @@ class CommentCard(QFrame):
         self.comment = comment
         self.setProperty("role", "panel" if not reply else "")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10 if not reply else 0, 10 if not reply else 6, 8, 10 if not reply else 2)
         layout.setSpacing(6)
@@ -147,13 +145,13 @@ class CommentCard(QFrame):
         header.addWidget(ColorDot(KIND_ICONS.get(comment.kind, "sticky-note"), color))
         names = QVBoxLayout()
         names.setSpacing(0)
-        author = label(comment.author or self.tr("Sin autor"), "")
+        author = label(comment.author or self.tr("Sin autor"), "", wrap=True)
         author.setStyleSheet("font-weight: 600;")
         names.addWidget(author)
         meta = kind_label(comment.kind, self.tr)
         if comment.modified:
             meta += "  ·  " + comment.modified
-        names.addWidget(label(meta, "caption"))
+        names.addWidget(label(meta, "caption", wrap=True))
         header.addLayout(names, 1)
         more = QToolButton(self)
         more.setIcon(icons.icon("ellipsis"))
@@ -170,11 +168,17 @@ class CommentCard(QFrame):
         layout.addLayout(header)
 
         if comment.quote:
-            quote = label("«" + comment.quote[:240] + ("..." if len(comment.quote) > 240 else "") + "»", "muted", wrap=True)
-            quote.setStyleSheet(
-                f"font-style: italic; border-left: 2px solid {theme.current().border_strong}; padding-left: 8px;"
-            )
-            layout.addWidget(quote)
+            quote_row = QHBoxLayout()
+            quote_row.setSpacing(8)
+            bar = QFrame(self)
+            bar.setFixedWidth(2)
+            bar.setStyleSheet(f"background: {theme.current().border_strong}; border: none;")
+            quote_row.addWidget(bar)
+            text = comment.quote[:240] + ("..." if len(comment.quote) > 240 else "")
+            quote = label(text, "muted", wrap=True)
+            quote.setStyleSheet("font-style: italic;")
+            quote_row.addWidget(quote, 1)
+            layout.addLayout(quote_row)
         if comment.content:
             body = label(comment.content, "body", wrap=True)
             body.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)

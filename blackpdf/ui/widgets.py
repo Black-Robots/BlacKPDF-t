@@ -703,12 +703,18 @@ class PageRangeEdit(QLineEdit):
 class SearchPill(QPushButton):
     """Botón con aspecto de campo de búsqueda que abre la paleta de comandos."""
 
+    def sizeHint(self) -> QSize:
+        return QSize(330, 34)
+
     def __init__(self, text: str, shortcut: str, parent: QWidget | None = None):
         super().__init__(parent)
         self._text = text
         self._shortcut = shortcut
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFixedSize(330, 34)
+        self.setFixedHeight(34)
+        self.setMinimumWidth(180)
+        self.setMaximumWidth(330)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         self.setStyleSheet("QPushButton { background: transparent; border: none; padding: 0; }")
 
