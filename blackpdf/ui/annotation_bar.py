@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMenu, QSlider, QTool
 
 from . import icons, theme
 from .interaction import PRESET_COLORS, STYLED_TOOLS, WIDTH_TOOLS, ToolStyle, load_style
-from .widgets import ColorButton, IconButton, add_shadow, separator
+from .widgets import SHADOW_TOP, ColorButton, FloatingPanel, IconButton, separator
 
 TOOL_GROUPS = (
     (("select", "mouse-pointer-2"), ("hand", "hand")),
@@ -84,16 +84,15 @@ class WidthPopup(QFrame):
         self.value_label.setText(f"{text} {self._suffix}")
 
 
-class AnnotationBar(QFrame):
+class AnnotationBar(FloatingPanel):
     toolSelected = Signal(str)
     styleChanged = Signal(str, object)
 
     def __init__(self, parent: QWidget):
-        super().__init__(parent)
-        self.setObjectName("FloatingBar")
+        super().__init__(parent, inner=(6, 5, 6, 5))
         self._labels = tool_labels(self.tr)
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(6, 5, 6, 5)
+        self.apply_margins(layout)
         layout.setSpacing(2)
         self._buttons: dict[str, IconButton] = {}
         for group_index, group in enumerate(TOOL_GROUPS):
@@ -127,7 +126,6 @@ class AnnotationBar(QFrame):
         self.width_button = IconButton("sliders-horizontal", self.tr("Grosor"), self, size=34)
         self.width_button.clicked.connect(self._open_width)
         layout.addWidget(self.width_button)
-        add_shadow(self, 30, 8)
         self._active = "select"
         self._style: ToolStyle | None = None
         self._slide = QPropertyAnimation(self, b"pos", self)
@@ -207,7 +205,7 @@ class AnnotationBar(QFrame):
 
     def place(self, area_width: int, top: int, animate: bool = False) -> None:
         self.adjustSize()
-        target = QPoint(max(8, (area_width - self.width()) // 2), top)
+        target = QPoint(max(0, (area_width - self.width()) // 2), top - SHADOW_TOP)
         if animate:
             self._slide.stop()
             self._slide.setStartValue(QPoint(target.x(), top - 16))

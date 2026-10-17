@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from PySide6.QtCore import (
+    QEasingCurve,
     QEvent,
     QPoint,
     QPropertyAnimation,
@@ -22,8 +23,6 @@ from PySide6.QtWidgets import (
     QColorDialog,
     QFileDialog,
     QFrame,
-    QGraphicsDropShadowEffect,
-    QGraphicsOpacityEffect,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -87,14 +86,58 @@ def separator(vertical: bool = False) -> QFrame:
     return line
 
 
-def add_shadow(widget: QWidget, blur: int = 28, y: int = 8, alpha: float | None = None) -> None:
-    effect = QGraphicsDropShadowEffect(widget)
-    effect.setBlurRadius(blur)
-    effect.setOffset(0, y)
-    color = QColor(0, 0, 0)
-    color.setAlphaF(alpha if alpha is not None else (0.5 if theme.current().is_dark else 0.16))
-    effect.setColor(color)
-    widget.setGraphicsEffect(effect)
+SHADOW_SIDE = 14
+SHADOW_TOP = 10
+SHADOW_BOTTOM = 18
+
+
+def paint_floating(painter: QPainter, rect: QRectF, radius: float = 12.0) -> None:
+    """Panel flotante con sombra suave pintada a mano.
+
+    Se evita QGraphicsEffect a propósito: anidado o con hijos que se repintan
+    a menudo (listas, campos de texto) deja zonas sin dibujar.
+    """
+    p = theme.current()
+    painter.save()
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(Qt.PenStyle.NoPen)
+    strength = 0.32 if p.is_dark else 0.09
+    steps = 7
+    for step in range(steps, 0, -1):
+        spread = step * 2.0
+        shade = QColor(0, 0, 0)
+        shade.setAlphaF(strength * (1.0 - step / (steps + 1)) / 2.2)
+        painter.setBrush(shade)
+        painter.drawRoundedRect(rect.adjusted(-spread, -spread + 4, spread, spread + 5), radius + spread, radius + spread)
+    painter.setPen(QPen(p.qcolor("border_strong"), 1))
+    painter.setBrush(p.qcolor("surface"))
+    painter.drawRoundedRect(rect.adjusted(0.5, 0.5, -0.5, -0.5), radius, radius)
+    painter.restore()
+
+
+class FloatingPanel(QFrame):
+    """Contenedor flotante con fondo redondeado y sombra, sin efectos gráficos.
+
+    El widget es algo mayor que el panel visible: los márgenes alojan la sombra.
+    `inner` son los márgenes del contenido dentro del panel.
+    """
+
+    def __init__(self, parent: QWidget | None = None, inner: tuple[int, int, int, int] = (6, 5, 6, 5),
+                 radius: float = 12.0):
+        super().__init__(parent)
+        self._radius = radius
+        left, top, right, bottom = inner
+        self._layout_margins = (SHADOW_SIDE + left, SHADOW_TOP + top, SHADOW_SIDE + right, SHADOW_BOTTOM + bottom)
+
+    def apply_margins(self, layout) -> None:
+        layout.setContentsMargins(*self._layout_margins)
+
+    def panel_rect(self) -> QRectF:
+        return QRectF(self.rect()).adjusted(SHADOW_SIDE, SHADOW_TOP, -SHADOW_SIDE, -SHADOW_BOTTOM)
+
+    def paintEvent(self, event) -> None:
+        painter = QPainter(self)
+        paint_floating(painter, self.panel_rect(), self._radius)
 
 
 class AutoStack(QStackedWidget):
@@ -353,16 +396,15 @@ class ColorButton(QToolButton):
         painter.drawEllipse(rect)
 
 
-class Toast(QFrame):
+class Toast(FloatingPanel):
     """Aviso breve en la parte inferior de la ventana, con acción opcional."""
 
     _active: "Toast | None" = None
 
     def __init__(self, parent: QWidget, text: str, action: str = "", callback=None, kind: str = "info"):
-        super().__init__(parent)
-        self.setObjectName("FloatingBar")
+        super().__init__(parent, inner=(14, 8, 8 if action else 14, 8))
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(14, 8, 8 if action else 14, 8)
+        self.apply_margins(layout)
         layout.setSpacing(10)
         icon_name = {"success": "circle-check", "error": "circle-alert", "warning": "triangle-alert"}.get(kind, "info")
         role = {"success": icons.ROLE_SUCCESS, "error": icons.ROLE_DANGER, "warning": icons.ROLE_WARNING}.get(kind, icons.ROLE_MUTED)
@@ -376,10 +418,9 @@ class Toast(QFrame):
             button.setStyleSheet(f"color: {theme.current().accent}; padding: 4px 10px;")
             button.clicked.connect(lambda: (callback() if callback else None, self.dismiss()))
             layout.addWidget(button)
-        self._opacity = QGraphicsOpacityEffect(self)
-        self.setGraphicsEffect(self._opacity)
-        self._anim = QPropertyAnimation(self._opacity, b"opacity", self)
+        self._anim = QPropertyAnimation(self, b"pos", self)
         self._anim.setDuration(theme.ANIMATION_MS)
+        self._anim.setEasingCurve(QEasingCurve.Type.OutCubic)
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
         self._timer.timeout.connect(self.dismiss)
@@ -397,23 +438,27 @@ class Toast(QFrame):
         toast = cls(parent, text, action, callback, kind)
         cls._active = toast
         toast.adjustSize()
-        toast._reposition()
+        target = toast._target()
+        toast.move(target.x(), target.y() + 16)
         toast.show()
         toast.raise_()
-        toast._anim.setStartValue(0.0)
-        toast._anim.setEndValue(1.0)
+        toast._anim.setStartValue(toast.pos())
+        toast._anim.setEndValue(target)
         toast._anim.start()
         toast._timer.start(duration if not action else max(duration, 6000))
         return toast
 
-    def _reposition(self) -> None:
+    def _target(self) -> QPoint:
         parent = self.parentWidget()
         if parent is None:
-            return
-        self.adjustSize()
+            return self.pos()
         x = (parent.width() - self.width()) // 2
-        y = parent.height() - self.height() - 28
-        self.move(max(8, x), max(8, y))
+        y = parent.height() - self.height() - 16
+        return QPoint(max(0, x), max(0, y))
+
+    def _reposition(self) -> None:
+        self.adjustSize()
+        self.move(self._target())
 
     def eventFilter(self, watched, event) -> bool:
         if event.type() == QEvent.Type.Resize:
@@ -428,8 +473,8 @@ class Toast(QFrame):
         self._closing = True
         self._timer.stop()
         self._anim.stop()
-        self._anim.setStartValue(self._opacity.opacity())
-        self._anim.setEndValue(0.0)
+        self._anim.setStartValue(self.pos())
+        self._anim.setEndValue(self.pos() + QPoint(0, 24))
         self._anim.finished.connect(self.deleteLater)
         self._anim.start()
 

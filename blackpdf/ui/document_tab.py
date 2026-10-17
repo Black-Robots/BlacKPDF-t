@@ -43,14 +43,18 @@ from .split_view import SplitPane
 from .settings import settings
 from .thumbnails import OrganizerView, ThumbnailModel, ThumbnailView
 from .viewer import PdfViewer
-from .widgets import AutoStack, Button, IconButton, SectionLabel, SegmentedControl, Toast, open_filter, pdf_filter, separator
+from .widgets import SHADOW_TOP, AutoStack, Button, IconButton, SectionLabel, SegmentedControl, Toast, open_filter, pdf_filter, separator
 
 ZOOM_PRESETS = (50, 75, 100, 125, 150, 200, 300, 400)
 
 
 def shortcut_text(sequence: QKeySequence | str) -> str:
-    seq = QKeySequence(sequence)
-    return seq.toString(QKeySequence.SequenceFormat.NativeText)
+    """Atajo en su forma corta habitual en español: Ctrl+Mayús+S, Supr, AvPág."""
+    text = QKeySequence(sequence).toString(QKeySequence.SequenceFormat.PortableText)
+    for english, spanish in (("Shift", "Mayús"), ("Del", "Supr"), ("PgDown", "AvPág"), ("PgUp", "RePág"),
+                             ("Return", "Intro"), ("Backspace", "Retroceso")):
+        text = text.replace(english, spanish)
+    return text
 
 
 class ViewerArea(QWidget):
@@ -75,12 +79,12 @@ class ViewerArea(QWidget):
         if self.search_bar is not None and self.search_bar.isVisible():
             bar = self.search_bar
             bar.adjustSize()
-            width = min(max(bar.sizeHint().width(), 380), self.width() - 32)
+            width = min(max(bar.sizeHint().width(), 408), self.width() - 4)
             bar.resize(width, bar.height())
             top = 12
             if self.annotation_bar is not None and self.annotation_bar.isVisible():
-                top = self.annotation_bar.geometry().bottom() + 10
-            bar.move(self.width() - width - 24, top)
+                top = int(self.annotation_bar.geometry().top() + self.annotation_bar.panel_rect().bottom()) + 10
+            bar.move(self.width() - width - 10, top - SHADOW_TOP)
 
 
 class DocumentTab(QWidget):

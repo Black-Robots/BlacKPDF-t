@@ -6,11 +6,10 @@ import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from PySide6.QtCore import QEvent, QModelIndex, QPropertyAnimation, QRect, QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QModelIndex, QRect, QSize, Qt, QVariantAnimation, Signal
 from PySide6.QtGui import QFont, QFontMetrics, QKeyEvent, QPainter
 from PySide6.QtWidgets import (
     QFrame,
-    QGraphicsOpacityEffect,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -23,7 +22,7 @@ from PySide6.QtWidgets import (
 )
 
 from . import icons, theme
-from .widgets import add_shadow
+from .widgets import SHADOW_BOTTOM, SHADOW_SIDE, SHADOW_TOP, FloatingPanel
 
 
 @dataclass
@@ -42,29 +41,40 @@ def _fold(text: str) -> str:
 
 
 def score(query: str, command: Command) -> float:
-    """Puntuación difusa: coincidencias al principio de palabra valen más."""
-    if not query:
-        return 1.0
-    haystack = _fold(f"{command.title} {command.keywords} {command.category}")
-    title = _fold(command.title)
+    """Relevancia de un comando para el texto escrito (0 = no se muestra).
+
+    Orden: el título empieza por el texto, lo contiene, alguna palabra del
+    título empieza por él, todas las palabras escritas son inicio de palabras
+    del título o de las palabras clave, y por último letras en orden dentro
+    del título (para erratas y abreviaturas como «cmprm»).
+    """
     q = _fold(query.strip())
     if not q:
         return 1.0
+    title = _fold(command.title)
+    title_words = title.split()
+    extra_words = _fold(f"{command.keywords} {command.category}").split()
     if title.startswith(q):
         return 100.0 - len(title) * 0.01
     if q in title:
-        return 80.0 - title.index(q)
-    if all(word in haystack for word in q.split()):
+        return 85.0 - title.index(q) * 0.1
+    if any(word.startswith(q) for word in title_words):
+        return 75.0
+    parts = q.split()
+    if all(any(word.startswith(part) for word in title_words + extra_words) for part in parts):
         return 60.0
-    position = 0
-    total = 0.0
+    if len(q) < 3:
+        return 0.0
+    position, gaps = 0, 0
     for char in q:
-        found = haystack.find(char, position)
+        found = title.find(char, position)
         if found < 0:
             return 0.0
-        total += 2.0 if found == 0 or haystack[found - 1] == " " else 1.0
+        gaps += found - position
         position = found + 1
-    return 10.0 + total / len(q)
+    if gaps > 2 * len(q):
+        return 0.0
+    return max(1.0, 30.0 - gaps)
 
 
 class CommandDelegate(QStyledItemDelegate):
@@ -106,7 +116,7 @@ class CommandDelegate(QStyledItemDelegate):
             painter.drawRoundedRect(chip, 4, 4)
             painter.setPen(p.qcolor("text_muted"))
             painter.drawText(chip, Qt.AlignmentFlag.AlignCenter, command.shortcut)
-        right -= 112
+        right = rect.right() - 12 - 116
         painter.setPen(p.qcolor("text_faint"))
         category_rect = QRect(right - 140, rect.top(), 140, rect.height())
         painter.drawText(category_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight, command.category)
@@ -122,10 +132,9 @@ class CommandPalette(QWidget):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, False)
         self.commands: list[Command] = []
-        self.panel = QFrame(self)
-        self.panel.setObjectName("FloatingBar")
+        self.panel = FloatingPanel(self, inner=(8, 8, 8, 8), radius=14)
         layout = QVBoxLayout(self.panel)
-        layout.setContentsMargins(8, 8, 8, 8)
+        self.panel.apply_margins(layout)
         layout.setSpacing(6)
         search_row = QHBoxLayout()
         search_row.setContentsMargins(10, 4, 6, 4)
@@ -163,11 +172,13 @@ class CommandPalette(QWidget):
         self.empty.setProperty("role", "muted")
         self.empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.empty)
-        add_shadow(self.panel, 48, 16)
-        self._opacity = QGraphicsOpacityEffect(self)
-        self.setGraphicsEffect(self._opacity)
-        self._fade = QPropertyAnimation(self._opacity, b"opacity", self)
+        # Fundido del fondo pintado a mano (sin QGraphicsEffect).
+        self._scrim = 1.0
+        self._fade = QVariantAnimation(self)
         self._fade.setDuration(theme.ANIMATION_MS)
+        self._fade.setStartValue(0.0)
+        self._fade.setEndValue(1.0)
+        self._fade.valueChanged.connect(self._set_scrim)
         self.hide()
         parent.installEventFilter(self)
 
@@ -180,19 +191,26 @@ class CommandPalette(QWidget):
         self.show()
         self.raise_()
         self._fade.stop()
-        self._fade.setStartValue(0.0)
-        self._fade.setEndValue(1.0)
         self._fade.start()
         self.edit.setFocus()
+
+    def _set_scrim(self, value) -> None:
+        self._scrim = float(value)
+        self.update()
 
     def close_palette(self) -> None:
         self.hide()
         self.closed.emit()
 
+    ROW_HEIGHT = 40
+    MAX_ROWS = 9
+
     def _place_panel(self) -> None:
-        width = min(640, self.width() - 48)
-        height = min(440, self.height() - 120)
-        self.panel.setGeometry((self.width() - width) // 2, max(48, self.height() // 7), width, height)
+        width = min(640 + 2 * SHADOW_SIDE, self.width() - 24)
+        rows = min(max(self.list.count(), 1), self.MAX_ROWS)
+        content = 52 + (rows * self.ROW_HEIGHT + 8 if self.list.count() else 56)
+        height = min(content + 16 + SHADOW_TOP + SHADOW_BOTTOM, self.height() - 100)
+        self.panel.setGeometry((self.width() - width) // 2, max(36, self.height() // 7), width, height)
 
     def _filter(self, text: str) -> None:
         self.list.clear()
@@ -207,6 +225,8 @@ class CommandPalette(QWidget):
             self.list.setCurrentRow(0)
         self.empty.setVisible(self.list.count() == 0)
         self.list.setVisible(self.list.count() > 0)
+        if self.isVisible() or self.parentWidget() is not None:
+            self._place_panel()
 
     def _run_item(self, item: QListWidgetItem) -> None:
         command: Command = item.data(Qt.ItemDataRole.UserRole)
@@ -237,9 +257,12 @@ class CommandPalette(QWidget):
         return super().eventFilter(watched, event)
 
     def mousePressEvent(self, event) -> None:
-        if not self.panel.geometry().contains(event.position().toPoint()):
+        visible = self.panel.panel_rect().translated(self.panel.pos().toPointF())
+        if not visible.contains(event.position()):
             self.close_palette()
 
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
-        painter.fillRect(self.rect(), theme.color("scrim"))
+        scrim = theme.color("scrim")
+        scrim.setAlphaF(scrim.alphaF() * self._scrim)
+        painter.fillRect(self.rect(), scrim)

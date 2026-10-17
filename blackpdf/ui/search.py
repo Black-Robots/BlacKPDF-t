@@ -6,13 +6,13 @@ import time
 
 from PySide6.QtCore import QObject, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QKeyEvent
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QLineEdit
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QLineEdit
 
 from ..core.navigation import search_page
 from . import icons
 from .document import PdfDocument
 from .viewer import PdfViewer
-from .widgets import IconButton, add_shadow
+from .widgets import SHADOW_BOTTOM, SHADOW_SIDE, SHADOW_TOP, FloatingPanel, IconButton
 
 
 class SearchController(QObject):
@@ -111,18 +111,17 @@ class SearchController(QObject):
             QTimer.singleShot(0, lambda: self.start(self.query))
 
 
-class SearchBar(QFrame):
+class SearchBar(FloatingPanel):
     """Barra flotante de búsqueda (Ctrl+F)."""
 
     closed = Signal()
     redactRequested = Signal(str)
 
     def __init__(self, controller: SearchController, parent=None):
-        super().__init__(parent)
+        super().__init__(parent, inner=(10, 6, 6, 6))
         self.controller = controller
-        self.setObjectName("FloatingBar")
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 6, 6, 6)
+        self.apply_margins(layout)
         layout.setSpacing(4)
         glyph = QLabel()
         glyph.setPixmap(icons.pixmap("search", 16, icons.ROLE_MUTED, self.devicePixelRatioF()))
@@ -149,7 +148,6 @@ class SearchBar(QFrame):
         self.prev_button.clicked.connect(controller.previous)
         self.next_button.clicked.connect(controller.next)
         self.close_button.clicked.connect(self.close_bar)
-        add_shadow(self, 24, 6)
 
         self._debounce = QTimer(self)
         self._debounce.setSingleShot(True)
@@ -158,7 +156,7 @@ class SearchBar(QFrame):
         self.edit.textChanged.connect(lambda _: self._debounce.start())
         controller.progressChanged.connect(self._on_progress)
         controller.currentChanged.connect(self._on_current)
-        self.setFixedHeight(44)
+        self.setFixedHeight(44 + SHADOW_TOP + SHADOW_BOTTOM)
 
     def open_bar(self, text: str = "") -> None:
         self.show()
@@ -203,4 +201,4 @@ class SearchBar(QFrame):
         return super().eventFilter(watched, event)
 
     def sizeHint(self) -> QSize:
-        return QSize(420, 44)
+        return QSize(420 + 2 * SHADOW_SIDE, 44 + SHADOW_TOP + SHADOW_BOTTOM)
