@@ -193,7 +193,8 @@ class SegmentedControl(QFrame):
 
     changed = Signal(str)
 
-    def __init__(self, options: Sequence[tuple[str, str]], parent: QWidget | None = None, icons_map: dict | None = None):
+    def __init__(self, options: Sequence[tuple[str, str]], parent: QWidget | None = None, icons_map: dict | None = None,
+                 tooltips: dict | None = None):
         super().__init__(parent)
         self.setProperty("role", "segmented")
         layout = QHBoxLayout(self)
@@ -211,7 +212,11 @@ class SegmentedControl(QFrame):
             if icons_map and key in icons_map:
                 button.setIcon(icons.icon(icons_map[key]))
                 button.setIconSize(QSize(16, 16))
-                button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+                button.setToolButtonStyle(
+                    Qt.ToolButtonStyle.ToolButtonTextBesideIcon if text else Qt.ToolButtonStyle.ToolButtonIconOnly
+                )
+            if tooltips and key in tooltips:
+                button.setToolTip(tooltips[key])
             button.clicked.connect(lambda _=False, k=key: self.set_value(k))
             layout.addWidget(button)
             self._buttons[key] = button
@@ -743,3 +748,63 @@ class SearchPill(QPushButton):
     def leaveEvent(self, event) -> None:
         self.update()
         super().leaveEvent(event)
+
+
+class TabCloseButton(QToolButton):
+    """Botón de cerrar pestaña: muestra un punto si hay cambios sin guardar y una X al pasar el ratón."""
+
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.modified = False
+        self.setFixedSize(20, 20)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setAutoRaise(True)
+        self.setStyleSheet("QToolButton { background: transparent; border: none; padding: 0; }")
+
+    def set_modified(self, modified: bool) -> None:
+        self.modified = modified
+        self.update()
+
+    def enterEvent(self, event) -> None:
+        self.update()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event) -> None:
+        self.update()
+        super().leaveEvent(event)
+
+    def paintEvent(self, event) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p = theme.current()
+        rect = QRectF(self.rect())
+        hovered = self.underMouse()
+        if hovered:
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(p.qcolor("pressed"))
+            painter.drawRoundedRect(rect, 5, 5)
+        if self.modified and not hovered:
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(p.qcolor("text_secondary"))
+            painter.drawEllipse(rect.center(), 4, 4)
+            return
+        glyph = icons.pixmap("x", 14, icons.ROLE_TEXT if hovered else icons.ROLE_MUTED, self.devicePixelRatioF())
+        painter.drawPixmap(3, 3, glyph)
+
+
+FORMAT_ICONS = {
+    ".pdf": "file-text",
+    ".png": "file-image", ".jpg": "file-image", ".jpeg": "file-image", ".bmp": "file-image",
+    ".gif": "file-image", ".tif": "file-image", ".tiff": "file-image", ".webp": "file-image",
+    ".pnm": "file-image", ".pgm": "file-image", ".ppm": "file-image", ".pbm": "file-image",
+    ".jxr": "file-image", ".psd": "file-image",
+    ".epub": "book-open", ".fb2": "book-open", ".mobi": "book-open",
+    ".xps": "file-type", ".oxps": "file-type",
+    ".cbz": "images",
+}
+
+
+def format_icon(suffix: str):
+    """Icono de pestaña según el formato: el PDF en rojo, el resto en neutro."""
+    name = FORMAT_ICONS.get(suffix.lower(), "file-text")
+    return icons.icon(name, icons.ROLE_ACCENT if suffix.lower() == ".pdf" else icons.ROLE_TEXT)

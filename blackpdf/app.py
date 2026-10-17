@@ -70,6 +70,9 @@ def main() -> int:
         instance.listen()
 
     set_app_user_model_id()
+    from .core.annotations import set_default_author
+
+    set_default_author(settings().author_name)
     theme.load_fonts()
     theme.manager().apply(settings().theme)
     app.setWindowIcon(icons.app_icon())

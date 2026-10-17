@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QEasingCurve, QPoint, QPropertyAnimation, QSize, Qt, Signal
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QSlider, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMenu, QSlider, QToolButton, QVBoxLayout, QWidget
 
-from . import theme
+from . import icons, theme
 from .interaction import PRESET_COLORS, STYLED_TOOLS, WIDTH_TOOLS, ToolStyle, load_style
 from .widgets import ColorButton, IconButton, add_shadow, separator
 
@@ -37,6 +37,8 @@ def tool_labels(tr) -> dict[str, str]:
         "redact": tr("Censurar: elimina de forma definitiva lo que cubras (C)"),
     }
 
+
+COMPACT_HIDDEN = ("underline", "strikeout", "ellipse", "line", "arrow", "note")
 
 TOOL_SHORTCUTS = {
     "select": "V", "hand": "H", "pen": "P", "highlight": "R", "underline": "U",
@@ -104,6 +106,17 @@ class AnnotationBar(QFrame):
                 button.clicked.connect(lambda _=False, n=name: self.toolSelected.emit(n))
                 layout.addWidget(button)
                 self._buttons[name] = button
+        self.more_button = IconButton("ellipsis", self.tr("Más herramientas"), self, checkable=True, size=34)
+        self.more_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.more_menu = QMenu(self.more_button)
+        for name in COMPACT_HIDDEN:
+            icon_name = dict(item for group in TOOL_GROUPS for item in group)[name]
+            action = self.more_menu.addAction(icons.icon(icon_name), self._labels[name])
+            action.triggered.connect(lambda _=False, n=name: self.toolSelected.emit(n))
+        self.more_button.setMenu(self.more_menu)
+        self.more_button.setVisible(False)
+        layout.addWidget(self.more_button)
+        self._compact = False
         layout.addSpacing(4)
         self._style_separator = separator(vertical=True)
         layout.addWidget(self._style_separator)
@@ -122,10 +135,32 @@ class AnnotationBar(QFrame):
         self._slide.setEasingCurve(QEasingCurve.Type.OutCubic)
         self.set_active("select")
 
+    def set_compact(self, compact: bool) -> None:
+        """Con poco espacio, las herramientas menos usadas pasan al menú «Más»."""
+        if compact == self._compact:
+            return
+        self._compact = compact
+        for name in COMPACT_HIDDEN:
+            self._buttons[name].setVisible(not compact)
+        self.more_button.setVisible(compact)
+        self.set_active(self._active)
+
+    def full_width(self) -> int:
+        """Ancho que ocupa la barra sin compactar."""
+        hidden_width = sum(self._buttons[n].sizeHint().width() + 2 for n in COMPACT_HIDDEN)
+        width = self.sizeHint().width()
+        if self._compact:
+            width += hidden_width - self.more_button.sizeHint().width()
+        return width
+
     def set_active(self, name: str) -> None:
         self._active = name
         for key, button in self._buttons.items():
             button.setChecked(key == name)
+        in_menu = self._compact and name in COMPACT_HIDDEN
+        self.more_button.setChecked(in_menu)
+        icon_name = dict(item for group in TOOL_GROUPS for item in group).get(name, "ellipsis") if in_menu else "ellipsis"
+        self.more_button.set_icon_name(icon_name)
         styled = name in STYLED_TOOLS
         self.color_button.setVisible(styled)
         self.width_button.setVisible(name in WIDTH_TOOLS or name == "text")

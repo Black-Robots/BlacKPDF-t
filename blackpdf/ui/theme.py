@@ -214,7 +214,7 @@ QToolTip {{
 }}
 
 /* ---------- Superficies ---------- */
-QFrame#Header, QFrame#DocToolbar {{
+QFrame#Header, QFrame#DocToolbar, QFrame#PaneBar {{
     background: {p.surface};
     border: none;
     border-bottom: 1px solid {p.border};
@@ -434,15 +434,15 @@ QTabBar::tab {{
     color: {p.text_muted};
     border: 1px solid transparent;
     border-radius: {r}px;
-    padding: 6px 10px 6px 12px;
-    margin: 8px 2px;
+    padding: 0px 6px 0px 10px;
+    margin: 0px 2px;
+    height: 34px;
     min-width: 40px;
-    max-width: 240px;
+    max-width: 220px;
 }}
 QTabBar::tab:hover {{ background: {p.hover}; color: {p.text}; }}
 QTabBar::tab:selected {{ background: {p.surface_alt}; color: {p.text}; border-color: {p.border_strong}; }}
-QTabBar::close-button {{ subcontrol-position: right; }}
-QTabBar QToolButton {{ background: {p.surface}; border-radius: {RADIUS_SMALL}px; }}
+QTabBar QToolButton {{ background: {p.surface}; border: 1px solid {p.border}; border-radius: {RADIUS_SMALL}px; }}
 
 /* ---------- Menús ---------- */
 QMenu {{

@@ -146,6 +146,16 @@ class Settings:
             data.pop(next(iter(data)))
         self._set_json("files/positions", data)
 
+    # ---------- comentarios ----------
+    @property
+    def author_name(self) -> str:
+        value = str(self._qs.value("comments/author", "") or "").strip()
+        return value or system_user_name()
+
+    @author_name.setter
+    def author_name(self, value: str) -> None:
+        self._qs.setValue("comments/author", value.strip())
+
     # ---------- anotaciones ----------
     def tool_style(self, tool: str) -> dict:
         return self._json(f"annotate/{tool}", {})
@@ -167,6 +177,37 @@ class Settings:
     @custom_colors.setter
     def custom_colors(self, values: list[str]) -> None:
         self._set_json("annotate/customColors", values[:8])
+
+
+def system_user_name() -> str:
+    """Nombre visible del usuario del sistema (para firmar los comentarios)."""
+    import getpass
+
+    try:
+        login = getpass.getuser()
+    except Exception:
+        login = ""
+    if os.name == "nt":
+        try:
+            import ctypes
+
+            size = ctypes.c_ulong(0)
+            ctypes.windll.secur32.GetUserNameExW(3, None, ctypes.byref(size))
+            buffer = ctypes.create_unicode_buffer(size.value or 256)
+            if ctypes.windll.secur32.GetUserNameExW(3, buffer, ctypes.byref(size)) and buffer.value.strip():
+                return buffer.value.strip()
+        except Exception:
+            pass
+    else:
+        try:
+            import pwd
+
+            gecos = pwd.getpwnam(login).pw_gecos.split(",")[0].strip()
+            if gecos:
+                return gecos
+        except Exception:
+            pass
+    return login.capitalize() if login else "Usuario"
 
 
 _settings: Settings | None = None

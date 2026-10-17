@@ -26,6 +26,7 @@ from PySide6.QtGui import (
     QMouseEvent,
     QNativeGestureEvent,
     QPainter,
+    QPen,
     QWheelEvent,
 )
 from PySide6.QtWidgets import QAbstractScrollArea, QMessageBox
@@ -83,6 +84,13 @@ class PdfViewer(QAbstractScrollArea):
         self._pan_scroll = (0, 0)
         self._back: list[tuple[int, float]] = []
         self._forward: list[tuple[int, float]] = []
+        self._flash: tuple[int, QRectF] | None = None
+        self._flash_anim = QVariantAnimation(self)
+        self._flash_anim.setDuration(1400)
+        self._flash_anim.setStartValue(1.0)
+        self._flash_anim.setEndValue(0.0)
+        self._flash_anim.valueChanged.connect(lambda _: self.viewport().update())
+        self._flash_anim.finished.connect(self._end_flash)
 
         self.setFrameShape(QAbstractScrollArea.Shape.NoFrame)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -351,6 +359,27 @@ class PdfViewer(QAbstractScrollArea):
         offset = (self.verticalScrollBar().value() - self._rects[page].top()) / self.scale
         return page, offset
 
+    def position(self) -> tuple[int, float]:
+        """(página, desplazamiento en puntos dentro de ella) de la parte superior visible."""
+        if not self._rects:
+            return 0, 0.0
+        top = self.verticalScrollBar().value()
+        index = 0
+        for position, rect in enumerate(self._rects):
+            if rect.top() <= top + 0.5:
+                index = position
+            else:
+                break
+        return index, (top - self._rects[index].top()) / self.scale
+
+    def set_position(self, page: int, offset: float) -> None:
+        """Coloca la página `page` con el desplazamiento dado, sin animación."""
+        if not self._rects:
+            return
+        page = max(0, min(page, len(self._rects) - 1))
+        self._scroll_anim.stop()
+        self.verticalScrollBar().setValue(int(round(self._rects[page].top() + offset * self.scale)))
+
     def _restore(self, position: tuple[int, float]) -> None:
         page, offset = position
         if 0 <= page < len(self._rects):
@@ -378,6 +407,16 @@ class PdfViewer(QAbstractScrollArea):
         self._back.append(self._position())
         self._restore(self._forward.pop())
         return True
+
+    def flash(self, page: int, rect_pt: QRectF) -> None:
+        """Resalta un momento una zona (por ejemplo, el comentario elegido)."""
+        self._flash = (page, QRectF(rect_pt))
+        self._flash_anim.stop()
+        self._flash_anim.start()
+
+    def _end_flash(self) -> None:
+        self._flash = None
+        self.viewport().update()
 
     def ensure_visible(self, page: int, rect_pt: QRectF) -> None:
         rect = self.page_rect_to_viewport(page, rect_pt)
@@ -676,6 +715,17 @@ class PdfViewer(QAbstractScrollArea):
             painter.setBrush(p.qcolor("selection"))
             for line in core_text.line_rects(self._selection):
                 painter.drawRect(to_rect(line).adjusted(-0.5, -0.5, 0.5, 0.5))
+        if self._flash is not None and self._flash[0] == index:
+            strength = float(self._flash_anim.currentValue() or 0.0)
+            color = p.qcolor("accent")
+            color.setAlphaF(min(1.0, strength * 1.4))
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setPen(QPen(color, 2.5 / max(self.scale, 0.1)))
+            fill = p.qcolor("accent")
+            fill.setAlphaF(0.18 * strength)
+            painter.setBrush(fill)
+            painter.drawRoundedRect(self._flash[1].adjusted(-4, -4, 4, 4), 3, 3)
+            painter.setPen(Qt.PenStyle.NoPen)
         if self._tool is not None:
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             self._tool.paint_page(painter, index)

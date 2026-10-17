@@ -36,10 +36,24 @@ def to_visual_rect(page: pymupdf.Page, rect: pymupdf.Rect) -> pymupdf.Rect:
     return pymupdf.Rect(rect) * page.rotation_matrix
 
 
+_author = AUTHOR
+
+
+def set_default_author(name: str) -> None:
+    """Nombre que se guarda como autor de las anotaciones nuevas."""
+    global _author
+    _author = name.strip() or AUTHOR
+
+
+def default_author() -> str:
+    return _author
+
+
 def _finish(annot: pymupdf.Annot, opacity: float = 1.0) -> pymupdf.Annot:
     if opacity < 1.0:
         annot.set_opacity(max(0.05, opacity))
-    annot.set_info(title=AUTHOR)
+    now = pymupdf.get_pdf_now()
+    annot.set_info(title=_author, creationDate=now, modDate=now)
     annot.update()
     return annot
 

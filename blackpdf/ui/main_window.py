@@ -34,7 +34,7 @@ from .document_tab import DocumentTab, shortcut_text
 from .errors import show_error
 from .home import HomePage
 from .settings import settings
-from .widgets import IconButton, SearchPill, Toast, dropped_paths, open_filter
+from .widgets import IconButton, SearchPill, TabCloseButton, Toast, dropped_paths, format_icon, open_filter
 
 
 class MainWindow(QMainWindow):
@@ -112,7 +112,7 @@ class MainWindow(QMainWindow):
         self.tab_bar.tabCloseRequested.connect(self.close_tab)
         self.tab_bar.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tab_bar.customContextMenuRequested.connect(self._tab_menu)
-        layout.addWidget(self.tab_bar, 1)
+        layout.addWidget(self.tab_bar, 1, Qt.AlignmentFlag.AlignVCenter)
 
         self.palette_button = SearchPill(self.tr("Buscar herramientas y acciones"), shortcut_text("Ctrl+K"), header)
         self.palette_button.setToolTip(self.tr("Paleta de comandos ({0})").format(shortcut_text("Ctrl+K")))
@@ -180,10 +180,14 @@ class MainWindow(QMainWindow):
             for side in (QTabBar.ButtonPosition.RightSide, QTabBar.ButtonPosition.LeftSide):
                 self.tab_bar.setTabButton(index, side, None)
         else:
-            close = IconButton("x", self.tr("Cerrar ({0})").format(shortcut_text("Ctrl+W")), self.tab_bar, size=20, icon_size=14)
+            close = TabCloseButton(self.tab_bar)
+            close.setToolTip(self.tr("Cerrar ({0})").format(shortcut_text("Ctrl+W")))
             close.clicked.connect(lambda _=False, w=widget: self.close_tab(self._tabs.index(w)))
             self.tab_bar.setTabButton(index, QTabBar.ButtonPosition.RightSide, close)
         return index
+
+    def _open_documents(self) -> list:
+        return [(tab.document.display_name, tab.document) for tab in self.document_tabs()]
 
     def _tab_moved(self, origin: int, target: int) -> None:
         widget = self._tabs.pop(origin)
@@ -216,14 +220,17 @@ class MainWindow(QMainWindow):
         self._update_actions()
 
     def _tab_title(self, tab: DocumentTab) -> str:
-        name = tab.title()
-        return f"{name}  •" if tab.document.is_modified else name
+        return tab.document.short_name
 
     def _refresh_tab(self, tab: DocumentTab) -> None:
         if tab in self._tabs:
             index = self._tabs.index(tab)
             self.tab_bar.setTabText(index, self._tab_title(tab))
+            self.tab_bar.setTabIcon(index, format_icon(tab.document.format_suffix))
             self.tab_bar.setTabToolTip(index, tab.document.path or tab.title())
+            button = self.tab_bar.tabButton(index, QTabBar.ButtonPosition.RightSide)
+            if isinstance(button, TabCloseButton):
+                button.set_modified(tab.document.is_modified)
         self._update_window_title()
 
     def _update_window_title(self) -> None:
@@ -243,6 +250,9 @@ class MainWindow(QMainWindow):
             if not tab.maybe_close():
                 return False
             tab.shutdown()
+            for other in self.document_tabs():
+                if other is not tab:
+                    other.document_closing(tab.document)
         self._tabs.pop(index)
         self.tab_bar.removeTab(index)
         self.stack.removeWidget(tab)
@@ -350,13 +360,15 @@ class MainWindow(QMainWindow):
             if password is None:
                 return None
         tab = DocumentTab(model, self)
+        tab.documents_provider = self._open_documents
         tab.set_tools_menu(tools.document_menu_entries())
         tab.titleChanged.connect(lambda t=tab: self._refresh_tab(t))
         tab.toolRequested.connect(lambda tool_id, preset, t=tab: self.launch_tool(tool_id, preset, tab=t))
         tab.openRequested.connect(self.open_files)
         tab.fullscreenRequested.connect(self.toggle_fullscreen)
         tab.document.historyChanged.connect(self._update_actions)
-        index = self._add_page(tab, icons.icon("file-text"), self._tab_title(tab))
+        index = self._add_page(tab, format_icon(model.format_suffix), self._tab_title(tab))
+        self._refresh_tab(tab)
         self.tab_bar.setTabToolTip(index, model.path or model.display_name)
         if model.path:
             settings().add_recent(model.path)
@@ -512,6 +524,10 @@ class MainWindow(QMainWindow):
                 Command(tr("Modo noche"), tr("Vista"), "moon", lambda: tab.set_night_mode(not tab.viewer.night_mode), shortcut_text("Ctrl+M")),
                 Command(tr("Panel lateral"), tr("Vista"), "panel-left", tab.toggle_sidebar, "F4"),
                 Command(tr("Organizar páginas"), tr("Páginas"), "layout-grid", tab.toggle_organize, shortcut_text("Ctrl+G")),
+                Command(tr("Vista dividida"), tr("Vista"), "columns-2", tab.toggle_split, shortcut_text("Ctrl+\\")),
+                Command(tr("Comentarios"), tr("Comentarios"), "message-square", tab.show_comments),
+                Command(tr("Comentar esta página"), tr("Comentarios"), "message-square-plus",
+                        lambda: (tab.show_comments(), tab.comments.start_page_comment())),
                 Command(tr("Añadir PDF al documento"), tr("Páginas"), "file-plus", tab.add_document_pages),
                 Command(tr("Pantalla completa"), tr("Vista"), "maximize", self.toggle_fullscreen, "F11"),
             ]

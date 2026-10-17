@@ -33,14 +33,16 @@ from .dialogs.signature import SignatureDialog
 from .document import PdfDocument
 from .errors import show_error
 from .interaction import STYLED_TOOLS, RedactTool, SignatureTool, create_tool
+from .comments import CommentsPanel
 from .outline import OutlinePanel
 from .printing import print_document
 from .render import PageRenderer
 from .search import SearchBar, SearchController
+from .split_view import SplitPane
 from .settings import settings
 from .thumbnails import OrganizerView, ThumbnailModel, ThumbnailView
 from .viewer import PdfViewer
-from .widgets import Button, IconButton, SegmentedControl, Toast, open_filter, pdf_filter, separator
+from .widgets import Button, IconButton, SectionLabel, SegmentedControl, Toast, open_filter, pdf_filter, separator
 
 ZOOM_PRESETS = (50, 75, 100, 125, 150, 200, 300, 400)
 
@@ -67,6 +69,7 @@ class ViewerArea(QWidget):
 
     def layout_overlays(self, animate: bool = False) -> None:
         if self.annotation_bar is not None and self.annotation_bar.isVisible():
+            self.annotation_bar.set_compact(self.annotation_bar.full_width() > self.width() - 32)
             self.annotation_bar.place(self.width() - 14, 12, animate)
         if self.search_bar is not None and self.search_bar.isVisible():
             bar = self.search_bar
@@ -106,8 +109,14 @@ class DocumentTab(QWidget):
         self.sidebar = self._build_sidebar()
         self.area = ViewerArea(self.viewer)
         self.organizer_panel = self._build_organizer()
+        self.view_splitter = QSplitter(Qt.Orientation.Horizontal, self)
+        self.view_splitter.setHandleWidth(1)
+        self.view_splitter.setChildrenCollapsible(False)
+        self.view_splitter.addWidget(self.area)
+        self.split_pane: SplitPane | None = None
+        self.documents_provider = None
         self.view_stack = QStackedWidget(self)
-        self.view_stack.addWidget(self.area)
+        self.view_stack.addWidget(self.view_splitter)
         self.view_stack.addWidget(self.organizer_panel)
         self._organizing = False
         self._sidebar_before_organize = True
@@ -175,6 +184,8 @@ class DocumentTab(QWidget):
         layout.addWidget(self.sidebar_button)
         self.organize_button = self._button("layout-grid", self.tr("Organizar páginas"), self.toggle_organize, "Ctrl+G", True)
         layout.addWidget(self.organize_button)
+        self.split_button = self._button("columns-2", self.tr("Vista dividida"), self.toggle_split, "Ctrl+\\", True)
+        layout.addWidget(self.split_button)
         layout.addSpacing(4)
         layout.addWidget(separator(True))
         layout.addSpacing(4)
@@ -281,10 +292,24 @@ class DocumentTab(QWidget):
         frame.setObjectName("Sidebar")
         frame.setMinimumWidth(0)
         layout = QVBoxLayout(frame)
-        layout.setContentsMargins(8, 10, 8, 6)
-        layout.setSpacing(8)
-        self.sidebar_switch = SegmentedControl([("pages", self.tr("Páginas")), ("outline", self.tr("Índice"))], frame)
+        layout.setContentsMargins(10, 10, 10, 8)
+        layout.setSpacing(10)
+        self.sidebar_switch = SegmentedControl(
+            [("pages", ""), ("outline", ""), ("comments", "")],
+            frame,
+            icons_map={"pages": "layout-grid", "outline": "list-tree", "comments": "message-square"},
+            tooltips={"pages": self.tr("Páginas"), "outline": self.tr("Índice"), "comments": self.tr("Comentarios")},
+        )
         layout.addWidget(self.sidebar_switch)
+        header = QHBoxLayout()
+        header.setContentsMargins(2, 0, 2, 0)
+        self.sidebar_title = SectionLabel(self.tr("Páginas"), frame)
+        header.addWidget(self.sidebar_title)
+        header.addStretch(1)
+        self.sidebar_count = QLabel("", frame)
+        self.sidebar_count.setProperty("role", "caption")
+        header.addWidget(self.sidebar_count)
+        layout.addLayout(header)
         self.sidebar_stack = QStackedWidget(frame)
         self.thumb_model = ThumbnailModel(self.document, self.renderer, self)
         self.thumbnails = ThumbnailView(frame)
@@ -295,8 +320,13 @@ class DocumentTab(QWidget):
         self.thumb_model.insertFiles.connect(self.insert_files)
         self.outline = OutlinePanel(self.document, frame)
         self.outline.pageRequested.connect(lambda p: self.viewer.jump_to_page(p))
+        self.comments = CommentsPanel(self.document, lambda: self.viewer.current_page, frame)
+        self.comments.commentActivated.connect(self._show_comment)
+        self.comments.countChanged.connect(self._comments_count_changed)
+        self._comment_count = 0
         self.sidebar_stack.addWidget(self.thumbnails)
         self.sidebar_stack.addWidget(self.outline)
+        self.sidebar_stack.addWidget(self.comments)
         layout.addWidget(self.sidebar_stack, 1)
         self.add_pdf_button = Button(self.tr("Añadir PDF"), "", "file-plus", frame)
         self.add_pdf_button.setToolTip(self.tr(
@@ -310,13 +340,42 @@ class DocumentTab(QWidget):
         self.sidebar_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.sidebar_hint)
         self.sidebar_switch.changed.connect(self._sidebar_view_changed)
+        self._update_sidebar_header()
         return frame
+
+    def _update_sidebar_header(self) -> None:
+        key = self.sidebar_switch.value()
+        titles = {"pages": self.tr("Páginas"), "outline": self.tr("Índice"), "comments": self.tr("Comentarios")}
+        self.sidebar_title.setText(titles.get(key, "").upper())
+        if key == "pages":
+            self.sidebar_count.setText(str(self.document.page_count))
+        elif key == "comments":
+            self.sidebar_count.setText(str(self._comment_count) if self._comment_count else "")
+        else:
+            self.sidebar_count.setText("")
+
+    def _comments_count_changed(self, count: int) -> None:
+        self._comment_count = count
+        self._update_sidebar_header()
+
+    def _show_comment(self, page: int, rect) -> None:
+        self.viewer.ensure_visible(page, rect)
+        self.viewer.flash(page, rect)
+
+    def show_comments(self, edit_xref: int | None = None) -> None:
+        if self.splitter.sizes()[0] < 20:
+            self.toggle_sidebar()
+        self.sidebar_switch.set_value("comments")
+        if edit_xref is not None:
+            self.comments.edit_comment_later(edit_xref)
 
     def _sidebar_view_changed(self, key: str) -> None:
         pages = key == "pages"
-        self.sidebar_stack.setCurrentWidget(self.thumbnails if pages else self.outline)
+        widget = {"pages": self.thumbnails, "outline": self.outline, "comments": self.comments}[key]
+        self.sidebar_stack.setCurrentWidget(widget)
         self.add_pdf_button.setVisible(pages)
         self.sidebar_hint.setVisible(pages)
+        self._update_sidebar_header()
 
     def _build_organizer(self) -> QWidget:
         panel = QWidget(self)
@@ -392,17 +451,48 @@ class DocumentTab(QWidget):
             self._apply_sidebar_width(0)
             self.organizer.setFocus()
         else:
-            self.view_stack.setCurrentWidget(self.area)
+            self.view_stack.setCurrentWidget(self.view_splitter)
             if self._sidebar_before_organize:
                 self._apply_sidebar_width(self._sidebar_width)
             self.viewer.setFocus()
         for widget in (self.zoom_out_button, self.zoom_box, self.zoom_in_button, self.fit_width_button,
-                       self.fit_page_button, self.annotate_button, self.search_button, self.sidebar_button):
+                       self.fit_page_button, self.annotate_button, self.search_button, self.sidebar_button,
+                       self.split_button):
             widget.setEnabled(not on)
 
     def _open_from_organizer(self, page: int) -> None:
         self.set_organize_mode(False)
         self.viewer.go_to_page(page, smooth=False)
+
+    # ---------- vista dividida ----------
+    def toggle_split(self) -> None:
+        self.set_split(self.split_pane is None)
+
+    def set_split(self, on: bool, model: PdfDocument | None = None) -> None:
+        if on and self.split_pane is None:
+            pane = SplitPane(self.viewer, self.document, self.documents_provider, self.view_splitter)
+            pane.closeRequested.connect(lambda: self.set_split(False))
+            self.view_splitter.addWidget(pane)
+            pane.set_document(model or self.document, page=self.viewer.current_page)
+            pane.set_night_mode(self.viewer.night_mode)
+            total = max(self.view_splitter.width(), 2)
+            self.view_splitter.setSizes([total // 2, total - total // 2])
+            self.split_pane = pane
+        elif not on and self.split_pane is not None:
+            pane = self.split_pane
+            self.split_pane = None
+            pane.shutdown()
+            pane.hide()
+            pane.setParent(None)
+            pane.deleteLater()
+            self.viewer.setFocus()
+        elif on and model is not None and self.split_pane is not None:
+            self.split_pane.set_document(model)
+        self.split_button.setChecked(self.split_pane is not None)
+
+    def document_closing(self, model: PdfDocument) -> None:
+        if self.split_pane is not None:
+            self.split_pane.document_closing(model)
 
     def page_view(self) -> ThumbnailView:
         """Vista de páginas activa: la cuadrícula de organizar o el panel lateral."""
@@ -418,6 +508,8 @@ class DocumentTab(QWidget):
             delete.activated.connect(self.delete_pages)
         organize = QShortcut(QKeySequence("Ctrl+G"), self, context=context)
         organize.activated.connect(self.toggle_organize)
+        split = QShortcut(QKeySequence("Ctrl+\\"), self, context=context)
+        split.activated.connect(self.toggle_split)
         for key, slot in (
             ("Ctrl+Shift+L", lambda: self.rotate_pages(-90)),
             ("Ctrl+Shift+R", lambda: self.rotate_pages(90)),
@@ -487,6 +579,7 @@ class DocumentTab(QWidget):
     def _on_document_changed(self, pages) -> None:
         self.page_total.setText(self.tr("de {0}").format(self.document.page_count))
         self._on_page(self.viewer.current_page)
+        self._update_sidebar_header()
 
     def _on_zoom(self, zoom: float) -> None:
         self.zoom_box.lineEdit().setText(f"{round(zoom * 100)} %")
@@ -567,6 +660,8 @@ class DocumentTab(QWidget):
         self.thumb_model.set_night(enabled)
         self.thumbnails.night = enabled
         self.night_button.setChecked(enabled)
+        if getattr(self, "split_pane", None) is not None:
+            self.split_pane.set_night_mode(enabled)
 
     def find(self) -> None:
         text = self.viewer.selected_text().strip()
@@ -801,40 +896,75 @@ class DocumentTab(QWidget):
         if words:
             menu.addAction(icons.icon("copy"), self.tr("Copiar"), QKeySequence("Ctrl+C"), self.copy)
             menu.addAction(icons.icon("highlighter"), self.tr("Resaltar"), lambda: self._markup_selection("highlight"))
+            menu.addAction(icons.icon("message-square-plus"), self.tr("Resaltar y comentar"),
+                           lambda: self._markup_selection("highlight", comment=True))
             menu.addAction(icons.icon("underline"), self.tr("Subrayar"), lambda: self._markup_selection("underline"))
             menu.addAction(icons.icon("strikethrough"), self.tr("Tachar"), lambda: self._markup_selection("strikeout"))
             menu.addAction(icons.icon("search"), self.tr("Buscar en el documento"), self.find)
             menu.addSeparator()
         if hit is not None:
+            from ..core.annotations import annotation_at
+
+            tolerance = 4 / max(self.viewer.scale, 0.1)
+            xref = annotation_at(self.document.doc[hit.page], (hit.point.x(), hit.point.y()), tolerance)
+            if xref is not None:
+                menu.addAction(icons.icon("message-square-text"), self.tr("Comentar esta anotación"),
+                               lambda: self.show_comments(edit_xref=xref))
+            menu.addAction(icons.icon("message-square-plus"), self.tr("Añadir comentario aquí"),
+                           lambda: self._comment_at(hit.page, hit.point))
             menu.addAction(icons.icon("text-select"), self.tr("Seleccionar texto de la página"),
                            lambda: self.viewer.select_page_text(hit.page))
             menu.addSeparator()
-            self.thumbnails.select_pages([hit.page])
+            self.page_view().select_pages([hit.page])
             self._page_actions(menu)
             menu.addSeparator()
         menu.addAction(icons.icon("move-horizontal"), self.tr("Ajustar al ancho"), lambda: self.viewer.set_fit_mode("width"))
         menu.addAction(icons.icon("scan"), self.tr("Página completa"), lambda: self.viewer.set_fit_mode("page"))
         menu.exec(global_pos)
 
-    def _markup_selection(self, kind: str) -> None:
+    def _comment_at(self, page: int, point) -> None:
+        from PySide6.QtWidgets import QInputDialog
+
+        from ..core.comments import add_page_comment
+
+        text, ok = QInputDialog.getMultiLineText(self, self.tr("Nuevo comentario"),
+                                                 self.tr("Comentario en la página {0}:").format(page + 1))
+        if not ok or not text.strip():
+            return
+        position = (point.x(), point.y())
+        result = self._edit(self.tr("Añadir comentario"),
+                            lambda doc: add_page_comment(doc[page], text, settings().author_name, position), [page])
+        if result:
+            self.show_comments()
+
+    def _markup_selection(self, kind: str, comment: bool = False) -> None:
         from ..core import annotations as core_annots
+        from ..core.text import line_rects
         from .interaction import load_style
 
         page, words = self.viewer.selection()
         if not words:
             return
-        from ..core.text import line_rects
-
         rects = line_rects(words)
         style = load_style(kind)
         labels = {"highlight": self.tr("Resaltar"), "underline": self.tr("Subrayar"), "strikeout": self.tr("Tachar")}
-        self._edit(labels[kind], lambda doc: core_annots.add_text_markup(doc[page], kind, rects, style.rgb(), style.opacity), [page])
+        annot = self._edit(
+            labels[kind],
+            lambda doc: core_annots.add_text_markup(doc[page], kind, rects, style.rgb(), style.opacity).xref,
+            [page],
+        )
         self.viewer.clear_selection()
+        if comment and annot:
+            self.show_comments(edit_xref=annot)
 
     # ======================================================================
     # Archivo
     # ======================================================================
     def copy(self) -> None:
+        if self.split_pane is not None and self.split_pane.viewer is not None and self.split_pane.viewer.hasFocus():
+            if self.split_pane.viewer.copy_selection():
+                Toast.show_message(self.window(), self.tr("Texto copiado"), kind="success", duration=1800)
+            return
         if self.viewer.copy_selection():
             Toast.show_message(self.window(), self.tr("Texto copiado"), kind="success", duration=1800)
 
@@ -900,6 +1030,8 @@ class DocumentTab(QWidget):
 
     def shutdown(self) -> None:
         self.remember_position()
+        if self.split_pane is not None:
+            self.split_pane.shutdown()
         self.search_controller.stop()
         if self.viewer.tool is not None:
             self.viewer.tool.cancel()

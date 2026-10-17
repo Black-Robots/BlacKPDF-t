@@ -337,7 +337,7 @@ def test_organizer_mode_reorders_and_acts(qapp, opened):
     tab.delete_pages()
     assert tab.document.page_count == 2
     view.openPage.emit(1)
-    assert tab.view_stack.currentWidget() is tab.area
+    assert tab.view_stack.currentWidget() is tab.view_splitter
     assert tab.viewer.current_page == 1
 
 
@@ -380,3 +380,92 @@ def test_reading_position_is_restored(qapp, window, tmp_path):
     pump(qapp, 0.1)
     window.close_current_tab()
     assert settings().reading_position(str(path))["page"] == 2
+
+
+def test_comments_panel_flow(qapp, opened):
+    from blackpdf.core.comments import list_comments
+
+    _, tab, _ = opened
+    tab.show_comments()
+    pump(qapp, 0.2)
+    panel = tab.comments
+    panel.start_page_comment()
+    pump(qapp, 0.05)
+    panel._composer.edit.setPlainText("Revisar esta página")
+    panel._composer._submit()
+    pump(qapp, 0.3)
+    comments = list_comments(tab.document.doc)
+    assert len(comments) == 1 and comments[0].content == "Revisar esta página"
+    assert tab.sidebar_count.text() == "1"
+    card = panel.body.findChildren(type(panel).__mro__[0].__module__ and __import__("blackpdf.ui.comments", fromlist=["CommentCard"]).CommentCard)[0]
+    card.replyRequested.emit(card.comment, "Hecho")
+    pump(qapp, 0.3)
+    assert list_comments(tab.document.doc)[0].replies[0].content == "Hecho"
+    card = panel.body.findChildren(__import__("blackpdf.ui.comments", fromlist=["CommentCard"]).CommentCard)[0]
+    card.deleteRequested.emit(card.comment)
+    pump(qapp, 0.3)
+    assert list_comments(tab.document.doc) == []
+    tab.undo()
+    assert len(list_comments(tab.document.doc)) == 1
+
+
+def test_highlight_and_comment_opens_editor(qapp, opened):
+    _, tab, _ = opened
+    tab.set_tool("select")
+    drag(tab.viewer, 0, QPointF(74, 134), QPointF(240, 136))
+    tab._markup_selection("highlight", comment=True)
+    pump(qapp, 0.4)
+    assert tab.sidebar_switch.value() == "comments"
+    from blackpdf.ui.comments import CommentCard
+
+    cards = tab.comments.body.findChildren(CommentCard)
+    assert cards and cards[0].comment.kind == "Highlight"
+    assert cards[0]._composer is not None, "se abre el editor del comentario"
+
+
+def test_split_view_same_and_other_document(qapp, window, tmp_path):
+    first = tmp_path / "a.pdf"
+    second = tmp_path / "b.pdf"
+    build_pdf(8).save(first)
+    build_pdf(8, prefix="Q").save(second)
+    window.open_files([str(second)])
+    window.open_files([str(first)])
+    pump(qapp, 0.4)
+    tab = window.current_tab()
+    tab.set_split(True)
+    pump(qapp, 0.3)
+    pane = tab.split_pane
+    assert pane is not None and pane.model is tab.document
+    assert tab.split_button.isChecked()
+    names = [pane.chooser.itemText(i) for i in range(pane.chooser.count())]
+    assert "b.pdf" in names
+    other = next(m for _, m in window._open_documents() if m is not tab.document)
+    pane.set_document(other)
+    pump(qapp, 0.2)
+    assert pane.model is other
+    # sincronizado: mover el principal mueve el secundario manteniendo la diferencia de páginas
+    pane.viewer.set_position(1, 0)
+    tab.viewer.set_position(0, 0)
+    pump(qapp, 0.05)
+    pane.set_sync(True)
+    assert pane._page_delta == 1
+    tab.viewer.set_position(3, 0)
+    pump(qapp, 0.05)
+    assert pane.viewer.position()[0] == 4
+    # cerrar la otra pestaña devuelve el panel a este documento
+    other_tab = next(t for t in window.document_tabs() if t.document is other)
+    window.close_tab(window._tabs.index(other_tab))
+    pump(qapp, 0.2)
+    assert pane.model is tab.document
+    tab.set_split(False)
+    assert tab.split_pane is None and not tab.split_button.isChecked()
+
+
+def test_comment_flash_paints(qapp, opened):
+    from PySide6.QtCore import QRectF
+
+    _, tab, _ = opened
+    tab._show_comment(0, QRectF(100, 100, 50, 30))
+    pump(qapp, 0.1)
+    image = tab.viewer.viewport().grab()
+    assert not image.isNull()

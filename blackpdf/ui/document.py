@@ -38,6 +38,7 @@ class PdfDocument(QObject):
         self._modified = False
         self._sizes: list[QSizeF] = []
         self._untitled_name = ""
+        self._source_suffix = ".pdf"
         self._recompute_sizes()
 
     # ---------- creación ----------
@@ -55,6 +56,7 @@ class PdfDocument(QObject):
         model = cls(doc, path if is_pdf else None, password, encrypted)
         if not is_pdf:
             model._untitled_name = Path(path).stem + ".pdf"
+            model._source_suffix = Path(path).suffix.lower()
             model._modified = True
         return model
 
@@ -79,6 +81,16 @@ class PdfDocument(QObject):
         if self._path:
             return Path(self._path).name
         return self._untitled_name or self.tr("Sin título.pdf")
+
+    @property
+    def short_name(self) -> str:
+        """Nombre sin extensión, para pestañas."""
+        return Path(self.display_name).stem
+
+    @property
+    def format_suffix(self) -> str:
+        """Formato de origen (".pdf", ".png", ".epub"...); tras guardar, siempre ".pdf"."""
+        return ".pdf" if self._path else self._source_suffix
 
     @property
     def suggested_path(self) -> str:

@@ -885,7 +885,9 @@ class EraserTool(AnnotationTool):
         if found is None:
             return
         page, xref, _ = found
-        self.apply(self.tr("Borrar anotación"), page, lambda pg: core_annots.delete_annotation(pg, xref))
+        from ..core.comments import delete_comment
+
+        self.apply(self.tr("Borrar anotación"), page, lambda pg: delete_comment(pg, xref))
 
     def cancel(self):
         self._hover = None
