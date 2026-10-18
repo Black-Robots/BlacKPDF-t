@@ -52,6 +52,14 @@ def _signature_check(folder: Path, source: Path) -> bool:
     return len(statuses) == 1 and statuses[0].intact and statuses[0].valid
 
 
+def _model3d_check(resources: Path) -> bool:
+    """Decodifica un cubo U3D de ejemplo (decodificador aritmético y mallas)."""
+    from .core.model3d import u3d
+
+    scene = u3d.decode((resources / "model3d" / "cubo.u3d").read_bytes())
+    return scene.triangle_count == 12
+
+
 def _gui_check() -> bool:
     """Crea la ventana principal sin pantalla, abre un PDF y renderiza una página."""
     import time
@@ -128,6 +136,7 @@ def run(target: str | None = None) -> int:
             result = run_blocking("blackpdf.core.compress:compress_pdf", str(source), str(output), "medium")
             check("subproceso de trabajo", output.exists() and result.compressed_size > 0)
             check("firma digital", _signature_check(Path(folder), source))
+            check("modelos 3D", _model3d_check(resources))
     except Exception as exc:  # cualquier fallo debe quedar en el informe
         check("ejecución", False, repr(exc))
     if os.environ.get("BLACKPDF_SELFTEST_SKIP_GUI"):

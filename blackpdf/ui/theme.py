@@ -60,6 +60,13 @@ class Palette:
     scrim: str
     night_page: str
     night_ink: str
+    scene_top: str
+    scene_bottom: str
+    scene_edge: str
+    scene_model: str
+    axis_x: str
+    axis_y: str
+    axis_z: str
 
     def qcolor(self, name: str) -> QColor:
         return parse_color(getattr(self, name))
@@ -95,6 +102,13 @@ DARK = Palette(
     scrim="rgba(0, 0, 0, 0.55)",
     night_page="#1B1B1F",
     night_ink="#DADADF",
+    scene_top="#2A2A31",
+    scene_bottom="#0E0E11",
+    scene_edge="rgba(8, 8, 10, 0.78)",
+    scene_model="#B8B8C0",
+    axis_x="#F2555A",
+    axis_y="#3DD68C",
+    axis_z="#4C8DFF",
 )
 
 LIGHT = Palette(
@@ -127,6 +141,13 @@ LIGHT = Palette(
     scrim="rgba(10, 10, 15, 0.35)",
     night_page="#1B1B1F",
     night_ink="#DADADF",
+    scene_top="#FFFFFF",
+    scene_bottom="#D9D9E0",
+    scene_edge="rgba(20, 20, 26, 0.70)",
+    scene_model="#B8B8C0",
+    axis_x="#DC3E42",
+    axis_y="#16A05A",
+    axis_z="#2F6FE0",
 )
 
 PALETTES = {"dark": DARK, "light": LIGHT}
@@ -233,6 +254,16 @@ QFrame#FloatingBar {{
     background: {p.surface};
     border: 1px solid {p.border_strong};
     border-radius: 12px;
+}}
+QFrame#PartsPanel {{
+    background: {p.surface};
+    border: none;
+    border-left: 1px solid {p.border};
+}}
+QFrame#StatusBar3D {{
+    background: {p.surface};
+    border: none;
+    border-top: 1px solid {p.border};
 }}
 QFrame#SignatureBanner {{ border: none; border-bottom: 1px solid {p.border}; background: {p.surface}; }}
 QFrame#SignatureBanner[level="valid"] {{ background: {_tint(p.success, 0.10)}; }}
@@ -390,6 +421,14 @@ QCheckBox::indicator {{ border-radius: 4px; }}
 QRadioButton::indicator {{ border-radius: 9px; }}
 QCheckBox::indicator:hover, QRadioButton::indicator:hover {{ border-color: {p.accent}; }}
 QCheckBox::indicator:checked {{ background: {p.accent}; border-color: {p.accent}; image: url("{check}"); }}
+QListView::indicator, QTreeView::indicator {{
+    width: 14px; height: 14px; border-radius: 4px;
+    border: 1px solid {p.border_strong}; background: {p.surface_alt};
+}}
+QListView::indicator:hover, QTreeView::indicator:hover {{ border-color: {p.accent}; }}
+QListView::indicator:checked, QTreeView::indicator:checked {{
+    background: {p.accent}; border-color: {p.accent}; image: url("{check}");
+}}
 QRadioButton::indicator:checked {{ background: {p.accent}; border-color: {p.accent}; image: url("{dot}"); }}
 QCheckBox:disabled, QRadioButton:disabled {{ color: {p.text_faint}; }}
 

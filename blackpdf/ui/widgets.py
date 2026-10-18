@@ -58,6 +58,16 @@ def open_filter() -> str:
     return tr("Documentos compatibles (*.pdf *.xps *.oxps *.epub *.cbz *.fb2 *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.gif *.webp)")
 
 
+def open_any_filter() -> str:
+    """Filtro de «Abrir»: documentos y modelos 3D sueltos."""
+    return ";;".join((
+        tr("Todos los compatibles (*.pdf *.xps *.oxps *.epub *.cbz *.fb2 *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.gif "
+           "*.webp *.u3d *.prc)"),
+        tr("Documentos PDF (*.pdf)"),
+        tr("Modelos 3D (*.u3d *.prc)"),
+    ))
+
+
 def image_filter() -> str:
     return tr("Imágenes (*.png *.jpg *.jpeg *.bmp *.gif *.tif *.tiff *.webp *.pnm *.jxr *.psd)")
 

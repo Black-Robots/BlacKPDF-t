@@ -20,9 +20,12 @@ from PySide6.QtCore import (
 from PySide6.QtGui import (
     QColor,
     QDesktopServices,
+    QFont,
+    QFontMetricsF,
     QGuiApplication,
     QKeyEvent,
     QKeySequence,
+    QLinearGradient,
     QMouseEvent,
     QNativeGestureEvent,
     QPainter,
@@ -31,8 +34,8 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QAbstractScrollArea, QMessageBox
 
-from ..core import navigation, text as core_text
-from . import theme
+from ..core import model3d, navigation, text as core_text
+from . import icons, theme
 from .document import PdfDocument
 from .render import TILE, PageRenderer, TileKey
 
@@ -61,6 +64,8 @@ class PdfViewer(QAbstractScrollArea):
     selectionChanged = Signal(bool)
     contextMenuRequested = Signal(object, object)
     """(posición global, PageHit o None)."""
+    modelRequested = Signal(object)
+    """Se pidió abrir un modelo 3D (core.model3d.Embedded3D)."""
 
     def __init__(self, model: PdfDocument, renderer: PageRenderer, parent=None):
         super().__init__(parent)
@@ -75,6 +80,8 @@ class PdfViewer(QAbstractScrollArea):
         self._current = 0
         self._words: dict[int, list[core_text.Word]] = {}
         self._links: dict[int, list[navigation.PageLink]] = {}
+        self._models: dict[int, list[tuple[model3d.Embedded3D, QRectF]]] = {}
+        self._hover_model: int | None = None
         self._search_hits: dict[int, list[QRectF]] = {}
         self._current_hit: tuple[int, int] | None = None
         self._selection_page = -1
@@ -492,6 +499,48 @@ class PdfViewer(QAbstractScrollArea):
                 return link
         return None
 
+    def models(self, page: int) -> list[tuple[model3d.Embedded3D, QRectF]]:
+        """Modelos 3D de la página con su rectángulo en coordenadas visuales."""
+        if page not in self._models:
+            items = []
+            try:
+                found = model3d.page_models(self.model.doc, page)
+                if found:
+                    matrix = self.model.doc[page].rotation_matrix
+                    for item in found:
+                        items.append((item, to_rect(pymupdf.Rect(item.rect) * matrix)))
+            except Exception:
+                items = []
+            self._models[page] = items
+        return self._models[page]
+
+    def model_at(self, hit: PageHit | None) -> model3d.Embedded3D | None:
+        if hit is None:
+            return None
+        for item, rect in self.models(hit.page):
+            if rect.contains(hit.point):
+                return item
+        return None
+
+    def set_hover_model(self, item: model3d.Embedded3D | None) -> None:
+        xref = item.xref if item is not None else None
+        if xref != self._hover_model:
+            self._hover_model = xref
+            self.viewport().update()
+
+    def activate_at(self, pos: QPointF) -> bool:
+        """Sigue el enlace o abre el modelo 3D bajo ``pos``. True si había algo."""
+        hit = self.hit_test(pos)
+        link = self.link_at(hit)
+        if link is not None:
+            self.follow_link(link)
+            return True
+        item = self.model_at(hit)
+        if item is not None:
+            self.modelRequested.emit(item)
+            return True
+        return False
+
     def follow_link(self, link: navigation.PageLink) -> None:
         if link.page >= 0:
             self.jump_to_page(link.page)
@@ -575,6 +624,7 @@ class PdfViewer(QAbstractScrollArea):
             self._forward.clear()
             self._words.clear()
             self._links.clear()
+            self._models.clear()
             self._search_hits.clear()
             self._current_hit = None
             self.clear_selection()
@@ -582,6 +632,7 @@ class PdfViewer(QAbstractScrollArea):
             for page in pages:
                 self._words.pop(page, None)
                 self._links.pop(page, None)
+                self._models.pop(page, None)
         self._relayout()
         if self._fit:
             self._refit_timer.start()
@@ -681,6 +732,7 @@ class PdfViewer(QAbstractScrollArea):
                 )
                 painter.drawImage(target, tile.image)
             self._paint_overlays(painter, index, rect)
+            self._paint_models(painter, index, rect)
 
         requests.sort(key=lambda item: item[0])
         self.renderer.request_tiles([(key, device_scale) for _, key in requests])
@@ -695,6 +747,78 @@ class PdfViewer(QAbstractScrollArea):
             shade.setAlphaF(base_alpha * alpha)
             painter.setBrush(shade)
             painter.drawRoundedRect(rect.adjusted(-spread, -spread + 1, spread, spread + 2), spread + 1, spread + 1)
+        painter.restore()
+
+    def _paint_models(self, painter: QPainter, index: int, page_rect: QRectF) -> None:
+        """Marca los modelos 3D: tarjeta si no tienen imagen propia, botón si la tienen."""
+        items = self.models(index)
+        if not items:
+            return
+        p = theme.DARK if self._night else theme.LIGHT
+        scale = self.scale
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        dpr = self.viewport().devicePixelRatioF()
+        for item, rect in items:
+            target = QRectF(
+                page_rect.left() + rect.left() * scale,
+                page_rect.top() + rect.top() * scale,
+                rect.width() * scale,
+                rect.height() * scale,
+            )
+            if target.width() < 8 or target.height() < 8:
+                continue
+            hovered = item.xref == self._hover_model
+            accent = p.qcolor("accent")
+            if not item.has_appearance:
+                painter.setPen(QPen(accent if hovered else p.qcolor("border_strong"), 1.2))
+                gradient = QLinearGradient(target.topLeft(), target.bottomLeft())
+                gradient.setColorAt(0.0, p.qcolor("surface"))
+                gradient.setColorAt(1.0, p.qcolor("hover"))
+                painter.setBrush(gradient)
+                painter.drawRoundedRect(target.adjusted(0.5, 0.5, -0.5, -0.5), 8, 8)
+                size = int(max(16, min(48, min(target.width(), target.height()) * 0.28)))
+                icon = icons.pixmap("box", size, icons.ROLE_ACCENT, dpr)
+                title_font = QFont(self.font())
+                title_font.setPixelSize(max(11, min(15, size // 3 + 4)))
+                title_font.setWeight(QFont.Weight.DemiBold)
+                caption_font = QFont(self.font())
+                caption_font.setPixelSize(max(10, min(12, size // 4 + 3)))
+                block = size + 8 + title_font.pixelSize() + 6 + caption_font.pixelSize()
+                top = target.center().y() - block / 2
+                painter.drawPixmap(QPointF(target.center().x() - size / 2, top), icon)
+                painter.setPen(p.qcolor("text"))
+                painter.setFont(title_font)
+                title_rect = QRectF(target.left() + 6, top + size + 8, target.width() - 12, title_font.pixelSize() + 4)
+                painter.drawText(title_rect, Qt.AlignmentFlag.AlignCenter,
+                                 self.tr("Modelo 3D ({0})").format(item.format))
+                if target.height() > block + 16:
+                    painter.setPen(p.qcolor("accent") if hovered else p.qcolor("text_muted"))
+                    painter.setFont(caption_font)
+                    caption_rect = QRectF(target.left() + 6, title_rect.bottom() + 4, target.width() - 12,
+                                          caption_font.pixelSize() + 4)
+                    painter.drawText(caption_rect, Qt.AlignmentFlag.AlignCenter, self.tr("Haz clic para verlo en 3D"))
+            else:
+                font = QFont(self.font())
+                font.setPixelSize(12)
+                font.setWeight(QFont.Weight.DemiBold)
+                text = self.tr("Ver en 3D")
+                width = QFontMetricsF(font).horizontalAdvance(text) + 36
+                pill = QRectF(target.right() - width - 8, target.top() + 8, width, 26)
+                if pill.left() < target.left() + 4:
+                    pill.moveLeft(target.left() + 4)
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(accent if hovered else QColor(20, 20, 24, 210))
+                painter.drawRoundedRect(pill, 13, 13)
+                painter.drawPixmap(QPointF(pill.left() + 9, pill.top() + 5),
+                                   icons.pixmap("box", 16, icons.ROLE_ON_ACCENT, dpr))
+                painter.setPen(QColor(255, 255, 255))
+                painter.setFont(font)
+                painter.drawText(pill.adjusted(28, 0, -8, 0), Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, text)
+                if hovered:
+                    painter.setPen(QPen(accent, 1.5))
+                    painter.setBrush(Qt.BrushStyle.NoBrush)
+                    painter.drawRect(target)
         painter.restore()
 
     def _paint_overlays(self, painter: QPainter, index: int, rect: QRectF) -> None:

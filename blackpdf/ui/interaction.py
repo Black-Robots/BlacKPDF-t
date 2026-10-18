@@ -166,10 +166,17 @@ class ViewerTool(QObject):
         self.viewer.viewport().update()
 
     def _hover_links(self, event: QMouseEvent) -> bool:
-        link = self.viewer.link_at(self.viewer.hit_test(event.position()))
+        hit = self.viewer.hit_test(event.position())
+        link = self.viewer.link_at(hit)
+        model = self.viewer.model_at(hit) if link is None else None
+        self.viewer.set_hover_model(model)
         if link is not None:
             self.viewer.viewport().setCursor(Qt.CursorShape.PointingHandCursor)
             self.viewer.viewport().setToolTip(link.uri or self.tr("Ir a la página {0}").format(link.page + 1))
+            return True
+        if model is not None:
+            self.viewer.viewport().setCursor(Qt.CursorShape.PointingHandCursor)
+            self.viewer.viewport().setToolTip(self.tr("Abrir el modelo 3D"))
             return True
         self.viewer.viewport().setCursor(self.cursor())
         self.viewer.viewport().setToolTip("")
@@ -212,9 +219,7 @@ class HandTool(ViewerTool):
     def release(self, event):
         self.viewer.end_pan()
         if not self._moved:
-            link = self.viewer.link_at(self.viewer.hit_test(event.position()))
-            if link is not None:
-                self.viewer.follow_link(link)
+            self.viewer.activate_at(event.position())
         self._press = None
         self.viewer.viewport().setCursor(self.cursor())
 
@@ -255,10 +260,7 @@ class SelectTool(ViewerTool):
 
     def release(self, event):
         if not self._dragging:
-            link = self.viewer.link_at(self.viewer.hit_test(event.position()))
-            if link is not None:
-                self.viewer.follow_link(link)
-            else:
+            if not self.viewer.activate_at(event.position()):
                 self.viewer.clear_selection()
         self._anchor = None
         self._dragging = False

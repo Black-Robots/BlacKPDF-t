@@ -512,3 +512,75 @@ def test_certificate_dialog_signs_current_document(qapp, opened, tmp_path):
     status = list_signatures(output)[0]
     assert status.intact and status.valid and status.covers_whole_file
     dialog.close()
+
+
+# ---------------------------------------------------------------------------
+# Modelos 3D
+# ---------------------------------------------------------------------------
+MODEL_DATA = os.path.join(os.path.dirname(__file__), "data", "model3d")
+
+
+def test_3d_model_on_page_opens_viewer_window(qapp, window):
+    window.open_files([os.path.join(MODEL_DATA, "views.pdf")])
+    pump(qapp, 0.4)
+    tab = window.current_tab()
+    models = tab.viewer.models(0)
+    assert len(models) == 1
+    item, rect = models[0]
+    assert item.format == "U3D"
+    requested = []
+    tab.viewer.modelRequested.connect(requested.append)
+    center = tab.viewer.page_to_viewport(0, rect.center())
+    assert tab.viewer.activate_at(center)
+    assert requested and requested[0].xref == item.xref
+    pump(qapp, 0.2)
+    windows = list(tab._model_windows.values())
+    assert len(windows) == 1
+    model_window = windows[0]
+    # Sin pantalla no hay OpenGL: la ventana lo explica en lugar de fallar.
+    assert model_window.overlay.isVisible()
+    model_window.close()
+    pump(qapp, 0.1)
+    assert not tab._model_windows
+
+
+def test_model3d_window_controls(qapp):
+    from blackpdf.core import model3d
+    from blackpdf.ui.model3d_window import Model3DWindow
+
+    scene = model3d.load_file(os.path.join(MODEL_DATA, "VertexColor.u3d"))
+    win = Model3DWindow("VertexColor.u3d")
+    win.resize(1200, 760)
+    win.show()
+    win.set_scene(scene)
+    pump(qapp, 0.1)
+    assert win.parts.list.count() == len(scene.parts) == 3
+    labels = [win.views_box.itemText(i) for i in range(win.views_box.count())]
+    assert "Isométrica" in labels and "Frente" in labels
+    for mode in ("outline", "wireframe", "transparent", "solid"):
+        win.modes.set_value(mode)
+        assert win.viewer.render_mode == mode
+    win.section_button.setChecked(True)
+    assert win.viewer.section_axis is not None
+    win.section_button.setChecked(False)
+    assert win.viewer.section_axis is None
+    win.parts.select(1)
+    win.parts._isolate_current()
+    assert win.viewer.hidden == {0, 2}
+    win.parts.set_all_visible(True)
+    assert not win.viewer.hidden
+    win.projection_button.setChecked(True)
+    assert win.viewer.camera.orthographic
+    win.close()
+    pump(qapp, 0.05)
+
+
+def test_open_model_file_from_main_window(qapp, window):
+    tabs_before = window.tab_bar.count()
+    window.open_files([os.path.join(MODEL_DATA, "box.u3d")])
+    pump(qapp, 0.2)
+    assert window.tab_bar.count() == tabs_before
+    assert len(window._model_windows) == 1
+    for win in list(window._model_windows.values()):
+        win.close()
+    pump(qapp, 0.05)

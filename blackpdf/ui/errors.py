@@ -81,6 +81,12 @@ def user_message(exc: BaseException) -> tuple[str, str]:
         return _tr("Reconocimiento de texto no disponible"), _tr(
             "Para reconocer texto hace falta instalar Tesseract OCR con el idioma español."
         )
+    if isinstance(exc, core_errors.Model3DEmptyError):
+        return _tr("Modelo 3D vacío"), _tr("El modelo 3D no contiene piezas visibles.")
+    if isinstance(exc, core_errors.Model3DError):
+        return _tr("No se puede abrir el modelo 3D"), _tr(
+            "El modelo 3D está dañado o usa una variante del formato que BlackPDF todavía no puede mostrar."
+        )
     if isinstance(exc, core_errors.InvalidOptionError):
         return _tr("Opción no válida"), _tr("Revisa las opciones marcadas e inténtalo de nuevo.")
     if isinstance(exc, core_errors.BlackPdfError):

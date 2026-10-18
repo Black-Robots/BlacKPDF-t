@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QPoint, Qt, QTimer, QVariantAnimation, Signal
-from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtGui import QCursor, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -193,6 +193,8 @@ class DocumentTab(QWidget):
         self.viewer.currentPageChanged.connect(self._on_page)
         self.viewer.fitModeChanged.connect(self._on_fit_mode)
         self.viewer.contextMenuRequested.connect(self._viewer_menu)
+        self.viewer.modelRequested.connect(self.open_model)
+        self._model_windows: dict[int, QWidget] = {}
         document.historyChanged.connect(self._update_actions)
         document.modifiedChanged.connect(lambda _: self.titleChanged.emit())
         document.pathChanged.connect(lambda _: self.titleChanged.emit())
@@ -1057,6 +1059,10 @@ class DocumentTab(QWidget):
             menu.addAction(icons.icon("strikethrough"), self.tr("Tachar"), lambda: self._markup_selection("strikeout"))
             menu.addAction(icons.icon("search"), self.tr("Buscar en el documento"), self.find)
             menu.addSeparator()
+        model = self.viewer.model_at(hit)
+        if model is not None:
+            menu.addAction(icons.icon("box"), self.tr("Ver el modelo 3D"), lambda: self.open_model(model))
+            menu.addSeparator()
         if hit is not None:
             from ..core.annotations import annotation_at
 
@@ -1195,6 +1201,53 @@ class DocumentTab(QWidget):
             print_document(self, self.document, self.viewer.current_page)
         except Exception as exc:
             show_error(self, exc, "Imprimir")
+
+    # ======================================================================
+    # Modelos 3D
+    # ======================================================================
+    def models_3d(self) -> list:
+        from ..core import model3d
+
+        try:
+            return model3d.find_models(self.document.doc)
+        except Exception:
+            return []
+
+    def open_model(self, item) -> None:
+        """Abre el modelo 3D en su propia ventana (o la trae al frente)."""
+        from ..core import model3d
+        from .model3d_window import Model3DWindow, show_window
+
+        window = self._model_windows.get(item.xref)
+        if window is not None:
+            show_window(window)
+            return
+        try:
+            embedded = model3d.extract_from_pdf(self.document.doc, item.xref)
+        except BlackPdfError as exc:
+            show_error(self, exc)
+            return
+        name = self.document.short_name
+        window = Model3DWindow(name, self.tr("Página {0}").format(item.page + 1), self.window())
+        self._model_windows[item.xref] = window
+        window.closed.connect(lambda xref=item.xref: self._model_windows.pop(xref, None))
+        window.load("blackpdf.core.model3d:load_embedded", embedded, name)
+        show_window(window)
+
+    def show_models(self) -> None:
+        """Abre el único modelo 3D o deja elegir entre varios."""
+        found = self.models_3d()
+        if not found:
+            Toast.show_message(self.window(), self.tr("Este documento no contiene modelos 3D"))
+            return
+        if len(found) == 1:
+            self.open_model(found[0])
+            return
+        menu = QMenu(self)
+        for item in found:
+            menu.addAction(icons.icon("box"), self.tr("Página {0} · {1}").format(item.page + 1, item.format),
+                           lambda i=item: self.open_model(i))
+        menu.exec(QCursor.pos())
 
     def show_properties(self) -> None:
         PropertiesDialog(document_info(self.document.doc), self.document.path, self).exec()

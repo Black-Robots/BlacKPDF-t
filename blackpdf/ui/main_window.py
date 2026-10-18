@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 
 from .. import APP_NAME
 from ..core.document import OPENABLE_EXTENSIONS
+from ..core.model3d import MODEL_EXTENSIONS
 from ..core.errors import BlackPdfError, PasswordRequiredError, WrongPasswordError
 from . import icons, platform, tasks, theme, tools
 from .command_palette import Command, CommandPalette
@@ -34,7 +35,16 @@ from .document_tab import DocumentTab, shortcut_text
 from .errors import show_error
 from .home import HomePage
 from .settings import settings
-from .widgets import IconButton, SearchPill, TabCloseButton, Toast, dropped_paths, format_icon, open_filter
+from .widgets import (
+    IconButton,
+    SearchPill,
+    TabCloseButton,
+    Toast,
+    dropped_paths,
+    format_icon,
+    open_any_filter,
+    open_filter,
+)
 
 
 class MainWindow(QMainWindow):
@@ -47,6 +57,7 @@ class MainWindow(QMainWindow):
         self._tabs: list[QWidget] = []
         self._actions: list[QAction] = []
         self._fullscreen_restore = False
+        self._model_windows: dict[str, QWidget] = {}
 
         central = QWidget(self)
         central.setObjectName("Window")
@@ -294,7 +305,7 @@ class MainWindow(QMainWindow):
     # Abrir
     # ======================================================================
     def open_dialog(self) -> None:
-        paths, _ = QFileDialog.getOpenFileNames(self, self.tr("Abrir"), settings().last_directory, open_filter())
+        paths, _ = QFileDialog.getOpenFileNames(self, self.tr("Abrir"), settings().last_directory, open_any_filter())
         if paths:
             settings().last_directory = paths[0]
             self.open_files(paths)
@@ -333,6 +344,9 @@ class MainWindow(QMainWindow):
         existing = self._find_open(path)
         if existing is not None:
             return existing
+        if Path(path).suffix.lower() in MODEL_EXTENSIONS:
+            self.open_model_file(path)
+            return None
         if Path(path).suffix.lower() not in OPENABLE_EXTENSIONS:
             Toast.show_message(self, self.tr("«{0}» no es un formato compatible").format(Path(path).name), kind="warning")
             return None
@@ -370,6 +384,25 @@ class MainWindow(QMainWindow):
         if model.path:
             settings().add_recent(model.path)
         return tab
+
+    def open_model_file(self, path: str) -> None:
+        """Abre un archivo .u3d o .prc en el visor 3D."""
+        from .model3d_window import Model3DWindow, show_window
+
+        try:
+            key = str(Path(path).resolve())
+        except OSError:
+            key = path
+        window = self._model_windows.get(key)
+        if window is not None:
+            show_window(window)
+            return
+        window = Model3DWindow(Path(path).name, str(Path(path).parent), self)
+        self._model_windows[key] = window
+        window.closed.connect(lambda k=key: self._model_windows.pop(k, None))
+        window.load("blackpdf.core.model3d:load_file", path)
+        show_window(window)
+        settings().add_recent(path)
 
     # ======================================================================
     # Herramientas
@@ -526,6 +559,7 @@ class MainWindow(QMainWindow):
                 Command(tr("Comentar esta página"), tr("Comentarios"), "message-square-plus",
                         lambda: (tab.show_comments(), tab.comments.start_page_comment())),
                 Command(tr("Añadir PDF al documento"), tr("Páginas"), "file-plus", tab.add_document_pages),
+                Command(tr("Ver modelos 3D del documento"), tr("Vista"), "box", tab.show_models, keywords="3d u3d prc cad"),
                 Command(tr("Pantalla completa"), tr("Vista"), "maximize", self.toggle_fullscreen, "F11"),
             ]
             for name, icon_name, title in (
@@ -591,11 +625,11 @@ class MainWindow(QMainWindow):
     # Arrastrar y soltar, cierre
     # ======================================================================
     def dragEnterEvent(self, event) -> None:
-        if dropped_paths(event, OPENABLE_EXTENSIONS):
+        if dropped_paths(event, OPENABLE_EXTENSIONS + MODEL_EXTENSIONS):
             event.acceptProposedAction()
 
     def dropEvent(self, event) -> None:
-        paths = dropped_paths(event, OPENABLE_EXTENSIONS)
+        paths = dropped_paths(event, OPENABLE_EXTENSIONS + MODEL_EXTENSIONS)
         if paths:
             event.acceptProposedAction()
             self.open_files(paths)

@@ -58,3 +58,11 @@ class OcrUnavailableError(BlackPdfError):
 
 class OperationCancelled(Exception):
     """El usuario canceló la operación en curso."""
+
+
+class Model3DError(BlackPdfError):
+    """El modelo 3D no se puede leer: formato desconocido o datos dañados (params: path)."""
+
+
+class Model3DEmptyError(BlackPdfError):
+    """El modelo 3D se ha leído pero no contiene geometría visible (params: path)."""

@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from .. import __version__
 from ..core.document import OPENABLE_EXTENSIONS
+from ..core.model3d import MODEL_EXTENSIONS
 from . import icons, theme
 from .settings import settings
 from .tools import ToolSpec, categories, tool_specs
@@ -248,7 +249,7 @@ class HomePage(QScrollArea):
         intro.addStretch(1)
         hero.addLayout(intro, 5)
 
-        self.drop = DropZone(OPENABLE_EXTENSIONS, self)
+        self.drop = DropZone(OPENABLE_EXTENSIONS + MODEL_EXTENSIONS, self)
         self.drop.setMinimumHeight(200)
         drop_layout = QVBoxLayout(self.drop)
         drop_layout.setContentsMargins(24, 24, 24, 24)
