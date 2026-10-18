@@ -35,38 +35,47 @@ class ProcessTask(QRunnable):
     def cancel(self) -> None:
         self._cancel.set()
 
+    def _emit(self, signal, *args) -> None:
+        """Emite ignorando el caso de que la interfaz ya se haya cerrado."""
+        try:
+            signal.emit(*args)
+        except RuntimeError:
+            pass
+
     def run(self) -> None:
+        signals = self.signals
         try:
             self._job.start()
             while True:
                 if self._cancel.is_set():
                     self._job.cancel()
-                    self.signals.cancelled.emit()
+                    self._emit(signals.cancelled)
                     return
                 message = self._job.next_message(0.1)
                 if message is None:
                     continue
                 if message.kind == "progress":
-                    self.signals.progress.emit(int(message.payload), int(message.total))
+                    self._emit(signals.progress, int(message.payload), int(message.total))
                 elif message.kind == "done":
-                    self.signals.succeeded.emit(message.payload)
+                    self._emit(signals.succeeded, message.payload)
                     return
                 elif message.kind == "error":
-                    self.signals.failed.emit(message.payload)
+                    self._emit(signals.failed, message.payload)
                     return
                 elif message.kind == "cancelled":
-                    self.signals.cancelled.emit()
+                    self._emit(signals.cancelled)
                     return
                 else:
-                    self.signals.crashed.emit(str(message.payload))
+                    self._emit(signals.crashed, str(message.payload))
                     return
         except Exception as exc:  # no se pudo lanzar el subproceso
-            self.signals.crashed.emit(repr(exc))
+            self._emit(signals.crashed, repr(exc))
         finally:
             try:
                 self._job.close()
-            finally:
-                self.signals.finished.emit()
+            except Exception:
+                pass
+            self._emit(signals.finished)
 
 
 _running: set[ProcessTask] = set()
@@ -84,3 +93,9 @@ def start(target: str, *args, **kwargs) -> ProcessTask:
 def cancel_all() -> None:
     for task in list(_running):
         task.cancel()
+
+
+def shutdown(timeout_ms: int = 3000) -> None:
+    """Cancela las tareas y espera a que sus hilos terminen (al cerrar la aplicación)."""
+    cancel_all()
+    QThreadPool.globalInstance().waitForDone(timeout_ms)

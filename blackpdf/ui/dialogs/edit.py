@@ -111,13 +111,16 @@ class _PreviewDialog(_SingleSourceDialog):
         right.setSpacing(6)
         self.preview = PagePreview(self.render_preview, self, 260)
         right.addWidget(self.preview)
-        caption = label(self.tr("Vista previa de la primera página"), "caption")
+        caption = label(self.preview_caption(), "caption")
         caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
         right.addWidget(caption)
         right.addStretch(1)
         columns.addLayout(right)
         self._main_form.addWidget(holder)
         self.form = left
+
+    def preview_caption(self) -> str:
+        return self.tr("Vista previa de la primera página")
 
     def end_columns(self) -> None:
         self.form.addStretch(1)

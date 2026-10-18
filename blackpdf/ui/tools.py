@@ -52,6 +52,7 @@ def tool_specs() -> list[ToolSpec]:
         ToolSpec("crop", _tr("Recortar márgenes"), _tr("Elimina márgenes blancos de forma automática o manual."), "crop", "edit"),
         ToolSpec("resize", _tr("Cambiar tamaño"), _tr("Ajusta las páginas a A4, Carta y otros tamaños."), "scaling", "edit"),
         ToolSpec("flatten", _tr("Aplanar PDF"), _tr("Fija anotaciones y formularios en el contenido."), "layers", "edit"),
+        ToolSpec("sign_certificate", _tr("Firma digital"), _tr("Firma con tu certificado (FNMT, DNIe, empresa) con validez legal."), "shield-check", "security"),
         ToolSpec("protect", _tr("Proteger PDF"), _tr("Cifra con contraseña AES de 256 bits."), "lock", "security"),
         ToolSpec("unlock", _tr("Desbloquear PDF"), _tr("Quita la contraseña y las restricciones."), "lock-open", "security"),
     ]
@@ -62,7 +63,7 @@ def spec(tool_id: str) -> ToolSpec | None:
 
 
 def dialog_class(tool_id: str):
-    from .dialogs import convert, edit, ocr, organize, security
+    from .dialogs import certificate, convert, edit, ocr, organize, security
 
     return {
         "merge": organize.MergeDialog,
@@ -81,13 +82,14 @@ def dialog_class(tool_id: str):
         "protect": security.ProtectDialog,
         "unlock": security.UnlockDialog,
         "ocr": ocr.OcrDialog,
+        "sign_certificate": certificate.CertificateSignDialog,
     }.get(tool_id)
 
 
 def document_menu_entries() -> list[tuple[str, str, str]]:
     """Herramientas aplicables al documento abierto, para su menú."""
     order = ["compress", "ocr", "-", "watermark", "page_numbers", "crop", "resize", "flatten", "forms", "-",
-             "split", "extract", "rotate", "merge", "alternate", "-", "to_images", "-", "protect", "unlock"]
+             "split", "extract", "rotate", "merge", "alternate", "-", "to_images", "-", "sign_certificate", "protect", "unlock"]
     specs = {t.id: t for t in tool_specs()}
     entries = []
     for tool_id in order:

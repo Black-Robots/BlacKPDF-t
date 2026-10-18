@@ -14,6 +14,7 @@ requires-python = ">=3.12"
 dependencies = [
     "PySide6-Essentials>=6.10",
     "PyMuPDF>=1.26",
+    "pyhanko>=0.38",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -25,7 +26,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pyinstaller>=6.10", "pillow>=11"]
+dev = ["pytest>=8", "pyinstaller>=6.10", "pillow>=11", "cryptography>=48"]
 
 [project.gui-scripts]
 blackpdf = "blackpdf.app:main"

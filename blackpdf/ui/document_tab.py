@@ -27,7 +27,7 @@ from ..core import pages as core_pages
 from ..core.errors import BlackPdfError
 from ..core.document import needs_password, document_info
 from ..core.ranges import format_page_ranges
-from . import icons, theme
+from . import icons, tasks, theme
 from .annotation_bar import TOOL_SHORTCUTS, AnnotationBar
 from .dialogs.common import PropertiesDialog, ask_password, confirm_discard
 from .dialogs.signature import SignatureDialog
@@ -87,6 +87,40 @@ class ViewerArea(QWidget):
             bar.move(self.width() - width - 10, top - SHADOW_TOP)
 
 
+class SignatureBanner(QFrame):
+    """Barra bajo la barra de herramientas con el estado de las firmas digitales."""
+
+    detailsRequested = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("SignatureBanner")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(16, 8, 10, 8)
+        layout.setSpacing(10)
+        self.icon = QLabel(self)
+        layout.addWidget(self.icon)
+        self.text = QLabel(self)
+        self.text.setWordWrap(True)
+        layout.addWidget(self.text, 1)
+        self.details = Button(self.tr("Ver firmas"), "ghost", "file-badge", self)
+        self.details.clicked.connect(self.detailsRequested)
+        layout.addWidget(self.details)
+        self.hide()
+
+    def show_state(self, level: str, icon_name: str, text: str, details: bool = True) -> None:
+        from .dialogs.certificate import ROLE_FOR_LEVEL
+
+        self.setProperty("level", level)
+        self.style().unpolish(self)
+        self.style().polish(self)
+        role = ROLE_FOR_LEVEL.get(level, icons.ROLE_MUTED)
+        self.icon.setPixmap(icons.pixmap(icon_name, 18, role, self.devicePixelRatioF()))
+        self.text.setText(text)
+        self.details.setVisible(details)
+        self.show()
+
+
 class DocumentTab(QWidget):
     titleChanged = Signal()
     toolRequested = Signal(str, dict)
@@ -107,6 +141,11 @@ class DocumentTab(QWidget):
         root.setSpacing(0)
         self.toolbar = self._build_toolbar()
         root.addWidget(self.toolbar)
+        self.signature_banner = SignatureBanner(self)
+        self.signature_banner.detailsRequested.connect(self.show_signatures)
+        root.addWidget(self.signature_banner)
+        self._signatures: list = []
+        self._signature_task = None
 
         self.splitter = QSplitter(Qt.Orientation.Horizontal, self)
         self.splitter.setChildrenCollapsible(True)
@@ -167,6 +206,8 @@ class DocumentTab(QWidget):
         self._on_zoom(self.viewer.zoom)
         self._on_fit_mode(self.viewer.fit_mode)
         QTimer.singleShot(0, self._initial_layout)
+        QTimer.singleShot(150, self._check_signatures)
+        document.modifiedChanged.connect(self._signed_document_modified)
 
     # ======================================================================
     # Construcción
@@ -596,6 +637,66 @@ class DocumentTab(QWidget):
         else:
             self.viewer.set_fit_mode("auto")
         self.viewer.setFocus()
+
+    # ---------- firmas digitales ----------
+    def _check_signatures(self) -> None:
+        from ..core.signatures import has_signatures
+
+        path = self.document.path
+        if not path or not path.lower().endswith(".pdf"):
+            return
+        try:
+            signed = has_signatures(self.document.doc)
+        except Exception:
+            return
+        if not signed:
+            return
+        self.signature_banner.show_state("", "shield", self.tr("Comprobando las firmas digitales..."), details=False)
+        task = tasks.start("blackpdf.core.signatures:list_signatures", path)
+        task.signals.succeeded.connect(self._signatures_checked)
+        task.signals.failed.connect(lambda _: self.signature_banner.hide())
+        task.signals.crashed.connect(lambda _: self.signature_banner.hide())
+        self._signature_task = task
+
+    def _signatures_checked(self, statuses) -> None:
+        from .dialogs.certificate import status_text
+
+        self._signatures = list(statuses or [])
+        if not self._signatures:
+            self.signature_banner.hide()
+            return
+        if self.document.is_modified:
+            self._signed_document_modified(True)
+            return
+        levels = [s.level for s in self._signatures]
+        level = "invalid" if "invalid" in levels else ("warning" if "warning" in levels else "valid")
+        if len(self._signatures) == 1:
+            icon_name, text = status_text(self._signatures[0], self.tr)
+        else:
+            count = len(self._signatures)
+            icon_name = {"valid": "shield-check", "warning": "shield-alert", "invalid": "shield-x"}[level]
+            text = {
+                "valid": self.tr("{0} firmas digitales. Todas son válidas y el documento no se ha modificado."),
+                "warning": self.tr("{0} firmas digitales. Revisa los detalles: alguna requiere atención."),
+                "invalid": self.tr("{0} firmas digitales. Al menos una no es válida."),
+            }[level].format(count)
+        self.signature_banner.show_state(level, icon_name, text)
+
+    def _signed_document_modified(self, modified: bool) -> None:
+        if not modified or not self._signatures:
+            return
+        self.signature_banner.show_state("warning", "shield-alert", self.tr(
+            "Has modificado un documento firmado: al guardar, sus firmas dejarán de ser válidas. "
+            "Si guardas con otro nombre, el archivo original las conserva intactas."))
+
+    def show_signatures(self) -> None:
+        from .dialogs.certificate import SignaturesDialog
+
+        if not self._signatures:
+            return
+        dialog = SignaturesDialog(self._signatures, self)
+        dialog.goToSignature.connect(lambda page, rect: (self.viewer.ensure_visible(page, rect), self.viewer.flash(page, rect)))
+        dialog.exec()
 
     def remember_position(self) -> None:
         if self.document.path:
@@ -1031,6 +1132,18 @@ class DocumentTab(QWidget):
     def save(self) -> bool:
         if not self.document.path:
             return self.save_as()
+        if not self.document.is_modified:
+            # Nunca se reescribe un archivo sin cambios (rompería, por ejemplo, sus firmas digitales).
+            Toast.show_message(self.window(), self.tr("No hay cambios que guardar"), duration=1800)
+            return True
+        if self._signatures:
+            answer = QMessageBox.question(
+                self, self.tr("Documento firmado"),
+                self.tr("Este documento tiene firmas digitales. Si lo guardas con cambios, sus firmas dejarán de "
+                        "ser válidas.\n\n¿Guardar de todos modos? Con «Guardar como» el original conserva las firmas."),
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return False
         return self._save_to(self.document.path)
 
     def save_as(self) -> bool:
@@ -1059,6 +1172,10 @@ class DocumentTab(QWidget):
             self.viewer.unsetCursor()
         settings().add_recent(path)
         Toast.show_message(self.window(), self.tr("Guardado en {0}").format(Path(path).name), kind="success", duration=2200)
+        if self._signatures:
+            self._signatures = []
+            self.signature_banner.hide()
+            QTimer.singleShot(0, self._check_signatures)
         self.titleChanged.emit()
         return True
 

@@ -84,7 +84,11 @@ def main() -> int:
     window.show()
     if paths:
         window.open_files(paths)
-    return app.exec()
+    code = app.exec()
+    from .ui import tasks
+
+    tasks.shutdown()
+    return code
 
 
 if __name__ == "__main__":

@@ -25,6 +25,33 @@ def _report(lines: list[str], target: str | None) -> None:
             pass
 
 
+def _signature_check(folder: Path, source: Path) -> bool:
+    """Firma con un certificado de prueba y comprueba que la firma es íntegra."""
+    import datetime as dt
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.hazmat.primitives.serialization import pkcs12
+    from cryptography.x509.oid import NameOID
+
+    from .core.signatures import SignOptions, list_signatures, sign_pdf
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Prueba BlackPDF")])
+    now = dt.datetime.now(dt.timezone.utc)
+    cert = (x509.CertificateBuilder().subject_name(name).issuer_name(name).public_key(key.public_key())
+            .serial_number(x509.random_serial_number()).not_valid_before(now - dt.timedelta(days=1))
+            .not_valid_after(now + dt.timedelta(days=2)).sign(key, hashes.SHA256()))
+    p12 = folder / "prueba.p12"
+    p12.write_bytes(pkcs12.serialize_key_and_certificates(
+        b"prueba", key, cert, None, serialization.BestAvailableEncryption(b"x")))
+    signed = folder / "firmado.pdf"
+    sign_pdf(source, signed, p12, "x", SignOptions(visible=True))
+    statuses = list_signatures(signed)
+    return len(statuses) == 1 and statuses[0].intact and statuses[0].valid
+
+
 def _gui_check() -> bool:
     """Crea la ventana principal sin pantalla, abre un PDF y renderiza una página."""
     import time
@@ -100,6 +127,7 @@ def run(target: str | None = None) -> int:
             output = Path(folder) / "salida.pdf"
             result = run_blocking("blackpdf.core.compress:compress_pdf", str(source), str(output), "medium")
             check("subproceso de trabajo", output.exists() and result.compressed_size > 0)
+            check("firma digital", _signature_check(Path(folder), source))
     except Exception as exc:  # cualquier fallo debe quedar en el informe
         check("ejecución", False, repr(exc))
     if os.environ.get("BLACKPDF_SELFTEST_SKIP_GUI"):

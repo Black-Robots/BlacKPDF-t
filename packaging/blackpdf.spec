@@ -5,7 +5,7 @@
 import sys
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 ROOT = Path(SPECPATH).resolve().parent
 sys.path.insert(0, str(ROOT))
@@ -14,9 +14,14 @@ from blackpdf import __version__  # noqa: E402
 IS_WINDOWS = sys.platform.startswith("win")
 
 datas = [(str(ROOT / "blackpdf" / "resources"), "blackpdf/resources")]
+datas += collect_data_files("pyhanko") + collect_data_files("pyhanko_certvalidator") + collect_data_files("certifi")
 
 # Las herramientas se cargan por nombre en el subproceso de trabajo.
-hiddenimports = collect_submodules("blackpdf")
+hiddenimports = (
+    collect_submodules("blackpdf")
+    + collect_submodules("pyhanko")
+    + collect_submodules("pyhanko_certvalidator")
+)
 
 excludes = [
     "tkinter", "unittest", "pydoc_data", "test", "PIL", "numpy",

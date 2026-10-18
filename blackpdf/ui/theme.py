@@ -181,6 +181,11 @@ def _write_svg(name: str, color: str, stroke: float = 2.4) -> str:
     return path.as_posix()
 
 
+def _tint(value: str, alpha: float) -> str:
+    color = parse_color(value)
+    return f"rgba({color.red()}, {color.green()}, {color.blue()}, {alpha})"
+
+
 def stylesheet(p: Palette) -> str:
     chevron = _write_svg("chevron-down", p.text_muted)
     chevron_up = _write_svg("chevron-up", p.text_muted)
@@ -229,6 +234,10 @@ QFrame#FloatingBar {{
     border: 1px solid {p.border_strong};
     border-radius: 12px;
 }}
+QFrame#SignatureBanner {{ border: none; border-bottom: 1px solid {p.border}; background: {p.surface}; }}
+QFrame#SignatureBanner[level="valid"] {{ background: {_tint(p.success, 0.10)}; }}
+QFrame#SignatureBanner[level="warning"] {{ background: {_tint(p.warning, 0.12)}; }}
+QFrame#SignatureBanner[level="invalid"] {{ background: {_tint(p.danger, 0.12)}; }}
 QFrame[role="card"] {{
     background: {p.surface};
     border: 1px solid {p.border};

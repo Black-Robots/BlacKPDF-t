@@ -102,14 +102,14 @@ class ProcessJob:
         return Message(kind, item[1])
 
     def cancel(self) -> None:
-        if self._process is not None and self._process.is_alive():
+        if self._process is not None and self._process.pid is not None and self._process.is_alive():
             self._process.terminate()
             self._process.join(timeout=2)
             if self._process.is_alive():
                 self._process.kill()
 
     def close(self) -> None:
-        if self._process is not None:
+        if self._process is not None and self._process.pid is not None:
             self._process.join(timeout=1)
             if self._process.is_alive():
                 self.cancel()

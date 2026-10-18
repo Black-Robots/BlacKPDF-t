@@ -469,3 +469,46 @@ def test_comment_flash_paints(qapp, opened):
     pump(qapp, 0.1)
     image = tab.viewer.viewport().grab()
     assert not image.isNull()
+
+
+def test_signed_document_banner_and_safe_save(qapp, window, tmp_path):
+    from tests.test_signatures import PASSWORD, make_certificate
+    from blackpdf.core.signatures import SignOptions, list_signatures, sign_pdf
+
+    plain = tmp_path / "contrato.pdf"
+    build_pdf(2).save(plain)
+    signed = tmp_path / "contrato_firmado.pdf"
+    sign_pdf(plain, signed, make_certificate(tmp_path / "c.p12"), PASSWORD, SignOptions())
+    original = signed.read_bytes()
+    window.open_files([str(signed)])
+    tab = window.current_tab()
+    assert wait_until(qapp, lambda: bool(tab._signatures), 60)
+    assert tab.signature_banner.isVisible()
+    assert tab.signature_banner.property("level") == "warning", "certificado de prueba: íntegro pero no de confianza"
+    assert tab.save() and signed.read_bytes() == original, "guardar sin cambios no toca el archivo"
+    tab.rotate_pages(90)
+    assert "Has modificado" in tab.signature_banner.text.text()
+    tab.undo()
+    tab.document._modified = False
+    assert list_signatures(signed)[0].intact
+
+
+def test_certificate_dialog_signs_current_document(qapp, opened, tmp_path):
+    from tests.test_signatures import PASSWORD, make_certificate
+    from blackpdf.core.signatures import list_signatures
+    from blackpdf.ui import tools
+
+    window, tab, _ = opened
+    cert = make_certificate(tmp_path / "yo.p12")
+    dialog = tools.dialog_class("sign_certificate")(window, window._context_for(tab), {})
+    dialog.certificate.set_path(str(cert))
+    dialog.cert_password.edit.setText(PASSWORD)
+    dialog._check_certificate()
+    assert dialog.is_ready() and "GARCÍA" in dialog.cert_text.text()
+    output = tmp_path / "firmado.pdf"
+    dialog.output.picker.set_path(str(output))
+    dialog.run()
+    assert wait_until(qapp, lambda: dialog.pages.currentWidget() is dialog.result_panel, 90)
+    status = list_signatures(output)[0]
+    assert status.intact and status.valid and status.covers_whole_file
+    dialog.close()

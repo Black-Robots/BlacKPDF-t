@@ -48,7 +48,7 @@ if ! $WINE 'C:\Python\python.exe' -m pip --version >/dev/null 2>&1; then
     $WINE 'C:\Python\python.exe' -m ensurepip --upgrade
 fi
 $WINE 'C:\Python\python.exe' -m pip install --disable-pip-version-check -q --upgrade pip
-$WINE 'C:\Python\python.exe' -m pip install --disable-pip-version-check -q PySide6-Essentials pymupdf pyinstaller
+$WINE 'C:\Python\python.exe' -m pip install --disable-pip-version-check -q PySide6-Essentials pymupdf pyhanko pyinstaller
 
 echo "==> PyInstaller"
 if [ -n "${SKIP_PYINSTALLER:-}" ] && [ -f build/dist-win/BlackPDF/BlackPDF.exe ]; then

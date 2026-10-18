@@ -14,7 +14,7 @@ if (-not (Test-Path ".venv-win")) {
 }
 $Py = ".venv-win\Scripts\python.exe"
 & $Py -m pip install --disable-pip-version-check -q --upgrade pip
-& $Py -m pip install --disable-pip-version-check -q PySide6-Essentials pymupdf pyinstaller
+& $Py -m pip install --disable-pip-version-check -q PySide6-Essentials pymupdf pyhanko pyinstaller
 
 Write-Host "==> PyInstaller"
 & $Py -m PyInstaller --noconfirm --clean --distpath build\dist-win --workpath build\work-win packaging\blackpdf.spec
