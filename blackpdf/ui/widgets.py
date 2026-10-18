@@ -804,10 +804,15 @@ class SearchPill(QPushButton):
 class TabCloseButton(QToolButton):
     """Botón de cerrar pestaña: muestra un punto si hay cambios sin guardar y una X al pasar el ratón."""
 
+    # Qt coloca el botón pegado al borde derecho de la pestaña: el margen derecho
+    # interno deja la X a la misma distancia del borde que el icono a la izquierda.
+    GLYPH = 20
+    RIGHT_MARGIN = 8
+
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.modified = False
-        self.setFixedSize(20, 20)
+        self.setFixedSize(self.GLYPH + self.RIGHT_MARGIN, self.GLYPH)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setAutoRaise(True)
         self.setStyleSheet("QToolButton { background: transparent; border: none; padding: 0; }")
@@ -828,7 +833,7 @@ class TabCloseButton(QToolButton):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         p = theme.current()
-        rect = QRectF(self.rect())
+        rect = QRectF(0, 0, self.GLYPH, self.GLYPH)
         hovered = self.underMouse()
         if hovered:
             painter.setPen(Qt.PenStyle.NoPen)
@@ -841,6 +846,9 @@ class TabCloseButton(QToolButton):
             return
         glyph = icons.pixmap("x", 14, icons.ROLE_TEXT if hovered else icons.ROLE_MUTED, self.devicePixelRatioF())
         painter.drawPixmap(3, 3, glyph)
+
+    def hitButton(self, pos) -> bool:
+        return QRectF(0, 0, self.GLYPH, self.GLYPH).contains(pos.toPointF() if hasattr(pos, "toPointF") else pos)
 
 
 FORMAT_ICONS = {
