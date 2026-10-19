@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Compila BlackPDF para Windows desde Linux con Wine y genera el instalador.
-# Requisitos: wine (64 bits) y xvfb-run. Uso: packaging/windows/build_windows_wine.sh
+# Requisitos: wine (64 bits), xvfb-run, cmake y mingw-w64 (x86_64-w64-mingw32-gcc). Uso: packaging/windows/build_windows_wine.sh
 # En Windows nativo usa packaging/windows/build_windows.ps1 (mismo resultado).
 set -euo pipefail
 
@@ -49,6 +49,9 @@ if ! $WINE 'C:\Python\python.exe' -m pip --version >/dev/null 2>&1; then
 fi
 $WINE 'C:\Python\python.exe' -m pip install --disable-pip-version-check -q --upgrade pip
 $WINE 'C:\Python\python.exe' -m pip install --disable-pip-version-check -q PySide6-Essentials pymupdf pyhanko pyinstaller
+
+echo "==> Biblioteca nativa PRC (mingw-w64)"
+python3 native/prc/build.py --windows
 
 echo "==> PyInstaller"
 if [ -n "${SKIP_PYINSTALLER:-}" ] && [ -f build/dist-win/BlackPDF/BlackPDF.exe ]; then

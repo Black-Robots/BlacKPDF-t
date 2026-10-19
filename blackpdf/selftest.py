@@ -60,6 +60,20 @@ def _model3d_check(resources: Path) -> bool:
     return scene.triangle_count == 12
 
 
+def _prc_check(resources: Path) -> bool | None:
+    """Lee dos cubos con teselación comprimida con la biblioteca nativa.
+
+    None si la biblioteca no está compilada (normal en desarrollo); en la
+    aplicación empaquetada tiene que estar.
+    """
+    from .core.model3d import prc_native
+
+    if not prc_native.available():
+        return False if getattr(sys, "frozen", False) else None
+    scene = prc_native.decode_file(str(resources / "model3d" / "cubos.prc"))
+    return scene.triangle_count == 24 and [part.name for part in scene.parts] == ["Base", "Columna"]
+
+
 def _gui_check() -> bool:
     """Crea la ventana principal sin pantalla, abre un PDF y renderiza una página."""
     import time
@@ -137,6 +151,11 @@ def run(target: str | None = None) -> int:
             check("subproceso de trabajo", output.exists() and result.compressed_size > 0)
             check("firma digital", _signature_check(Path(folder), source))
             check("modelos 3D", _model3d_check(resources))
+            prc_ok = _prc_check(resources)
+            if prc_ok is None:
+                lines.append("SKIP modelos PRC nativos (biblioteca sin compilar)")
+            else:
+                check("modelos PRC nativos", prc_ok)
     except Exception as exc:  # cualquier fallo debe quedar en el informe
         check("ejecución", False, repr(exc))
     if os.environ.get("BLACKPDF_SELFTEST_SKIP_GUI"):

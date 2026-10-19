@@ -11,6 +11,9 @@ OUT="$ROOT/packaging/out"
 BUILD="$ROOT/build"
 mkdir -p "$OUT" "$BUILD/tools"
 
+echo "==> Biblioteca nativa PRC"
+env -u PYTHONPATH "$PYTHON" native/prc/build.py
+
 echo "==> PyInstaller"
 env -u PYTHONPATH "$PYTHON" -m PyInstaller --noconfirm --clean \
     --distpath "$BUILD/dist-linux" --workpath "$BUILD/work-linux" packaging/blackpdf.spec

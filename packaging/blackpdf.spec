@@ -23,6 +23,12 @@ hiddenimports = (
     + collect_submodules("pyhanko_certvalidator")
 )
 
+# Biblioteca nativa para PRC (nanoPRC), compilada con native/prc/build.py.
+NATIVE = ROOT / "blackpdf" / "native" / ("blackprc.dll" if IS_WINDOWS else "libblackprc.so")
+if not NATIVE.is_file():
+    raise SystemExit(f"Falta {NATIVE}: compílala con «python native/prc/build.py»")
+binaries = [(str(NATIVE), "blackpdf/native")]
+
 excludes = [
     "tkinter", "unittest", "pydoc_data", "test", "PIL", "numpy",
     "PySide6.QtQml", "PySide6.QtQuick", "PySide6.QtQuickWidgets", "PySide6.QtPdf",
@@ -32,7 +38,7 @@ excludes = [
 a = Analysis(
     [str(ROOT / "packaging" / "launcher.py")],
     pathex=[str(ROOT)],
-    binaries=[],
+    binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],

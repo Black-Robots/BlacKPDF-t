@@ -162,6 +162,9 @@ class PartsPanel(QFrame):
         layout.addWidget(self.search)
         self.list = QListWidget(self)
         self.list.setUniformItemSizes(True)
+        # Nombres largos: se recortan por el centro para que se vea el final («(2)»).
+        self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.list.setTextElideMode(Qt.TextElideMode.ElideMiddle)
         self.list.itemChanged.connect(self._item_changed)
         self.list.currentRowChanged.connect(self._row_changed)
         self.list.itemDoubleClicked.connect(lambda item: self.focusRequested.emit(self.list.row(item)))

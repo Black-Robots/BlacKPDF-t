@@ -1,8 +1,9 @@
 """Lectura de modelos 3D (U3D y PRC) para el visor 3D.
 
-Todo el paquete es Python puro: no depende de Qt ni de bibliotecas 3D
-externas. Las funciones de carga son lentas con modelos grandes y deben
-ejecutarse en un subproceso.
+No depende de Qt. U3D se decodifica en Python; PRC usa la biblioteca nativa
+blackprc (nanoPRC) si está compilada y, si no, el lector en Python. Las
+funciones de carga son lentas con modelos grandes y deben ejecutarse en un
+subproceso: así un fallo en la biblioteca nativa no cierra la aplicación.
 """
 
 from __future__ import annotations

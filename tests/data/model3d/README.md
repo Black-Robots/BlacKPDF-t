@@ -5,4 +5,7 @@
 (https://github.com/ningfei/u3d, `Samples/TestScenes`), distribuidos con la
 licencia Apache 2.0. Copyright (c) 1999-2006 Intel Corporation.
 
-Los archivos PRC de los tests se generan en el propio test (`tests/prc_writer.py`).
+Los demás archivos PRC de los tests se generan en el propio test (`tests/prc_writer.py`).
+
+`compressed.prc` (dos cubos con teselación comprimida) se generó para BlackPDF con el
+escritor de nanoPRC; es un archivo propio del proyecto.

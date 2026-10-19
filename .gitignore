@@ -8,3 +8,6 @@ dist/
 packaging/out/
 packaging/wine/
 *.AppImage
+# Biblioteca nativa compilada (native/prc/build.py)
+blackpdf/native/
+.vscode/

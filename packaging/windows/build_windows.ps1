@@ -1,5 +1,6 @@
 # Compila BlackPDF en Windows y genera el instalador.
-# Requisitos: Python 3.12 o superior (64 bits) e Inno Setup 6 (ISCC.exe en el PATH o en su ruta habitual).
+# Requisitos: Python 3.12 o superior (64 bits), CMake 3.24+ con Visual Studio (C) e Inno Setup 6
+# (ISCC.exe en el PATH o en su ruta habitual).
 # Uso, desde la raíz del proyecto:  powershell -ExecutionPolicy Bypass -File packaging\windows\build_windows.ps1
 
 $ErrorActionPreference = "Stop"
@@ -15,6 +16,10 @@ if (-not (Test-Path ".venv-win")) {
 $Py = ".venv-win\Scripts\python.exe"
 & $Py -m pip install --disable-pip-version-check -q --upgrade pip
 & $Py -m pip install --disable-pip-version-check -q PySide6-Essentials pymupdf pyhanko pyinstaller
+
+Write-Host "==> Biblioteca nativa PRC"
+& $Py native\prc\build.py
+if ($LASTEXITCODE -ne 0) { throw "No se pudo compilar la biblioteca nativa PRC" }
 
 Write-Host "==> PyInstaller"
 & $Py -m PyInstaller --noconfirm --clean --distpath build\dist-win --workpath build\work-win packaging\blackpdf.spec

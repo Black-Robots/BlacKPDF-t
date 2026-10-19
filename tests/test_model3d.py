@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import random
 import re
+import struct
 from array import array
 from pathlib import Path
 
@@ -13,7 +14,7 @@ import pytest
 
 from blackpdf.core import model3d
 from blackpdf.core.errors import Model3DEmptyError, Model3DError
-from blackpdf.core.model3d import bitstream, pdf3d, prc, u3d
+from blackpdf.core.model3d import bitstream, pdf3d, prc, prc_native, u3d
 from blackpdf.core.model3d.scene import IDENTITY, Scene, build_triangles, invert, multiply, transform_point
 
 from prc_writer import BitWriter, build_prc
@@ -201,6 +202,125 @@ def test_prc_with_explicit_normals():
 def test_prc_rejects_other_data():
     with pytest.raises(prc.PRCError):
         prc.decode(b"PDF-1.7 not prc")
+
+
+# -- PRC con la biblioteca nativa (nanoPRC) ---------------------------------------------
+
+native = pytest.mark.skipif(not prc_native.available(), reason="biblioteca nativa blackprc sin compilar")
+
+
+def _block(parts) -> bytes:
+    """Bloque binario como el que devuelve blackprc (formato versión 1)."""
+    out = b"BPRC" + struct.pack("<II", 1, len(parts))
+    for name, matrix, batches in parts:
+        raw = name.encode("utf-8")
+        out += struct.pack("<I", len(raw)) + raw + struct.pack("<16d", *matrix) + struct.pack("<II", 1, len(batches))
+        for kind, color, positions in batches:
+            flat = [c for p in positions for c in p]
+            out += struct.pack("<II4fI", kind, 0, *color, len(positions)) + struct.pack(f"<{len(flat)}f", *flat)
+            if kind == 0:
+                out += struct.pack(f"<{len(flat)}f", *([0.0, 0.0, 1.0] * len(positions)))
+                out += struct.pack("<I", 2) + struct.pack("<6f", *flat[:6])
+                out += struct.pack("<I", 0)
+    return out
+
+
+def test_native_block_becomes_scene_with_shared_materials():
+    red = (0.75, 0.25, 0.25, 1.0)
+    triangle = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
+    moved = (1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 1.0, 0, 5.0, 0, 0, 1.0)
+    blob = _block([
+        ("Tornillo", IDENTITY, [(0, red, triangle), (1, red, triangle[:2])]),
+        ("Tornillo", moved, [(0, red, triangle)]),
+        ("", IDENTITY, [(0, (0.0, 0.0, 1.0, 0.5), triangle)]),
+    ])
+    scene = prc_native.parse(blob)
+    assert [part.name for part in scene.parts] == ["Tornillo", "Tornillo (2)", "Pieza 3"]
+    assert scene.triangle_count == 3
+    assert scene.parts[1].matrix[12] == 5.0
+    kinds = [scene.primitives[i].kind for i in scene.parts[0].primitives]
+    assert kinds == ["triangles", "lines"]
+    # Mismo color, mismo material; las líneas no se iluminan.
+    first, line = (scene.primitives[i] for i in scene.parts[0].primitives)
+    assert first.material == scene.primitives[scene.parts[1].primitives[0]].material
+    assert scene.materials[first.material].diffuse == pytest.approx(red[:3])
+    assert not scene.materials[line.material].lighting
+    translucent = scene.materials[scene.primitives[scene.parts[2].primitives[0]].material]
+    assert translucent.opacity == pytest.approx(0.5)
+    assert len(first.wire) == 24 and first.edges == b""
+
+
+def test_native_block_rejects_corrupt_data():
+    with pytest.raises(prc_native.NativePRCError):
+        prc_native.parse(b"nope")
+    with pytest.raises(prc_native.NativePRCError):
+        prc_native.parse(b"BPRC" + struct.pack("<II", 1, 1))
+    with pytest.raises(prc_native.NativePRCError):
+        prc_native.parse(b"BPRC" + struct.pack("<II", 99, 0))
+    with pytest.raises(prc_native.NativePRCError):
+        prc_native.parse(_block([]) + b"extra")
+
+
+def test_prc_falls_back_to_python_reader(monkeypatch):
+    data = build_prc([(0, 0, 0), (1, 0, 0), (0, 1, 0)], [(0, 1, 2)])
+    monkeypatch.setattr(prc_native, "available", lambda: False)
+    assert pdf3d.decode_prc(data).triangle_count == 1
+
+    def broken(data, progress=None):
+        raise prc_native.NativePRCError("roto")
+
+    monkeypatch.setattr(prc_native, "available", lambda: True)
+    monkeypatch.setattr(prc_native, "decode", broken)
+    assert pdf3d.decode_prc(data).triangle_count == 1
+
+
+@native
+def test_native_prc_compressed_tessellation():
+    # Dos cubos escritos con teselación comprimida (PRC_TYPE_TESS_3D_Compressed),
+    # que el lector en Python no sabe descomprimir.
+    scene = prc_native.decode_file(str(DATA / "compressed.prc"))
+    assert [part.name for part in scene.parts] == ["Base", "Columna"]
+    assert scene.triangle_count == 24
+    column = scene.parts[1]
+    assert column.matrix[12:15] == pytest.approx((0.5, 0.5, 1.0))
+    primitive = scene.primitives[column.primitives[0]]
+    assert scene.materials[primitive.material].diffuse == pytest.approx((0.1, 0.3, 0.9))
+    # 18 aristas (12 del cubo y 6 diagonales), de las que solo las 12 del cubo son vivas.
+    assert len(primitive.wire) // 24 == 18
+    assert len(primitive.edges) // 24 == 12
+    lo, hi = scene.bounds()
+    assert lo == pytest.approx((0.0, 0.0, 0.0), abs=1e-4)
+    assert hi == pytest.approx((2.0, 2.0, 2.0), abs=1e-4)
+
+
+@native
+def test_native_prc_matches_python_reader():
+    positions = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)]
+    data = build_prc(positions, [(0, 1, 2), (0, 2, 3)], color=(0.2, 0.6, 0.3), translate=(3.0, 1.0, 0.0))
+    native_scene = prc_native.decode(data)
+    python_scene = prc.decode(data)
+    assert native_scene.triangle_count == python_scene.triangle_count == 2
+    for (a_lo, a_hi), (b_lo, b_hi) in [(native_scene.bounds(), python_scene.bounds())]:
+        assert a_lo == pytest.approx(b_lo)
+        assert a_hi == pytest.approx(b_hi)
+    material = native_scene.materials[native_scene.primitives[0].material]
+    assert material.diffuse == pytest.approx((0.2, 0.6, 0.3))
+
+
+@native
+def test_native_prc_rejects_other_data(tmp_path):
+    bad = tmp_path / "bad.prc"
+    bad.write_bytes(b"PRC" + bytes(40))
+    with pytest.raises(prc_native.NativePRCError):
+        prc_native.decode_file(str(bad))
+
+
+@native
+def test_load_compressed_prc_in_subprocess():
+    from blackpdf.procworker import run_blocking
+
+    scene = run_blocking("blackpdf.core.model3d:load_file", str(DATA / "compressed.prc"))
+    assert scene.format == "PRC" and scene.triangle_count == 24
 
 
 # -- PDF -------------------------------------------------------------------------------

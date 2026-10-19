@@ -429,9 +429,21 @@ def decode(data: bytes, fmt: str, progress=None) -> Scene:
         from .u3d import decode as decode_u3d
 
         return decode_u3d(data, progress)
-    from .prc import decode as decode_prc
-
     return decode_prc(data, progress)
+
+
+def decode_prc(data: bytes, progress=None) -> Scene:
+    """PRC con nanoPRC si está disponible; si no, con el lector en Python."""
+    from . import prc, prc_native
+
+    if prc_native.available():
+        try:
+            scene = prc_native.decode(data, progress)
+        except prc_native.NativePRCError:
+            scene = None
+        if scene is not None and not scene.is_empty():
+            return scene
+    return prc.decode(data, progress)
 
 
 def decode_embedded(embedded: EmbeddedData, progress=None) -> Scene:
