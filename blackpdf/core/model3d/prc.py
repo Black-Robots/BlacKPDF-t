@@ -1560,10 +1560,11 @@ class PRCFile:
         if not needed:
             return
         try:
-            fs.geometry = prc_brep.read_geometry(BitReader(_inflate(data, offsets[4]), fs.schema))
+            fs.geometry = prc_brep.read_geometry(BitReader(_inflate(data, offsets[4]), fs.schema), self.warnings)
         except (PRCError, IndexError, ValueError, OverflowError, ZeroDivisionError) as error:
             self.warnings.append(f"prc-geometry: {error}")
             return
+        # Los estilos van por orden de cara: también valen si la lectura se cortó.
         if len(offsets) > 5:
             try:
                 prc_brep.apply_face_graphics(BitReader(_inflate(data, offsets[5]), fs.schema), fs.geometry)
@@ -1772,8 +1773,14 @@ class _SceneBuilder:
             groups.setdefault(face.style if face.style >= 0 else style, []).append(face)
         meshes = {}
         for face_style, faces in groups.items():
-            mesh = meshes[face_style] = prc_brep.Mesh()
-            mesh.add_faces(faces)
+            mesh = prc_brep.Mesh()
+            try:
+                mesh.add_faces(faces)
+            except (PRCError, ValueError, ZeroDivisionError, OverflowError, IndexError) as error:
+                # Una superficie que no se puede evaluar no impide ver el resto.
+                self.scene.warnings.append(f"prc-surface: {error}")
+                continue
+            meshes[face_style] = mesh
         for face_style, mesh in meshes.items():
             if not mesh.triangles:
                 continue

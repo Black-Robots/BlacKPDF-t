@@ -747,31 +747,37 @@ def _body(r: BitReader, ctx: _Context) -> Body:
     raise PRCError(f"cuerpo no admitido {kind}")
 
 
-def read_geometry(r: BitReader) -> list[list[Body | None]]:
+def read_geometry(r: BitReader, warnings: list[str] | None = None) -> list[list[Body | None]]:
     """Sección de geometría exacta: contextos con sus cuerpos.
 
-    Un cuerpo que no se puede leer deja ``None`` y detiene la lectura (el
-    formato no permite saltarlo), pero se conserva lo anterior.
+    Un cuerpo que no se puede leer detiene la lectura (el formato no permite
+    saltarlo), pero se conserva lo leído hasta ahí y el motivo va a
+    ``warnings``. Sin ``warnings`` el error se propaga.
     """
     _expect(r, ASM_GEOMETRY)
     _content_base(r, ASM_GEOMETRY)
     contexts: list[list[Body | None]] = []
-    for _ in range(r.count()):
-        _expect(r, TOPO_CONTEXT)
-        _content_base(r, TOPO_CONTEXT)
-        r.char()
-        r.double()  # granularidad
-        r.double()  # tolerancia
-        if r.boolean():
-            r.double()
-        if r.boolean():
-            r.double()
-        bodies: list[Body | None] = []
-        contexts.append(bodies)
-        ctx = _Context()
+    try:
         for _ in range(r.count()):
-            bodies.append(_body(r, ctx))
-    _user_data(r)
+            _expect(r, TOPO_CONTEXT)
+            _content_base(r, TOPO_CONTEXT)
+            r.char()
+            r.double()  # granularidad
+            r.double()  # tolerancia
+            if r.boolean():
+                r.double()
+            if r.boolean():
+                r.double()
+            bodies: list[Body | None] = []
+            contexts.append(bodies)
+            ctx = _Context()
+            for _ in range(r.count()):
+                bodies.append(_body(r, ctx))
+        _user_data(r)
+    except (PRCError, IndexError, ValueError, OverflowError, ZeroDivisionError) as error:
+        if warnings is None:
+            raise
+        warnings.append(f"prc-geometry: {error}")
     return contexts
 
 

@@ -727,3 +727,13 @@ def build_brep_prc(bodies, items, colors, face_styles=None, translate=(0.0, 0.0,
         writers.insert(0, _poly_brep("Malla", 0))
     tree = _tree(writers, translate)
     return _assemble(_globals(colors), tree, s, geo, extra)
+
+
+def offset_surface():
+    """Superficie de un tipo que el lector no admite (PRC_TYPE_SURF_Offset)."""
+
+    def write(w: BitWriter) -> None:
+        w.uint(84)
+        w.bit(0)
+        w.uint(0)
+    return write

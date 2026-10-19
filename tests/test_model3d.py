@@ -19,7 +19,7 @@ from blackpdf.core.model3d.scene import IDENTITY, Scene, build_triangles, invert
 
 from prc_writer import (
     BitWriter, bezier_wire, brep, build_brep_prc, build_prc, compressed_brep, disk_surface, nurbs_surface,
-    sphere_surface,
+    offset_surface, sphere_surface,
 )
 
 DATA = Path(__file__).parent / "data" / "model3d"
@@ -588,3 +588,16 @@ def test_native_scene_gets_exact_geometry_from_python_reader():
     for part in scene.parts:
         for index in part.primitives:
             assert 0 <= scene.primitives[index].material < len(scene.materials)
+
+
+def test_unsupported_body_keeps_the_readable_ones():
+    data = build_brep_prc(
+        [compressed_brep([(3, _bezier_patch(0.4))]), brep([offset_surface()])],
+        [("brep", "Buena", 0, 0), ("brep", "Rara", 0, 1)],
+        colors=[(0.3, 0.6, 0.9)],
+    )
+    file = prc.PRCFile(data)
+    assert any(w.startswith("prc-geometry") for w in file.warnings)
+    scene = file.scene()
+    assert [part.name for part in scene.parts] == ["Buena"]
+    assert scene.triangle_count > 0
