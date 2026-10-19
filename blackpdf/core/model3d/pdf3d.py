@@ -176,6 +176,27 @@ def _has_appearance(annot) -> bool:
     return mupdf.pdf_dict_len(normal) > 0 if mupdf.pdf_is_dict(normal) else False
 
 
+def _poster_under(doc: pymupdf.Document, page_index: int, rect) -> bool:
+    """True si el contenido de la página dibuja algo bajo el modelo.
+
+    Algunos generadores (media9 de LaTeX) no dan apariencia a la anotación y
+    ponen la imagen de portada en la propia página: no hay que taparla.
+    """
+    try:
+        page = doc[page_index]
+        area = pymupdf.Rect(rect) * page.rotation_matrix
+        area &= page.rect
+        if area.is_empty or area.width < 2 or area.height < 2:
+            return False
+        zoom = 48 / max(area.width, area.height)
+        pix = page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), clip=area, annots=False, alpha=False,
+                              colorspace=pymupdf.csGRAY)
+    except Exception:
+        return False
+    samples = pix.samples
+    return bool(samples) and max(samples) - min(samples) > 24
+
+
 def page_models(doc: pymupdf.Document, page_index: int) -> list[Embedded3D]:
     """Modelos 3D de una página (no decodifica nada)."""
     if not doc.is_pdf:
@@ -212,14 +233,15 @@ def page_models(doc: pymupdf.Document, page_index: int) -> list[Embedded3D]:
         if len(rect) != 4:
             continue
         rx0, ry0, rx1, ry1 = min(rect[0], rect[2]), min(rect[1], rect[3]), max(rect[0], rect[2]), max(rect[1], rect[3])
+        visible = (rx0 - x0, y1 - ry1, rx1 - x0, y1 - ry0)
         result.append(Embedded3D(
             page=page_index,
             xref=mupdf.pdf_to_num(annot),
             kind=subtype,
             format=fmt,
-            rect=(rx0 - x0, y1 - ry1, rx1 - x0, y1 - ry0),
+            rect=visible,
             name=_text(_get(annot, "Contents")) or _text(_get(annot, "NM")),
-            has_appearance=_has_appearance(annot),
+            has_appearance=_has_appearance(annot) or _poster_under(doc, page_index, visible),
         ))
     return result
 
@@ -435,6 +457,7 @@ def decode(data: bytes, fmt: str, progress=None) -> Scene:
 def decode_prc(data: bytes, progress=None) -> Scene:
     """PRC con nanoPRC si está disponible; si no, con el lector en Python."""
     from . import prc, prc_native
+    from .scene import merge_scenes, unique_part_names
 
     if prc_native.available():
         try:
@@ -442,6 +465,15 @@ def decode_prc(data: bytes, progress=None) -> Scene:
         except prc_native.NativePRCError:
             scene = None
         if scene is not None and not scene.is_empty():
+            # nanoPRC no dibuja la geometría exacta (Asymptote) ni las nubes de
+            # puntos sin teselación: las añade el lector en Python.
+            try:
+                extra = prc.decode_supplement(data)
+            except (prc.PRCError, IndexError, KeyError, ValueError, OverflowError, ZeroDivisionError):
+                extra = None
+            if extra is not None and not extra.is_empty():
+                merge_scenes(scene, extra)
+                unique_part_names(scene.parts)
             return scene
     return prc.decode(data, progress)
 

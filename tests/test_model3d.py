@@ -17,7 +17,10 @@ from blackpdf.core.errors import Model3DEmptyError, Model3DError
 from blackpdf.core.model3d import bitstream, pdf3d, prc, prc_native, u3d
 from blackpdf.core.model3d.scene import IDENTITY, Scene, build_triangles, invert, multiply, transform_point
 
-from prc_writer import BitWriter, build_prc
+from prc_writer import (
+    BitWriter, bezier_wire, brep, build_brep_prc, build_prc, compressed_brep, disk_surface, nurbs_surface,
+    sphere_surface,
+)
 
 DATA = Path(__file__).parent / "data" / "model3d"
 
@@ -204,6 +207,172 @@ def test_prc_rejects_other_data():
         prc.decode(b"PDF-1.7 not prc")
 
 
+def test_prc_style_colors_index_the_double_array():
+    # Los estilos apuntan al array de doubles de los colores (3 por color).
+    data = build_brep_prc(
+        [brep([sphere_surface(1.0)])],
+        [("brep", "Bola", 1, 0)],
+        colors=[(0.1, 0.1, 0.1), (0.2, 0.7, 0.3)],
+    )
+    scene = prc.decode(data)
+    material = scene.materials[scene.primitives[0].material]
+    assert material.diffuse == pytest.approx((0.2, 0.7, 0.3))
+
+
+# -- PRC con geometría exacta (Asymptote) -----------------------------------------------
+
+
+def _bezier_patch(height: float):
+    """Parche cúbico ondulado sobre [0, 3] x [0, 3]."""
+    return [(i, j, height * math.sin(i) * math.cos(j)) for i in range(4) for j in range(4)]
+
+
+def test_prc_compressed_bezier_patches_match_their_control_points():
+    patch = _bezier_patch(0.8)
+    flat = [(0.0, 0.0, 0.0), (0.0, 3.0, 0.0), (3.0, 0.0, -1.0), (3.0, 3.0, -1.0)]
+    data = build_brep_prc(
+        [compressed_brep([(3, patch), (1, flat)], tolerance=0.001)],
+        [("brep", "Superficie", 0, 0)],
+        colors=[(0.9, 0.2, 0.2)],
+        translate=(0.0, 0.0, 5.0),
+    )
+    file = prc.PRCFile(data)
+    assert not file.warnings
+    faces = file.structures[0].geometry[0][0].faces
+    surface = faces[0].surface
+    # Las esquinas de un parche de Bézier son puntos de control (cuantizados con 0.2 * tolerancia).
+    for (u, v), index in (((0.0, 0.0), 0), ((1.0, 0.0), 12), ((0.0, 1.0), 3), ((1.0, 1.0), 15)):
+        assert surface.point(u, v) == pytest.approx(patch[index], abs=0.001)
+    middle = surface.point(0.5, 0.5)
+    expected = [0.0, 0.0, 0.0]
+    weights = [1, 3, 3, 1]
+    for i in range(4):
+        for j in range(4):
+            w = weights[i] * weights[j] / 64
+            for k in range(3):
+                expected[k] += w * patch[i * 4 + j][k]
+    assert middle == pytest.approx(tuple(expected), abs=0.001)
+    assert faces[1].surface.point(1.0, 1.0) == pytest.approx((3.0, 3.0, -1.0), abs=0.001)
+
+    scene = file.scene()
+    assert scene.triangle_count > 2
+    assert [part.name for part in scene.parts] == ["Superficie"]
+    assert scene.parts[0].matrix[12:15] == pytest.approx((0.0, 0.0, 5.0))
+    material = scene.materials[scene.primitives[0].material]
+    assert material.diffuse == pytest.approx((0.9, 0.2, 0.2))
+    lo, hi = scene.bounds()
+    assert lo[0] == pytest.approx(0.0, abs=0.01) and hi[0] == pytest.approx(3.0, abs=0.01)
+    assert lo[1] == pytest.approx(0.0, abs=0.01) and hi[1] == pytest.approx(3.0, abs=0.01)
+
+
+def _bezier_point(points, u: float, v: float):
+    def basis(t):
+        return [(1 - t) ** 3, 3 * t * (1 - t) ** 2, 3 * t * t * (1 - t), t ** 3]
+
+    bu, bv = basis(u), basis(v)
+    return tuple(
+        sum(bu[i] * bv[j] * points[i * 4 + j][k] for i in range(4) for j in range(4)) for k in range(3)
+    )
+
+
+def test_prc_compressed_control_point_kinds():
+    # Paraboloide (desplazamientos según la normal), cizalla plana (en el plano)
+    # y onda (genérico): los cuatro tipos de punto de control comprimido.
+    patches = [
+        [(i, j, 0.1 * i * j) for i in range(4) for j in range(4)],
+        [(i + 0.1 * i * j, j, 0.0) for i in range(4) for j in range(4)],
+        _bezier_patch(0.6),
+    ]
+    data = build_brep_prc(
+        [compressed_brep([(3, p) for p in patches], tolerance=0.0005)],
+        [("brep", "Parches", 0, 0)],
+        colors=[(0.5, 0.5, 0.5)],
+    )
+    faces = prc.PRCFile(data).structures[0].geometry[0][0].faces
+    assert len(faces) == 3
+    for face, points in zip(faces, patches):
+        for u, v in ((0.0, 0.0), (0.3, 0.7), (0.5, 0.5), (1.0, 0.25), (1.0, 1.0)):
+            assert face.surface.point(u, v) == pytest.approx(_bezier_point(points, u, v), abs=0.0005)
+
+
+def test_prc_brep_nurbs_sphere_and_disk():
+    rows = [[(0.0, 0.0, 0.0), (0.0, 1.0, 0.0)], [(1.0, 0.0, 0.0), (1.0, 1.0, 1.0)]]
+    nurbs = nurbs_surface(1, 1, rows, [0.0, 0.0, 1.0, 1.0], [0.0, 0.0, 1.0, 1.0])
+    data = build_brep_prc(
+        [brep([nurbs, sphere_surface(2.0, origin=(10.0, 0.0, 0.0)), disk_surface(1.5)])],
+        [("brep", "Formas", 0, 0)],
+        colors=[(0.5, 0.5, 0.5), (0.0, 0.0, 1.0)],
+        face_styles=[None, 1, None],
+    )
+    file = prc.PRCFile(data)
+    assert not file.warnings
+    faces = file.structures[0].geometry[0][0].faces
+    assert faces[0].surface.point(1.0, 1.0) == pytest.approx((1.0, 1.0, 1.0))
+    assert faces[0].surface.point(0.5, 0.5) == pytest.approx((0.5, 0.5, 0.25))
+    north = faces[1].surface.point(0.0, 0.5 * math.pi)
+    assert north == pytest.approx((10.0, 0.0, 2.0), abs=1e-9)
+    assert faces[1].style == 1
+    rim = faces[2].surface.point(0.0, 0.0)
+    assert math.hypot(rim[0], rim[1]) == pytest.approx(1.5)
+    assert faces[2].surface.point(1.0, 1.0) == pytest.approx((0.0, 0.0, 0.0), abs=1e-12)
+
+    scene = file.scene()
+    colors = {scene.materials[p.material].diffuse for p in scene.primitives}
+    assert (0.0, 0.0, 1.0) in colors and (0.5, 0.5, 0.5) in colors
+    lo, hi = scene.bounds()
+    assert hi[0] == pytest.approx(12.0, abs=0.01)
+    assert hi[2] == pytest.approx(2.0, abs=0.01)
+    assert lo[2] == pytest.approx(-2.0, abs=0.01)
+    sphere = next(p for p in scene.primitives if scene.materials[p.material].diffuse == (0.0, 0.0, 1.0))
+    # Esfera cerrada: sin bordes abiertos que dibujar como contorno.
+    assert sphere.edges == b""
+
+
+def test_prc_wire_curve_from_bezier_nurbs():
+    points = [(0.0, 0.0, 0.0), (1.0, 2.0, 0.0), (2.0, 2.0, 0.0), (3.0, 0.0, 0.0)]
+    data = build_brep_prc([bezier_wire(points)], [("curve", "Eje", 0, 0)], colors=[(1.0, 0.0, 0.0)])
+    scene = prc.decode(data)
+    assert len(scene.primitives) == 1 and scene.primitives[0].kind == "lines"
+    values = floats(scene.primitives[0].positions)
+    assert values[:3] == pytest.approx([0.0, 0.0, 0.0])
+    assert values[-3:] == pytest.approx([3.0, 0.0, 0.0])
+    top = max(values[1::3])
+    assert top == pytest.approx(1.5, abs=0.01)  # máximo de la Bézier: 3/4 de la altura de control
+    assert not scene.materials[scene.primitives[0].material].lighting
+
+
+def test_prc_parts_with_same_name_are_merged():
+    patch = _bezier_patch(0.3)
+    data = build_brep_prc(
+        [compressed_brep([(3, patch)]), compressed_brep([(3, patch)])],
+        [("brep", "surface", 0, 0), ("brep", "surface", 0, 1)],
+        colors=[(0.2, 0.8, 0.2)],
+    )
+    scene = prc.decode(data)
+    assert [part.name for part in scene.parts] == ["surface"]
+    assert len(scene.parts[0].primitives) == 2
+
+
+def test_unsupported_exact_geometry_is_a_warning_not_an_error():
+    patch = _bezier_patch(0.3)
+    data = bytearray(build_brep_prc([compressed_brep([(3, patch)])], [("brep", "S", 0, 0)], colors=[(1, 1, 1)]))
+    # Una sección de geometría ilegible no impide abrir el resto del archivo.
+    file = prc.PRCFile(bytes(data))
+    file.structures[0].geometry = []
+    assert file.scene().is_empty()
+    with pytest.raises(prc.PRCError):
+        from blackpdf.core.model3d import prc_brep
+
+        prc_brep.read_geometry(prc.BitReader(b"\x00" * 8))
+
+
+def test_scene_dark_fraction():
+    data = build_brep_prc([bezier_wire([(0, 0, 0), (1, 1, 0), (2, 1, 0), (3, 0, 0)])], [("curve", "Eje", 0, 0)],
+                          colors=[(0.0, 0.0, 0.0)])
+    assert prc.decode(data).dark_fraction() == pytest.approx(1.0)
+    assert u3d.decode((DATA / "box.u3d").read_bytes()).dark_fraction() == 0.0
+
+
 # -- PRC con la biblioteca nativa (nanoPRC) ---------------------------------------------
 
 native = pytest.mark.skipif(not prc_native.available(), reason="biblioteca nativa blackprc sin compilar")
@@ -361,6 +530,15 @@ def test_page_models_rect_follows_crop_box():
     assert item.rect == pytest.approx((30, 210, 180, 410))
 
 
+def test_poster_drawn_in_page_content_counts_as_appearance():
+    doc = pymupdf.open(DATA / "views.pdf")
+    item = model3d.find_models(doc)[0]
+    assert not item.has_appearance  # anotación sin apariencia y página en blanco: tarjeta
+    # media9 dibuja la portada en la propia página, bajo la anotación.
+    doc[0].draw_rect(pymupdf.Rect(40, 40, 200, 200), color=(0, 0, 0), fill=(0.1, 0.6, 0.2))
+    assert model3d.find_models(doc)[0].has_appearance
+
+
 def test_load_file_errors(tmp_path):
     bad = tmp_path / "bad.u3d"
     bad.write_bytes(b"nothing")
@@ -388,3 +566,25 @@ def test_load_embedded_runs_in_subprocess():
     embedded = model3d.extract_from_pdf(doc, model3d.find_models(doc)[0].xref)
     scene = run_blocking("blackpdf.core.model3d:load_embedded", embedded, "views.pdf")
     assert scene.triangle_count == 12
+
+
+@native
+def test_native_scene_gets_exact_geometry_from_python_reader():
+    # Asymptote mezcla mallas teseladas (las lee nanoPRC) con parches exactos
+    # y curvas (las añade el lector en Python).
+    mesh = ([(0, 0, 0), (1, 0, 0), (0, 1, 0)], [(0, 1, 2)])
+    data = build_brep_prc(
+        [compressed_brep([(3, _bezier_patch(0.5))]), bezier_wire([(0, 0, 0), (1, 1, 0), (2, 1, 0), (3, 0, 0)])],
+        [("brep", "Superficie", 1, 0), ("curve", "Eje", 1, 1)],
+        colors=[(0.2, 0.4, 0.9), (0.9, 0.1, 0.1)],
+        mesh=mesh,
+    )
+    assert not prc_native.decode(data).is_empty()
+    scene = pdf3d.decode_prc(data)
+    names = [part.name for part in scene.parts]
+    assert "Superficie" in names and "Eje" in names and len(names) == 3
+    kinds = {scene.primitives[i].kind for part in scene.parts for i in part.primitives}
+    assert kinds == {"triangles", "lines"}
+    for part in scene.parts:
+        for index in part.primitives:
+            assert 0 <= scene.primitives[index].material < len(scene.materials)

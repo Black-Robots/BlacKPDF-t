@@ -127,6 +127,81 @@ class Scene:
     def is_empty(self) -> bool:
         return not any(self.primitives[i].vertex_count for part in self.parts for i in part.primitives)
 
+    def dark_fraction(self) -> float:
+        """Parte de la geometría visible dibujada en colores casi negros (0 a 1).
+
+        Los modelos pensados para fondo blanco (ejes y rótulos negros de
+        LaTeX) no se leen sobre un fondo oscuro.
+        """
+        dark = total = 0.0
+        for part in self.parts:
+            if not part.visible:
+                continue
+            for index in part.primitives:
+                primitive = self.primitives[index]
+                if not 0 <= primitive.material < len(self.materials):
+                    continue
+                material = self.materials[primitive.material]
+                if material.vertex_colors and primitive.colors:
+                    continue
+                weight = primitive.triangle_count if primitive.kind == "triangles" else primitive.vertex_count / 2
+                r, g, b = material.diffuse
+                total += weight
+                if 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.15:
+                    dark += weight
+        return dark / total if total else 0.0
+
+
+# -- piezas ---------------------------------------------------------------------
+
+
+def merge_parts(parts: list[Part]) -> list[Part]:
+    """Une piezas seguidas con el mismo nombre, posición y visibilidad.
+
+    Programas como Asymptote guardan cada parche como un elemento propio: sin
+    unirlos el panel de piezas tendría cientos de entradas iguales.
+    """
+    merged: list[Part] = []
+    for part in parts:
+        last = merged[-1] if merged else None
+        if (last is not None and last.name == part.name and last.matrix == part.matrix
+                and last.visible == part.visible and last.opacity == part.opacity):
+            last.primitives.extend(part.primitives)
+        else:
+            merged.append(Part(part.name, part.matrix, list(part.primitives), part.visible, part.opacity))
+    return merged
+
+
+def merge_scenes(base: Scene, extra: Scene) -> None:
+    """Añade a ``base`` las piezas de ``extra`` (con sus lotes y materiales)."""
+    material_offset = len(base.materials)
+    primitive_offset = len(base.primitives)
+    base.materials.extend(extra.materials)
+    for primitive in extra.primitives:
+        primitive.material += material_offset
+        base.primitives.append(primitive)
+    for part in extra.parts:
+        part.primitives = [index + primitive_offset for index in part.primitives]
+        base.parts.append(part)
+    base.warnings.extend(extra.warnings)
+
+
+def unique_part_names(parts: list[Part]) -> None:
+    """Nombres únicos para el panel de piezas: «Tornillo», «Tornillo (2)»..."""
+    totals: dict[str, int] = {}
+    for part in parts:
+        totals[part.name] = totals.get(part.name, 0) + 1
+    seen: dict[str, int] = {}
+    for index, part in enumerate(parts, 1):
+        base = part.name
+        if not base:
+            part.name = f"Pieza {index}"
+            continue
+        if totals[base] > 1:
+            seen[base] = seen.get(base, 0) + 1
+            if seen[base] > 1:
+                part.name = f"{base} ({seen[base]})"
+
 
 # -- matrices -------------------------------------------------------------------
 
@@ -225,13 +300,15 @@ def build_triangles(
     triangles: list[tuple[int, int, int]],
     corner_normals: list | None = None,
     corner_colors: list | None = None,
+    oriented: bool = True,
 ) -> Primitive:
     """Crea un lote de triángulos a partir de posiciones indexadas.
 
     ``corner_normals`` y ``corner_colors`` dan, si existen, un valor por
     esquina (tres por triángulo). Sin normales se calculan suavizando entre
     caras parecidas. Además se generan las aristas para el modo alámbrico y
-    las aristas vivas para el contorno.
+    las aristas vivas para el contorno. Con ``oriented=False`` los triángulos
+    vecinos pueden tener el giro invertido y se comparan sin signo.
     """
     normals_by_face = []
     for a, b, c in triangles:
@@ -248,7 +325,7 @@ def build_triangles(
                 faces.append(index)
 
     if corner_normals is None:
-        corner_normals = _smooth_normals(positions, triangles, normals_by_face)
+        corner_normals = _smooth_normals(positions, triangles, normals_by_face, oriented)
 
     pos = array("f")
     nor = array("f")
@@ -274,7 +351,8 @@ def build_triangles(
         n1, n2 = normals_by_face[faces[0]], normals_by_face[faces[1]]
         if n1 is None or n2 is None:
             continue
-        if n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2] < limit:
+        dot = n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2]
+        if (dot if oriented else abs(dot)) < limit:
             edges.extend(segment)
 
     return Primitive(
@@ -287,7 +365,7 @@ def build_triangles(
     )
 
 
-def _smooth_normals(positions, triangles, normals_by_face):
+def _smooth_normals(positions, triangles, normals_by_face, oriented=True):
     """Normal por esquina: media de las caras vecinas con ángulo pequeño."""
     incident: dict[int, list[int]] = {}
     for index, tri in enumerate(triangles):
@@ -310,10 +388,14 @@ def _smooth_normals(positions, triangles, normals_by_face):
             sx = sy = sz = 0.0
             for other in incident.get(vertex, ()):
                 n = normals_by_face[other]
-                if own[0] * n[0] + own[1] * n[1] + own[2] * n[2] >= limit:
-                    sx += n[0]
-                    sy += n[1]
-                    sz += n[2]
+                dot = own[0] * n[0] + own[1] * n[1] + own[2] * n[2]
+                sign = 1.0
+                if not oriented and dot < 0:
+                    dot, sign = -dot, -1.0
+                if dot >= limit:
+                    sx += sign * n[0]
+                    sy += sign * n[1]
+                    sz += sign * n[2]
             result.append(_normalize((sx, sy, sz)) or own)
     return result
 

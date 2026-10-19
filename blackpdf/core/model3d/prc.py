@@ -19,7 +19,10 @@ from dataclasses import dataclass, field
 
 from ..progress import ProgressCallback, report
 from .prc_doubles import TABLE
-from .scene import IDENTITY, Material, Matrix, Part, Scene, build_lines, build_points, build_triangles, multiply
+from .scene import (
+    IDENTITY, Material, Matrix, Part, Scene, build_lines, build_points, build_triangles, merge_parts, multiply,
+    unique_part_names,
+)
 
 # -- tipos de entidad (PRC.h) -------------------------------------------------------
 
@@ -336,6 +339,8 @@ class RepresentationItem:
     children: list = field(default_factory=list)
     points: list = field(default_factory=list)
     transform: Matrix | None = None
+    context: int = -1  # geometría exacta (B-rep o alambre): contexto y cuerpo
+    body: int = -1
 
 
 @dataclass
@@ -399,6 +404,7 @@ class FileStructure:
     tessellations: list = field(default_factory=list)
     tree_complete: bool = False
     schema: dict = field(default_factory=dict)
+    geometry: list = field(default_factory=list)  # contextos con sus cuerpos (prc_brep)
 
 
 # -- contenido común ------------------------------------------------------------------
@@ -1216,10 +1222,14 @@ def _representation_item(r: BitReader, depth: int = 0) -> RepresentationItem:
     item = RepresentationItem(kind, name, graphics, coordinate_system, tessellation)
     if kind == RI_BREP_MODEL:
         if r.bit():
-            r.uint()
-            r.uint()
+            item.context = r.uint() - 1
+            item.body = r.uint() - 1
         r.boolean()
-    elif kind in (RI_CURVE, RI_PLANE):
+    elif kind == RI_CURVE:
+        if r.bit():
+            item.context = r.uint() - 1
+            item.body = r.uint() - 1
+    elif kind == RI_PLANE:
         if r.bit():
             r.uint()
             r.uint()
@@ -1241,6 +1251,13 @@ def _representation_item(r: BitReader, depth: int = 0) -> RepresentationItem:
         raise PRCError(f"elemento desconocido {kind}")
     _end_graphics_entity(r, kind)
     return item
+
+
+def _flatten(items: list):
+    for item in items:
+        yield item
+        if item.children:
+            yield from _flatten(item.children)
 
 
 def _part_definition(r: BitReader) -> PartDefinition:
@@ -1462,11 +1479,12 @@ def _inflate(data: bytes, offset: int) -> bytes:
 
 
 class PRCFile:
-    def __init__(self, data: bytes, progress: ProgressCallback | None = None):
+    def __init__(self, data: bytes, progress: ProgressCallback | None = None, tessellations: bool = True):
         if data[:3] != b"PRC":
             raise PRCError("no es un archivo PRC")
         self.data = data
         self.progress = progress
+        self.read_tessellations = tessellations
         self.structures: list[FileStructure] = []
         self.roots: list[tuple[tuple, int]] = []
         self.warnings: list[str] = []
@@ -1503,14 +1521,17 @@ class PRCFile:
                 _globals(BitReader(_inflate(data, offsets[1])), fs)
             except (PRCError, IndexError, ValueError, OverflowError) as error:
                 self.warnings.append(f"prc-globals: {error}")
-            try:
-                _tessellations(BitReader(_inflate(data, offsets[3]), fs.schema), fs, self.progress)
-            except (PRCError, IndexError, ValueError, OverflowError, ImportError) as error:
-                self.warnings.append(f"prc-tessellation: {error}")
+            if self.read_tessellations:
+                try:
+                    _tessellations(BitReader(_inflate(data, offsets[3]), fs.schema), fs, self.progress)
+                except (PRCError, IndexError, ValueError, OverflowError, ImportError) as error:
+                    self.warnings.append(f"prc-tessellation: {error}")
             try:
                 _tree(BitReader(_inflate(data, offsets[2]), fs.schema), fs)
             except (PRCError, IndexError, ValueError, OverflowError) as error:
                 self.warnings.append(f"prc-tree: {error}")
+            if len(offsets) > 4:
+                self._geometry(data, offsets, fs)
             if self.progress is not None:
                 report(self.progress, 0, 1)
         try:
@@ -1527,6 +1548,27 @@ class PRCFile:
                 self.roots.append((uid, index - 1))
         except (PRCError, IndexError, ValueError, OverflowError):
             self.roots = []
+
+    def _geometry(self, data: bytes, offsets, fs: FileStructure) -> None:
+        """Geometría exacta (solo hace falta si algún elemento no tiene teselación)."""
+        from . import prc_brep
+
+        needed = any(
+            item.context >= 0 and item.tessellation < 0
+            for part in fs.parts for item in _flatten(part.items)
+        )
+        if not needed:
+            return
+        try:
+            fs.geometry = prc_brep.read_geometry(BitReader(_inflate(data, offsets[4]), fs.schema))
+        except (PRCError, IndexError, ValueError, OverflowError, ZeroDivisionError) as error:
+            self.warnings.append(f"prc-geometry: {error}")
+            return
+        if len(offsets) > 5:
+            try:
+                prc_brep.apply_face_graphics(BitReader(_inflate(data, offsets[5]), fs.schema), fs.geometry)
+            except (PRCError, IndexError, ValueError, OverflowError) as error:
+                self.warnings.append(f"prc-extra-geometry: {error}")
 
     # -- montaje -------------------------------------------------------------------
 
@@ -1566,9 +1608,11 @@ class PRCFile:
                 if tess.kind == TESS_MARKUP:
                     continue
                 builder.add_tessellation(fs, tess, f"Pieza {tess_index + 1}", IDENTITY, None, True)
+        scene.parts = merge_parts(scene.parts)
+        unique_part_names(scene.parts)
         return scene
 
-    def _visit(self, builder, fs, index, matrix, style, visible, used, depth) -> None:
+    def _visit(self, builder, fs, index, matrix, style, visible, used, depth, inherited: str = "") -> None:
         if depth > 64:
             return
         occurrence = fs.occurrences[index]
@@ -1605,12 +1649,15 @@ class PRCFile:
             part = part_fs.parts[part_index]
             part_style = part.graphics.style if part.graphics.style >= 0 else style
             part_visible = visible and bool(part.graphics.behaviour & GRAPHICS_SHOW)
-            label = part.name or occurrence.name
+            label = inherited or part.name or occurrence.name
             for item in part.items:
                 self._item(builder, part_fs, item, matrix, part_style, part_visible, label, used, 0)
+        # Un hijo único (p. ej. la configuración «Default» de una pieza) toma el
+        # nombre del padre, que es el que se ve en el árbol de Acrobat.
+        passed = (inherited or occurrence.name) if len(sons) == 1 else ""
         for son in sons:
             if 0 <= son < len(sons_fs.occurrences) and son != index:
-                self._visit(builder, sons_fs, son, matrix, style, visible, used, depth + 1)
+                self._visit(builder, sons_fs, son, matrix, style, visible, used, depth + 1, passed)
 
     def _item(self, builder, fs, item, matrix, style, visible, label, used, depth) -> None:
         if depth > 64:
@@ -1628,6 +1675,11 @@ class PRCFile:
             return
         if item.kind == RI_POINT_SET and item.points:
             builder.add_points(fs, item.points, name, matrix, style, visible)
+            return
+        if item.tessellation < 0 and 0 <= item.context < len(fs.geometry):
+            bodies = fs.geometry[item.context]
+            if 0 <= item.body < len(bodies) and bodies[item.body] is not None:
+                builder.add_body(fs, bodies[item.body], name, matrix, style, visible)
             return
         if 0 <= item.tessellation < len(fs.tessellations):
             tess = fs.tessellations[item.tessellation]
@@ -1657,18 +1709,17 @@ class _SceneBuilder:
                 if definition.kind == "texture" and 0 <= definition.generic_index < len(fs.materials):
                     definition = fs.materials[definition.generic_index]
                 if definition.kind == "generic":
-                    if 0 <= definition.diffuse < len(fs.colors):
-                        color = fs.colors[definition.diffuse]
-                    elif 0 <= definition.ambient < len(fs.colors):
-                        color = fs.colors[definition.ambient]
-                    if 0 <= definition.specular < len(fs.colors):
-                        material.specular = _clamp_color(fs.colors[definition.specular])
-                    if 0 <= definition.emissive < len(fs.colors):
-                        material.emissive = _clamp_color(fs.colors[definition.emissive])
+                    color = _rgb(fs, definition.diffuse) or _rgb(fs, definition.ambient)
+                    specular = _rgb(fs, definition.specular)
+                    if specular is not None:
+                        material.specular = _clamp_color(specular)
+                    emissive = _rgb(fs, definition.emissive)
+                    if emissive is not None:
+                        material.emissive = _clamp_color(emissive)
                     material.shininess = _clamp(definition.shininess / 128.0 if definition.shininess > 1 else definition.shininess)
                     opacity = _clamp(definition.diffuse_alpha) if math.isfinite(definition.diffuse_alpha) else 1.0
-            elif not style.is_material and 0 <= style.index < len(fs.colors):
-                color = fs.colors[style.index]
+            elif not style.is_material:
+                color = _rgb(fs, style.index)
             if color is not None:
                 material.diffuse = _clamp_color(color)
             if style.transparency is not None:
@@ -1688,6 +1739,50 @@ class _SceneBuilder:
         primitive.material = self._material(fs, style, "points")
         self.scene.primitives.append(primitive)
         self.scene.parts.append(Part(name or "Puntos", matrix, [len(self.scene.primitives) - 1], visible))
+
+    def add_body(self, fs, body, name, matrix, style, visible) -> None:
+        """Cuerpo de geometría exacta (prc_brep): superficies teselada o curvas."""
+        key = (id(fs), id(body), style)
+        primitives = self._cache.get(key)
+        if primitives is None:
+            primitives = self._cache[key] = self._build_body(fs, body, style)
+        if primitives:
+            self.scene.parts.append(Part(name or "Pieza", matrix, list(primitives), visible))
+
+    def _build_body(self, fs, body, style) -> list[int]:
+        from . import prc_brep
+
+        result = []
+        if body.kind == "wire":
+            positions = []
+            segments = []
+            for curve in body.curves:
+                points = prc_brep.curve_points(curve)
+                start = len(positions)
+                positions.extend(points)
+                segments.extend((start + k, start + k + 1) for k in range(len(points) - 1))
+            if segments:
+                primitive = build_lines(positions, segments)
+                primitive.material = self._material(fs, style, "lines")
+                result.append(len(self.scene.primitives))
+                self.scene.primitives.append(primitive)
+            return result
+        groups: dict[int | None, list] = {}
+        for face in body.faces:
+            groups.setdefault(face.style if face.style >= 0 else style, []).append(face)
+        meshes = {}
+        for face_style, faces in groups.items():
+            mesh = meshes[face_style] = prc_brep.Mesh()
+            mesh.add_faces(faces)
+        for face_style, mesh in meshes.items():
+            if not mesh.triangles:
+                continue
+            # Los parches de Asymptote no tienen todos la misma orientación.
+            primitive = build_triangles(mesh.positions, mesh.triangles, oriented=False)
+            primitive.material = self._material(fs, face_style)
+            result.append(len(self.scene.primitives))
+            self.scene.primitives.append(primitive)
+        return result
 
     def add_tessellation(self, fs, tess, name, matrix, style, visible) -> None:
         key = (id(fs), id(tess), style)
@@ -1916,6 +2011,14 @@ def _wire_edges(tess: Tessellation, positions: list) -> bytes:
     return out.tobytes()
 
 
+def _rgb(fs: FileStructure, index: int):
+    """Color de un estilo o material. El índice apunta al array de doubles de
+    los colores RGB (tres por color), como escriben Acrobat y Asymptote."""
+    if index < 0 or index // 3 >= len(fs.colors):
+        return None
+    return fs.colors[index // 3]
+
+
 def _clamp(value: float) -> float:
     if not math.isfinite(value):
         return 0.0
@@ -1929,3 +2032,14 @@ def _clamp_color(color) -> tuple[float, float, float]:
 def decode(data: bytes, progress: ProgressCallback | None = None) -> Scene:
     """Decodifica un archivo PRC completo."""
     return PRCFile(data, progress).scene()
+
+
+def decode_supplement(data: bytes) -> Scene:
+    """Solo lo que la biblioteca nativa no dibuja: geometría exacta y nubes de
+    puntos con sus coordenadas. Las teselaciones no se leen."""
+    file = PRCFile(data, tessellations=False)
+    wanted = any(
+        (item.context >= 0 and item.tessellation < 0) or (item.kind == RI_POINT_SET and item.points)
+        for fs in file.structures for part in fs.parts for item in _flatten(part.items)
+    )
+    return file.scene() if wanted else Scene(format="PRC")

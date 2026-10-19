@@ -517,7 +517,13 @@ class Model3DWindow(QWidget):
         self.projection_button.blockSignals(True)
         self.projection_button.setChecked(self.viewer.camera.orthographic)
         self.projection_button.blockSignals(False)
-        background = "document" if scene.background is not None else "theme"
+        if scene.background is not None:
+            background = "document"
+        elif theme.current().is_dark and scene.dark_fraction() > 0.25:
+            # Hecho para fondo blanco (ejes y rótulos negros): como en Acrobat.
+            background = "white"
+        else:
+            background = "theme"
         self.viewer.set_background(background)
         for action in self._background_group.actions():
             action.setChecked(action.data() == background)

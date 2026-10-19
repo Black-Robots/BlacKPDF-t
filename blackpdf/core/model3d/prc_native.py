@@ -18,7 +18,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from ..progress import ProgressCallback, report
-from .scene import Material, Part, Primitive, Scene, is_finite_matrix
+from .scene import Material, Part, Primitive, Scene, is_finite_matrix, unique_part_names
 
 _VERSION = 1
 _TRIANGLES = 0
@@ -249,22 +249,5 @@ def parse(blob: bytes) -> Scene:
         scene.parts.append(Part(name=name, matrix=matrix, primitives=primitives, visible=visible))
     if reader.offset != len(reader.view):
         raise NativePRCError("datos sobrantes al final del bloque")
-    _number_names(scene.parts)
+    unique_part_names(scene.parts)
     return scene
-
-
-def _number_names(parts: list[Part]) -> None:
-    """Nombres únicos para el panel de piezas: «Tornillo», «Tornillo (2)»..."""
-    totals: dict[str, int] = {}
-    for part in parts:
-        totals[part.name] = totals.get(part.name, 0) + 1
-    seen: dict[str, int] = {}
-    for index, part in enumerate(parts, 1):
-        base = part.name
-        if not base:
-            part.name = f"Pieza {index}"
-            continue
-        if totals[base] > 1:
-            seen[base] = seen.get(base, 0) + 1
-            if seen[base] > 1:
-                part.name = f"{base} ({seen[base]})"
