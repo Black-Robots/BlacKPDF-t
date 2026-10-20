@@ -285,17 +285,27 @@ class CommentsPanel(QWidget):
     def _on_theme_changed(self) -> None:
         self._on_changed(None)
 
+    def _shown(self) -> bool:
+        """Visible y con anchura: plegado en el divisor no hace falta reconstruir la lista."""
+        return self.isVisible() and self.width() > 0
+
     def _on_changed(self, pages) -> None:
         self._dirty = True
-        if self.isVisible():
+        if self._shown():
             self._refresh_timer.start()
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
-        if self._dirty:
+        if self._dirty and self._shown():
             self.refresh()
 
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if self._dirty and self._shown():
+            self._refresh_timer.start()
+
     def refresh(self) -> None:
+        self._refresh_timer.stop()
         self._dirty = False
         while self.list_layout.count():
             item = self.list_layout.takeAt(0)
@@ -352,7 +362,7 @@ class CommentsPanel(QWidget):
         """Abre el editor del comentario `xref` en cuanto aparezca en la lista."""
         self._pending_edit = xref
         self._dirty = True
-        if self.isVisible():
+        if self._shown():
             self.refresh()
 
     # ---------- acciones ----------

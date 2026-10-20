@@ -41,6 +41,7 @@ from .settings import settings
 from .widgets import (
     IconButton,
     SearchPill,
+    SplitButton,
     TabCloseButton,
     Toast,
     dropped_paths,
@@ -125,19 +126,20 @@ class MainWindow(QMainWindow):
         self.tab_bar.tabCloseRequested.connect(self.close_tab)
         self.tab_bar.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tab_bar.customContextMenuRequested.connect(self._tab_menu)
-        layout.addWidget(self.tab_bar, 1, Qt.AlignmentFlag.AlignVCenter)
+        layout.addWidget(self.tab_bar, 0, Qt.AlignmentFlag.AlignVCenter)
+        # «+» junto a las pestañas, como en un navegador; la flechita muestra los recientes.
+        self.open_button = SplitButton("plus", self.tr("Abrir ({0})").format(shortcut_text("Ctrl+O")),
+                                       self.tr("Abrir reciente"), header)
+        self.open_button.clicked.connect(self.open_dialog)
+        self.open_button.menu.aboutToShow.connect(self._fill_open_menu)
+        layout.addWidget(self.open_button, 0, Qt.AlignmentFlag.AlignVCenter)
+        layout.addStretch(1)
 
         self.palette_button = SearchPill(self.tr("Buscar herramientas y acciones"), shortcut_text("Ctrl+K"), header)
         self.palette_button.setToolTip(self.tr("Paleta de comandos ({0})").format(shortcut_text("Ctrl+K")))
         self.palette_button.clicked.connect(self.show_palette)
         layout.addWidget(self.palette_button)
         layout.addSpacing(6)
-        open_button = IconButton("folder-open", self.tr("Abrir ({0})").format(shortcut_text("Ctrl+O")), header)
-        open_button.clicked.connect(self.open_dialog)
-        layout.addWidget(open_button)
-        self.theme_button = IconButton("sun", self.tr("Cambiar tema"), header)
-        self.theme_button.clicked.connect(self.toggle_theme)
-        layout.addWidget(self.theme_button)
         menu_button = IconButton("menu", self.tr("Menú"), header)
         menu_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self.app_menu = QMenu(self)
@@ -151,15 +153,8 @@ class MainWindow(QMainWindow):
         menu.clear()
         menu.addAction(icons.icon("folder-open"), self.tr("Abrir..."), QKeySequence("Ctrl+O"), self.open_dialog)
         recent_menu = menu.addMenu(icons.icon("clock"), self.tr("Abrir reciente"))
-        recents = [p for p in settings().recent_files() if Path(p).exists()]
-        for path in recents:
-            recent_menu.addAction(icons.icon("file-text"), Path(path).name, lambda p=path: self.open_files([p]))
-        if not recents:
-            empty = recent_menu.addAction(self.tr("No hay archivos recientes"))
-            empty.setEnabled(False)
-        else:
-            recent_menu.addSeparator()
-            recent_menu.addAction(self.tr("Borrar lista"), self._clear_recents)
+        recent_menu.setToolTipsVisible(True)
+        self._add_recents(recent_menu)
         menu.addSeparator()
         tools_menu = menu.addMenu(icons.icon("layout-grid"), self.tr("Herramientas"))
         for key, name in tools.categories():
@@ -185,6 +180,26 @@ class MainWindow(QMainWindow):
         menu.addAction(icons.icon("info"), self.tr("Acerca de BlackPDF"), lambda: AboutDialog(self).exec())
         menu.addSeparator()
         menu.addAction(icons.icon("x"), self.tr("Salir"), QKeySequence("Ctrl+Q"), self.close)
+
+    def _fill_open_menu(self) -> None:
+        menu = self.open_button.menu
+        menu.clear()
+        menu.addAction(icons.icon("folder-open"), self.tr("Abrir..."), QKeySequence("Ctrl+O"), self.open_dialog)
+        menu.addSection(self.tr("Recientes"))
+        self._add_recents(menu)
+
+    def _add_recents(self, menu: QMenu) -> None:
+        recents = [p for p in settings().recent_files() if Path(p).exists()]
+        for path in recents:
+            action = menu.addAction(format_icon(Path(path).suffix), Path(path).name,
+                                    lambda p=path: self.open_files([p]))
+            action.setToolTip(path)
+        if not recents:
+            empty = menu.addAction(self.tr("No hay archivos recientes"))
+            empty.setEnabled(False)
+        else:
+            menu.addSeparator()
+            menu.addAction(self.tr("Borrar lista"), self._clear_recents)
 
     def _clear_recents(self) -> None:
         settings().clear_recents()
@@ -573,7 +588,7 @@ class MainWindow(QMainWindow):
                         lambda: (tab.show_comments(), tab.comments.start_page_comment())),
                 Command(tr("Añadir PDF al documento"), tr("Páginas"), "file-plus", tab.add_document_pages),
                 Command(tr("Ver modelos 3D del documento"), tr("Vista"), "box", tab.show_models, keywords="3d u3d prc cad"),
-                Command(tr("Pantalla completa"), tr("Vista"), "maximize", self.toggle_fullscreen, "F11"),
+                Command(tr("Pantalla completa"), tr("Vista"), "expand", self.toggle_fullscreen, "F11"),
             ]
             for name, icon_name, title in (
                 ("pen", "pencil", tr("Lápiz")), ("highlight", "highlighter", tr("Resaltar texto")),
@@ -603,10 +618,7 @@ class MainWindow(QMainWindow):
         theme.manager().apply(mode)
 
     def _theme_changed(self) -> None:
-        dark = theme.current().is_dark
-        self.theme_button.set_icon_name("sun" if dark else "moon")
-        self.theme_button.setToolTip(self.tr("Tema claro") if dark else self.tr("Tema oscuro"))
-        platform.apply_title_bar_theme(self, dark)
+        platform.apply_title_bar_theme(self, theme.current().is_dark)
         for widget in self.findChildren(QWidget):
             widget.update()
 

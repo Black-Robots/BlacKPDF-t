@@ -250,6 +250,11 @@ QFrame#Sidebar {{
     border: none;
     border-right: 1px solid {p.border};
 }}
+QFrame#CommentsSidebar {{
+    background: {p.surface};
+    border: none;
+    border-left: 1px solid {p.border};
+}}
 QFrame#FloatingBar {{
     background: {p.surface};
     border: 1px solid {p.border_strong};
@@ -359,6 +364,8 @@ QToolButton[variant="segment"]:checked {{
     background: {p.surface}; color: {p.text}; border: 1px solid {p.border_strong};
 }}
 QToolButton::menu-indicator {{ image: none; width: 0; }}
+QToolButton[split="main"] {{ border-top-right-radius: 0; border-bottom-right-radius: 0; }}
+QToolButton[split="arrow"] {{ border-top-left-radius: 0; border-bottom-left-radius: 0; padding: 5px 2px; }}
 QFrame[role="segmented"] {{
     background: {p.surface_alt};
     border: 1px solid {p.border};

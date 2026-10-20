@@ -397,7 +397,7 @@ def test_comments_panel_flow(qapp, opened):
     pump(qapp, 0.3)
     comments = list_comments(tab.document.doc)
     assert len(comments) == 1 and comments[0].content == "Revisar esta página"
-    assert tab.sidebar_count.text() == "1"
+    assert tab.comments_count.text() == "1"
     card = panel.body.findChildren(type(panel).__mro__[0].__module__ and __import__("blackpdf.ui.comments", fromlist=["CommentCard"]).CommentCard)[0]
     card.replyRequested.emit(card.comment, "Hecho")
     pump(qapp, 0.3)
@@ -416,12 +416,45 @@ def test_highlight_and_comment_opens_editor(qapp, opened):
     drag(tab.viewer, 0, QPointF(74, 134), QPointF(240, 136))
     tab._markup_selection("highlight", comment=True)
     pump(qapp, 0.4)
-    assert tab.sidebar_switch.value() == "comments"
+    assert tab.comments_button.isChecked()
     from blackpdf.ui.comments import CommentCard
 
     cards = tab.comments.body.findChildren(CommentCard)
     assert cards and cards[0].comment.kind == "Highlight"
     assert cards[0]._composer is not None, "se abre el editor del comentario"
+
+
+def test_comments_panel_on_the_right(qapp, opened):
+    """Los comentarios tienen su propio panel a la derecha y se muestran desde la barra de herramientas."""
+    window, tab, _ = opened
+    assert tab.splitter.widget(2) is tab.comments_frame
+    assert tab.comments.parent() is tab.comments_frame
+    assert tab.sidebar_switch.value() in ("pages", "outline")
+    tab.set_comments_visible(False)
+    pump(qapp, 0.4)
+    assert tab.splitter.sizes()[2] == 0 and not tab.comments_button.isChecked()
+    tab.comments_button.click()
+    pump(qapp, 0.4)
+    assert tab.splitter.sizes()[2] >= 240 and tab.comments_button.isChecked()
+    assert tab.splitter.sizes()[0] > 0, "el panel lateral sigue abierto"
+    tab.set_organize_mode(True)
+    pump(qapp, 0.1)
+    assert tab.splitter.sizes()[2] == 0
+    tab.set_organize_mode(False)
+    pump(qapp, 0.1)
+    assert tab.splitter.sizes()[2] >= 240
+    tab.toggle_comments()
+    pump(qapp, 0.4)
+    assert tab.splitter.sizes()[2] == 0
+
+
+def test_open_and_save_buttons_have_menus(qapp, opened):
+    window, tab, path = opened
+    window._fill_open_menu()
+    texts = [a.text() for a in window.open_button.menu.actions()]
+    assert "Abrir..." in texts and path.name in texts
+    assert [a.text() for a in tab.save_button.menu.actions()] == ["Guardar como..."]
+    assert not hasattr(window, "theme_button")
 
 
 def test_split_view_same_and_other_document(qapp, window, tmp_path):

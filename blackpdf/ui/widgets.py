@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
+    QMenu,
     QPushButton,
     QSizePolicy,
     QStackedWidget,
@@ -222,6 +223,36 @@ class IconButton(QToolButton):
     def set_icon_name(self, name: str, role: str = icons.ROLE_DEFAULT) -> None:
         self._icon_name = name
         self.setIcon(icons.icon(name, role))
+
+
+class SplitButton(QFrame):
+    """Botón con una flechita al lado que despliega más opciones (Abrir y recientes, Guardar y Guardar como)."""
+
+    clicked = Signal()
+
+    def __init__(self, icon_name: str, tooltip: str, menu_tooltip: str, parent: QWidget | None = None, size: int = 32):
+        super().__init__(parent)
+        self.setObjectName("SplitButton")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        self.button = IconButton(icon_name, tooltip, self, size=size)
+        self.button.setProperty("split", "main")
+        self.button.clicked.connect(self.clicked)
+        layout.addWidget(self.button)
+        self.arrow = IconButton("chevron-down", menu_tooltip, self, size=size, icon_size=12)
+        self.arrow.setProperty("split", "arrow")
+        self.arrow.setFixedWidth(16)
+        self.arrow.clicked.connect(self.show_menu)
+        layout.addWidget(self.arrow)
+        self.menu = QMenu(self)
+        self.menu.setToolTipsVisible(True)
+
+    def show_menu(self) -> None:
+        """Despliega el menú alineado con el botón entero, no solo con la flecha."""
+        self.arrow.setDown(True)
+        self.menu.exec(self.mapToGlobal(QPoint(0, self.height() + 4)))
+        self.arrow.setDown(False)
 
 
 class Button(QPushButton):

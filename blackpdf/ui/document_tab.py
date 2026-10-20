@@ -44,7 +44,19 @@ from .split_view import SplitPane
 from .settings import settings
 from .thumbnails import OrganizerView, ThumbnailModel, ThumbnailView
 from .viewer import PdfViewer
-from .widgets import SHADOW_TOP, AutoStack, Button, IconButton, SectionLabel, SegmentedControl, Toast, open_filter, pdf_filter, separator
+from .widgets import (
+    SHADOW_TOP,
+    AutoStack,
+    Button,
+    IconButton,
+    SectionLabel,
+    SegmentedControl,
+    SplitButton,
+    Toast,
+    open_filter,
+    pdf_filter,
+    separator,
+)
 
 ZOOM_PRESETS = (50, 75, 100, 125, 150, 200, 300, 400)
 
@@ -129,6 +141,8 @@ class DocumentTab(QWidget):
         self._tools: dict[str, object] = {}
         self._tool_name = "select"
         self._sidebar_width = settings().sidebar_width
+        self._comments_width = settings().comments_width
+        self._comments_shown = settings().comments_visible
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -158,10 +172,13 @@ class DocumentTab(QWidget):
         self.view_stack.addWidget(self.organizer_panel)
         self._organizing = False
         self._sidebar_before_organize = True
+        self.comments_frame = self._build_comments_panel()
         self.splitter.addWidget(self.sidebar)
         self.splitter.addWidget(self.view_stack)
+        self.splitter.addWidget(self.comments_frame)
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
+        self.splitter.setStretchFactor(2, 0)
         self.splitter.splitterMoved.connect(self._sidebar_resized)
         root.addWidget(self.splitter, 1)
 
@@ -182,6 +199,9 @@ class DocumentTab(QWidget):
         self._sidebar_anim = QVariantAnimation(self)
         self._sidebar_anim.setDuration(theme.ANIMATION_MS)
         self._sidebar_anim.valueChanged.connect(self._apply_sidebar_width)
+        self._comments_anim = QVariantAnimation(self)
+        self._comments_anim.setDuration(theme.ANIMATION_MS)
+        self._comments_anim.valueChanged.connect(lambda width: self._set_panel_widths(right=width))
 
         self.viewer.zoomChanged.connect(self._on_zoom)
         self.viewer.currentPageChanged.connect(self._on_page)
@@ -233,10 +253,17 @@ class DocumentTab(QWidget):
         layout.addSpacing(4)
         layout.addWidget(separator(True))
         layout.addSpacing(4)
-        self.save_button = self._button("save", self.tr("Guardar"), self.save, "Ctrl+S")
+        self.save_button = SplitButton(
+            "save", f"{self.tr('Guardar')} ({shortcut_text('Ctrl+S')})", self.tr("Guardar como..."), bar
+        )
+        self.save_button.clicked.connect(self.save)
+        self.save_button.menu.addAction(icons.icon("save"), self.tr("Guardar como..."), QKeySequence("Ctrl+Shift+S"),
+                                        self.save_as)
         self.undo_button = self._button("undo-2", self.tr("Deshacer"), self.undo, "Ctrl+Z")
         self.redo_button = self._button("redo-2", self.tr("Rehacer"), self.redo, "Ctrl+Y")
-        for button in (self.save_button, self.undo_button, self.redo_button):
+        layout.addWidget(self.save_button)
+        layout.addSpacing(2)
+        for button in (self.undo_button, self.redo_button):
             layout.addWidget(button)
         layout.addSpacing(4)
         layout.addWidget(separator(True))
@@ -288,10 +315,12 @@ class DocumentTab(QWidget):
         layout.addStretch(1)
 
         self.annotate_button = self._button("pen-line", self.tr("Barra de anotación"), self.toggle_annotation_bar, "Ctrl+E", True)
+        self.comments_button = self._button("message-square", self.tr("Comentarios"), self.toggle_comments, "", True)
         self.search_button = self._button("search", self.tr("Buscar"), self.find, "Ctrl+F")
         self.night_button = self._button("moon", self.tr("Modo noche"), lambda: self.set_night_mode(not self.viewer.night_mode), "Ctrl+M", True)
-        self.fullscreen_button = self._button("maximize", self.tr("Pantalla completa"), self.fullscreenRequested.emit, "F11")
-        for button in (self.annotate_button, self.search_button, self.night_button, self.fullscreen_button):
+        self.fullscreen_button = self._button("expand", self.tr("Pantalla completa"), self.fullscreenRequested.emit, "F11")
+        for button in (self.annotate_button, self.comments_button, self.search_button, self.night_button,
+                       self.fullscreen_button):
             layout.addWidget(button)
         layout.addSpacing(4)
         layout.addWidget(separator(True))
@@ -340,10 +369,10 @@ class DocumentTab(QWidget):
         layout.setContentsMargins(10, 10, 10, 8)
         layout.setSpacing(10)
         self.sidebar_switch = SegmentedControl(
-            [("pages", ""), ("outline", ""), ("comments", "")],
+            [("pages", ""), ("outline", "")],
             frame,
-            icons_map={"pages": "layout-grid", "outline": "list-tree", "comments": "message-square"},
-            tooltips={"pages": self.tr("Páginas"), "outline": self.tr("Índice"), "comments": self.tr("Comentarios")},
+            icons_map={"pages": "layout-grid", "outline": "list-tree"},
+            tooltips={"pages": self.tr("Páginas"), "outline": self.tr("Índice")},
         )
         layout.addWidget(self.sidebar_switch)
         header = QHBoxLayout()
@@ -365,13 +394,8 @@ class DocumentTab(QWidget):
         self.thumb_model.insertFiles.connect(self.insert_files)
         self.outline = OutlinePanel(self.document, frame)
         self.outline.pageRequested.connect(lambda p: self.viewer.jump_to_page(p))
-        self.comments = CommentsPanel(self.document, lambda: self.viewer.current_page, frame)
-        self.comments.commentActivated.connect(self._show_comment)
-        self.comments.countChanged.connect(self._comments_count_changed)
-        self._comment_count = 0
         self.sidebar_stack.addWidget(self.thumbnails)
         self.sidebar_stack.addWidget(self.outline)
-        self.sidebar_stack.addWidget(self.comments)
         layout.addWidget(self.sidebar_stack, 1)
         self.add_pdf_button = Button(self.tr("Añadir PDF"), "", "file-plus", frame)
         self.add_pdf_button.setToolTip(self.tr(
@@ -390,42 +414,64 @@ class DocumentTab(QWidget):
 
     def _update_sidebar_header(self) -> None:
         key = self.sidebar_switch.value()
-        titles = {"pages": self.tr("Páginas"), "outline": self.tr("Índice"), "comments": self.tr("Comentarios")}
+        titles = {"pages": self.tr("Páginas"), "outline": self.tr("Índice")}
         self.sidebar_title.setText(titles.get(key, "").upper())
-        if key == "pages":
-            self.sidebar_count.setText(str(self.document.page_count))
-        elif key == "comments":
-            self.sidebar_count.setText(str(self._comment_count) if self._comment_count else "")
-        else:
-            self.sidebar_count.setText("")
+        self.sidebar_count.setText(str(self.document.page_count) if key == "pages" else "")
+
+    def _build_comments_panel(self) -> QFrame:
+        """Panel de comentarios a la derecha de las páginas, independiente del panel lateral."""
+        frame = QFrame(self)
+        frame.setObjectName("CommentsSidebar")
+        frame.setMinimumWidth(0)
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(10, 10, 10, 8)
+        layout.setSpacing(10)
+        header = QHBoxLayout()
+        header.setContentsMargins(2, 0, 0, 0)
+        header.setSpacing(6)
+        header.addWidget(SectionLabel(self.tr("Comentarios").upper(), frame))
+        header.addStretch(1)
+        self.comments_count = QLabel("", frame)
+        self.comments_count.setProperty("role", "caption")
+        header.addWidget(self.comments_count)
+        hide = IconButton("x", self.tr("Ocultar comentarios"), frame, size=26, icon_size=14)
+        hide.clicked.connect(lambda: self.set_comments_visible(False))
+        header.addWidget(hide)
+        layout.addLayout(header)
+        self.comments = CommentsPanel(self.document, lambda: self.viewer.current_page, frame)
+        self.comments.commentActivated.connect(self._show_comment)
+        self.comments.countChanged.connect(self._comments_count_changed)
+        layout.addWidget(self.comments, 1)
+        return frame
 
     def _comments_count_changed(self, count: int) -> None:
-        self._comment_count = count
-        self._update_sidebar_header()
+        self.comments_count.setText(str(count) if count else "")
 
     def _show_comment(self, page: int, rect) -> None:
         self.viewer.ensure_visible(page, rect)
         self.viewer.flash(page, rect)
 
     def show_comments(self, edit_xref: int | None = None) -> None:
-        if self.splitter.sizes()[0] < 20:
-            settings().sidebar_visible = True
-            self.sidebar_button.setChecked(True)
-            self._animate_sidebar(0, self.COMMENTS_WIDTH)
-        self.sidebar_switch.set_value("comments")
+        if not self._comments_shown:
+            self.set_comments_visible(True)
         if edit_xref is not None:
             self.comments.edit_comment_later(edit_xref)
 
-    COMMENTS_WIDTH = 320
+    def toggle_comments(self) -> None:
+        self.set_comments_visible(not self._comments_shown)
+
+    def set_comments_visible(self, visible: bool) -> None:
+        self._comments_shown = visible
+        settings().comments_visible = visible
+        self.comments_button.setChecked(visible)
+        self._comments_anim.stop()
+        self._comments_anim.setStartValue(self.splitter.sizes()[2])
+        self._comments_anim.setEndValue(self._comments_width if visible else 0)
+        self._comments_anim.start()
 
     def _sidebar_view_changed(self, key: str) -> None:
-        current = self.splitter.sizes()[0]
-        if key == "comments" and 20 < current < self.COMMENTS_WIDTH:
-            self._animate_sidebar(current, self.COMMENTS_WIDTH)
-        elif key != "comments" and current > self._sidebar_width and current == self.COMMENTS_WIDTH:
-            self._animate_sidebar(current, self._sidebar_width)
         pages = key == "pages"
-        widget = {"pages": self.thumbnails, "outline": self.outline, "comments": self.comments}[key]
+        widget = {"pages": self.thumbnails, "outline": self.outline}[key]
         self.sidebar_stack.setCurrentWidget(widget)
         self.add_pdf_button.setVisible(pages)
         self.sidebar_hint.setVisible(pages)
@@ -533,16 +579,16 @@ class DocumentTab(QWidget):
             self._sidebar_before_organize = self.splitter.sizes()[0] > 20
             self.organizer.select_pages(self.thumbnails.selected_pages() or [self.viewer.current_page])
             self.view_stack.setCurrentWidget(self.organizer_panel)
-            self._apply_sidebar_width(0)
+            self._set_panel_widths(left=0, right=0)
             self.organizer.setFocus()
         else:
             self.view_stack.setCurrentWidget(self.view_splitter)
-            if self._sidebar_before_organize:
-                self._apply_sidebar_width(self._sidebar_width)
+            self._set_panel_widths(left=self._sidebar_width if self._sidebar_before_organize else 0,
+                                   right=self._comments_width if self._comments_shown else 0)
             self.viewer.setFocus()
         for widget in (self.zoom_out_button, self.zoom_box, self.zoom_in_button, self.fit_width_button,
-                       self.fit_page_button, self.annotate_button, self.search_button, self.sidebar_button,
-                       self.split_button):
+                       self.fit_page_button, self.annotate_button, self.comments_button, self.search_button,
+                       self.sidebar_button, self.split_button):
             widget.setEnabled(not on)
 
     def _open_from_organizer(self, page: int) -> None:
@@ -619,7 +665,9 @@ class DocumentTab(QWidget):
     def _initial_layout(self) -> None:
         visible = settings().sidebar_visible
         self.sidebar_button.setChecked(visible)
-        self._apply_sidebar_width(self._sidebar_width if visible else 0)
+        self.comments_button.setChecked(self._comments_shown)
+        self._set_panel_widths(left=self._sidebar_width if visible else 0,
+                               right=self._comments_width if self._comments_shown else 0)
         self._update_top_inset()
         self.area.layout_overlays()
         saved = settings().reading_position(self.document.path) if self.document.path else None
@@ -778,19 +826,35 @@ class DocumentTab(QWidget):
         self._sidebar_anim.start()
 
     def _apply_sidebar_width(self, width) -> None:
-        total = sum(self.splitter.sizes()) or self.width()
-        self.splitter.setSizes([int(width), max(0, total - int(width))])
+        self._set_panel_widths(left=width)
+
+    def _set_panel_widths(self, left=None, right=None) -> None:
+        """Ancho del panel lateral (izquierda) y del de comentarios (derecha); el visor ocupa el resto."""
+        sizes = self.splitter.sizes()
+        total = sum(sizes) or self.width()
+        left = sizes[0] if left is None else int(left)
+        right = sizes[2] if right is None else int(right)
+        self.splitter.setSizes([left, max(0, total - left - right), right])
 
     def _sidebar_resized(self, pos: int, index: int) -> None:
-        width = self.splitter.sizes()[0]
-        if width >= 160 and self.sidebar_switch.value() != "comments":
-            self._sidebar_width = width
-            settings().sidebar_width = width
-        self.sidebar_button.setChecked(width > 20)
+        left, _, right = self.splitter.sizes()
+        if left >= 160:
+            self._sidebar_width = left
+            settings().sidebar_width = left
+        self.sidebar_button.setChecked(left > 20)
+        if index == 2:
+            if right >= 240:
+                self._comments_width = right
+                settings().comments_width = right
+            if (right > 20) != self._comments_shown:
+                self._comments_shown = right > 20
+                settings().comments_visible = self._comments_shown
+            self.comments_button.setChecked(self._comments_shown)
 
     def set_sidebar_visible(self, visible: bool) -> None:
         self.toolbar.setVisible(visible)
-        self._apply_sidebar_width(self._sidebar_width if visible and settings().sidebar_visible else 0)
+        self._set_panel_widths(left=self._sidebar_width if visible and settings().sidebar_visible else 0,
+                               right=self._comments_width if visible and self._comments_shown else 0)
 
     def toggle_annotation_bar(self) -> None:
         visible = not self.annotation_bar.isVisible()

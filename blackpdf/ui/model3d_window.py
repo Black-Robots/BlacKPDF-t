@@ -376,7 +376,7 @@ class Model3DWindow(QWidget):
         layout.addWidget(self.export_button)
         self.parts_button = IconButton("layers", self.tr("Piezas (P)"), bar, checkable=True)
         layout.addWidget(self.parts_button)
-        self.full_button = IconButton("maximize", self.tr("Pantalla completa (F11)"), bar)
+        self.full_button = IconButton("expand", self.tr("Pantalla completa (F11)"), bar)
         self.full_button.clicked.connect(self._toggle_fullscreen)
         layout.addWidget(self.full_button)
         return bar
@@ -632,10 +632,10 @@ class Model3DWindow(QWidget):
     def _toggle_fullscreen(self) -> None:
         if self.isFullScreen():
             self.showNormal()
-            self.full_button.set_icon_name("maximize")
+            self.full_button.set_icon_name("expand")
         else:
             self.showFullScreen()
-            self.full_button.set_icon_name("minimize")
+            self.full_button.set_icon_name("shrink")
 
     def _escape(self) -> None:
         if self.isFullScreen():

@@ -101,6 +101,25 @@ class Settings:
     def sidebar_width(self, value: int) -> None:
         self._qs.setValue("viewer/sidebarWidth", int(value))
 
+    @property
+    def comments_visible(self) -> bool:
+        return self._bool("viewer/comments", False)
+
+    @comments_visible.setter
+    def comments_visible(self, value: bool) -> None:
+        self._qs.setValue("viewer/comments", bool(value))
+
+    @property
+    def comments_width(self) -> int:
+        try:
+            return max(240, min(560, int(self._qs.value("viewer/commentsWidth", 320))))
+        except (TypeError, ValueError):
+            return 320
+
+    @comments_width.setter
+    def comments_width(self, value: int) -> None:
+        self._qs.setValue("viewer/commentsWidth", int(value))
+
     # ---------- ventana ----------
     def window_geometry(self) -> QByteArray | None:
         value = self._qs.value("window/geometry")
