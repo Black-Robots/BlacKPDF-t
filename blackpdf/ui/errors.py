@@ -87,6 +87,20 @@ def user_message(exc: BaseException) -> tuple[str, str]:
         return _tr("No se puede abrir el modelo 3D"), _tr(
             "El modelo 3D está dañado o usa una variante del formato que BlackPDF todavía no puede mostrar."
         )
+    if isinstance(exc, core_errors.UpdateCheckError):
+        return _tr("No se puede comprobar"), _tr(
+            "No se ha podido consultar si hay una versión nueva. Comprueba tu conexión a internet "
+            "e inténtalo más tarde."
+        )
+    if isinstance(exc, core_errors.UpdateVerifyError):
+        return _tr("Descarga descartada"), _tr(
+            "El archivo descargado no coincide con el publicado y se ha borrado por seguridad. "
+            "Inténtalo de nuevo más tarde."
+        )
+    if isinstance(exc, core_errors.UpdateDownloadError):
+        return _tr("No se ha podido descargar"), _tr(
+            "La descarga de la versión nueva se ha interrumpido. Comprueba tu conexión e inténtalo de nuevo."
+        )
     if isinstance(exc, core_errors.InvalidOptionError):
         return _tr("Opción no válida"), _tr("Revisa las opciones marcadas e inténtalo de nuevo.")
     if isinstance(exc, core_errors.BlackPdfError):

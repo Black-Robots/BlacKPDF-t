@@ -65,6 +65,44 @@ class Settings:
     def welcomed(self, value: bool) -> None:
         self._qs.setValue("app/welcomed", bool(value))
 
+    # ---------- actualizaciones ----------
+    @property
+    def check_updates(self) -> bool:
+        """Si se comprueba sola (como mucho una vez al día) si hay una versión nueva."""
+        return self._bool("updates/check", True)
+
+    @check_updates.setter
+    def check_updates(self, value: bool) -> None:
+        self._qs.setValue("updates/check", bool(value))
+
+    @property
+    def last_update_check(self) -> float:
+        try:
+            return float(self._qs.value("updates/last", 0))
+        except (TypeError, ValueError):
+            return 0.0
+
+    @last_update_check.setter
+    def last_update_check(self, value: float) -> None:
+        self._qs.setValue("updates/last", float(value))
+
+    @property
+    def skipped_version(self) -> str:
+        return str(self._qs.value("updates/skipped", ""))
+
+    @skipped_version.setter
+    def skipped_version(self, value: str) -> None:
+        self._qs.setValue("updates/skipped", value)
+
+    def take_reopen_paths(self) -> list[str]:
+        """Documentos que estaban abiertos antes de actualizar (se leen una sola vez)."""
+        paths = self._json("updates/reopen", [])
+        self._qs.remove("updates/reopen")
+        return [p for p in paths if isinstance(p, str)]
+
+    def set_reopen_paths(self, paths: list[str]) -> None:
+        self._set_json("updates/reopen", list(paths))
+
     # ---------- apariencia ----------
     @property
     def theme(self) -> str:

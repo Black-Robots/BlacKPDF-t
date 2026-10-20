@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtCore import QProcess, QSize, Qt, QTimer
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
@@ -22,9 +22,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import APP_NAME
+from .. import APP_NAME, __version__
 from ..core.document import OPENABLE_EXTENSIONS
 from ..core.model3d import MODEL_EXTENSIONS
+from ..core import updates as core_updates
 from ..core.errors import BlackPdfError, PasswordRequiredError, WrongPasswordError
 from . import i18n, icons, platform, tasks, theme, tools
 from .command_palette import Command, CommandPalette
@@ -37,6 +38,7 @@ from .document_tab import DocumentTab
 from .keys import shortcut_text
 from .errors import show_error
 from .home import HomePage
+from .updates import UpdateChecker, UpdateDialog, check_due
 from .settings import settings
 from .widgets import (
     IconButton,
@@ -114,6 +116,15 @@ class MainWindow(QMainWindow):
             self.resize(1320, 860)
         self._update_window_title()
         QTimer.singleShot(0, self._theme_changed)
+
+        self._update_checker = UpdateChecker(self)
+        self._update_checker.available.connect(self._update_available)
+        self._update_checker.upToDate.connect(self._update_up_to_date)
+        self._update_checker.failed.connect(self._update_failed)
+        self._manual_update_check = False
+        if check_due():
+            # Unos segundos después de arrancar, para no retrasar la apertura.
+            QTimer.singleShot(4000, self._update_checker.check)
 
     # ======================================================================
     # Cabecera
@@ -195,6 +206,11 @@ class MainWindow(QMainWindow):
             action.setCheckable(True)
             action.setChecked(chosen == code or (code == "auto" and chosen not in i18n.codes()))
         menu.addSeparator()
+        menu.addAction(icons.icon("refresh-cw"), self.tr("Buscar actualizaciones..."), self.check_for_updates)
+        notify = menu.addAction(self.tr("Avisar de versiones nuevas"))
+        notify.setCheckable(True)
+        notify.setChecked(settings().check_updates)
+        notify.toggled.connect(lambda on: setattr(settings(), "check_updates", on))
         menu.addAction(icons.icon("keyboard"), self.tr("Atajos de teclado"), lambda: ShortcutsDialog(self).exec())
         menu.addAction(icons.icon("info"), self.tr("Acerca de BlackPDF"), lambda: AboutDialog(self).exec())
         menu.addSeparator()
@@ -579,6 +595,8 @@ class MainWindow(QMainWindow):
             Command(tr("Ir al inicio"), tr("Navegación"), "house", lambda: self.tab_bar.setCurrentIndex(0)),
             Command(tr("Cambiar tema claro u oscuro"), tr("Apariencia"), "sun", self.toggle_theme, keywords="tema modo"),
             Command(tr("Atajos de teclado"), tr("Ayuda"), "keyboard", lambda: ShortcutsDialog(self).exec()),
+            Command(tr("Buscar actualizaciones"), tr("Ayuda"), "refresh-cw", self.check_for_updates,
+                    keywords="actualizar version nueva update"),
             Command(tr("Acerca de BlackPDF"), tr("Ayuda"), "info", lambda: AboutDialog(self).exec()),
         ]
         tab = self.current_tab()
@@ -628,6 +646,58 @@ class MainWindow(QMainWindow):
                 commands.append(Command(Path(path).name, tr("Recientes"), "clock", lambda p=path: self.open_files([p]),
                                         keywords=path))
         return commands
+
+    # ======================================================================
+    # Actualizaciones
+    # ======================================================================
+    def check_for_updates(self) -> None:
+        """Comprobación pedida desde el menú: siempre responde, haya o no versión nueva."""
+        self._manual_update_check = True
+        Toast.show_message(self, self.tr("Buscando actualizaciones..."), duration=1500)
+        self._update_checker.check()
+
+    def _update_available(self, release) -> None:
+        manual, self._manual_update_check = self._manual_update_check, False
+        if manual:
+            self.show_update(release)
+        elif release.version != settings().skipped_version:
+            Toast.show_message(self, self.tr("BlackPDF {0} ya está disponible").format(release.version),
+                               self.tr("Ver novedades"), lambda: self.show_update(release), duration=10000)
+
+    def _update_up_to_date(self) -> None:
+        if self._manual_update_check:
+            self._manual_update_check = False
+            Toast.show_message(self, self.tr("Tienes la última versión de BlackPDF ({0})").format(__version__),
+                               kind="success")
+
+    def _update_failed(self, exc) -> None:
+        # La comprobación automática falla en silencio (por ejemplo, sin conexión).
+        if self._manual_update_check:
+            self._manual_update_check = False
+            show_error(self, exc)
+
+    def show_update(self, release) -> None:
+        dialog = UpdateDialog(release, self)
+        dialog.installRequested.connect(
+            lambda kind, path: QTimer.singleShot(0, lambda: self.install_update(kind, path)))
+        dialog.exec()
+        dialog.deleteLater()
+
+    def install_update(self, kind: str, path: str) -> None:
+        """Termina la actualización ya descargada y comprobada."""
+        if kind == core_updates.KIND_APPIMAGE:
+            self.restart()
+            return
+        if kind != core_updates.KIND_WINDOWS:
+            return
+        paths = [tab.document.path for tab in self.document_tabs() if tab.document.path]
+        if not self.close():
+            return
+        # El instalador cierra BlackPDF si sigue abierto, actualiza y lo vuelve a abrir (/relaunch=1).
+        settings().set_reopen_paths(paths)
+        settings().sync()
+        QProcess.startDetached(path, ["/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/relaunch=1"])
+        QApplication.instance().quit()
 
     # ======================================================================
     # Tema y pantalla completa

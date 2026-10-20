@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QCheckBox, QComboBox, QDialog, QHBoxLayout, QLabel, QLayout, QVBoxLayout, QWidget
 
 from ... import APP_NAME, AUTHOR
 from .. import i18n, icons, theme
@@ -20,6 +20,7 @@ class WelcomeDialog(QDialog):
         self.setWindowIcon(icons.app_icon())
         self._language = settings().language if settings().language in i18n.codes() else "auto"
         self._theme = theme.manager().mode
+        self._check_updates = settings().check_updates
         self._root = QVBoxLayout(self)
         self._root.setContentsMargins(0, 0, 0, 0)
         # La ventana toma siempre el tamaño del contenido (cambia al traducirse).
@@ -80,6 +81,16 @@ class WelcomeDialog(QDialog):
         self.theme_switch.changed.connect(self._theme_changed)
         layout.addWidget(self.theme_switch)
 
+        layout.addSpacing(6)
+        self.updates_box = QCheckBox(self.tr("Avisarme cuando haya una versión nueva"), content)
+        self.updates_box.setChecked(self._check_updates)
+        self.updates_box.toggled.connect(lambda on: setattr(self, "_check_updates", on))
+        layout.addWidget(self.updates_box)
+        privacy = label(self.tr("Solo se consulta GitHub, como mucho una vez al día. No se envía ningún dato tuyo."),
+                        "caption", wrap=True)
+        privacy.setContentsMargins(26, 0, 0, 0)
+        layout.addWidget(privacy)
+
         layout.addSpacing(4)
         hint = label(self.tr("Podrás cambiarlos cuando quieras desde el menú."), "caption", wrap=True)
         hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -111,6 +122,7 @@ class WelcomeDialog(QDialog):
         # Cerrar con la X también guarda lo elegido: la bienvenida no vuelve a salir.
         settings().language = self._language
         settings().theme = self._theme
+        settings().check_updates = self._check_updates
         settings().welcomed = True
         settings().sync()
         super().done(result)

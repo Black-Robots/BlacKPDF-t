@@ -3,16 +3,24 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
 import pymupdf
 from PySide6 import __version__ as pyside_version
-from PySide6.QtCore import QT_TRANSLATE_NOOP, Qt, qVersion
+from PySide6.QtCore import QT_TRANSLATE_NOOP, Qt, QUrl, qVersion
 from PySide6.QtWidgets import QDialog, QGridLayout, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from ... import AUTHOR, HOMEPAGE, REPOSITORY, __version__
 from .. import icons
 from ..keys import shortcut_text
 from ..widgets import Button, SectionLabel, label
+
+
+def license_file() -> Path | None:
+    """Texto completo de la licencia que acompaña al programa (también en la versión empaquetada)."""
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[3]))
+    path = base / "LICENSE"
+    return path if path.exists() else None
 
 
 class AboutDialog(QDialog):
@@ -54,10 +62,14 @@ class AboutDialog(QDialog):
         layout.addWidget(label(self.tr(
             "BlackPDF es software libre: puedes usarlo, estudiarlo, compartirlo y modificarlo según los "
             "términos de la Licencia Pública General Affero de GNU, versión 3 (AGPL-3.0)."), "caption", wrap=True))
+        license_path = license_file()
+        license_url = (QUrl.fromLocalFile(str(license_path)).toString() if license_path
+                       else "https://www.gnu.org/licenses/agpl-3.0.html")
         links = label(" &nbsp;·&nbsp; ".join(
             f'<a href="{url}">{text}</a>' for url, text in (
                 (HOMEPAGE, self.tr("Página web")),
                 (REPOSITORY, self.tr("Código fuente")),
+                (license_url, self.tr("Texto de la licencia")),
                 (REPOSITORY + "/issues", self.tr("Informar de un fallo")),
             )), "caption")
         links.setOpenExternalLinks(True)

@@ -71,6 +71,8 @@ Command palette with Ctrl+K and standard keyboard shortcuts (full list in Menu >
 
 The Windows installer is not code-signed yet, so Windows SmartScreen may show a warning the first time ("More info" > "Run anyway").
 
+**Updates.** Checking for new versions is the only thing BlackPDF does online, and you decide on first launch (Menu > Notify me of new versions). It asks GitHub at most once a day and sends none of your data. Each download is checked against the published SHA-256 sums. The Windows installation and the AppImage update themselves and reopen your documents; with the `.deb` the system installer opens. You can also check at any time in Menu > Check for updates.
+
 ## Development
 
 Requirements: Python 3.12 or later (the latest stable release is recommended), and CMake 3.24+ with a C compiler for the native PRC library.

@@ -109,6 +109,9 @@ def _gui_check() -> bool:
     with tempfile.TemporaryDirectory() as folder:
         # Preferencias en una carpeta temporal: la prueba no toca las del usuario.
         QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, folder)
+        from .ui.settings import settings
+
+        settings().check_updates = False  # la prueba no se conecta a internet
         path = Path(folder) / "interfaz.pdf"
         doc = pymupdf.open()
         doc.new_page().insert_text((72, 72), "Interfaz", fontsize=18)

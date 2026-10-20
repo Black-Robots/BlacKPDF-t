@@ -37,7 +37,6 @@ AppCopyright=Free software under the AGPL-3.0 license
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
-LicenseFile=..\..\LICENSE
 OutputDir={#OutputDir}
 OutputBaseFilename=BlackPDF-{#MyAppVersion}-Setup
 SetupIconFile=blackpdf.ico

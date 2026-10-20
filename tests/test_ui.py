@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import sys
 import time
+from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -21,6 +22,10 @@ from .conftest import build_pdf, page_labels
 def qapp(tmp_path_factory):
     settings_dir = tmp_path_factory.mktemp("settings")
     QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(settings_dir))
+    from blackpdf.ui.settings import settings
+
+    # Los tests nunca se conectan a internet.
+    settings().check_updates = False
     app = QApplication.instance() or QApplication([])
     app.setStyle("Fusion")
     from blackpdf.ui import theme
@@ -705,16 +710,98 @@ def test_welcome_dialog_applies_language_and_theme(qapp):
         assert dialog.greeting.text() == "Welcome to BlackPDF", "cambia de idioma sin reiniciar"
         dialog.theme_switch.set_value("light")
         assert not theme.current().is_dark
+        dialog.updates_box.setChecked(True)
         dialog.accept()
         assert settings().welcomed and settings().language == "en" and settings().theme == "light"
+        assert settings().check_updates
     finally:
         i18n.install("es")
         theme.manager().apply("dark")
         settings().language, settings().theme = previous
+        settings().check_updates = False
 
 
 def test_about_dialog_shows_author(qapp):
     from blackpdf.ui.dialogs.about import AboutDialog
 
     dialog = AboutDialog()
-    assert "By Diego Rayado Zumel" in [w.text() for w in dialog.findChildren(QLabel)]
+    texts = [w.text() for w in dialog.findChildren(QLabel)]
+    assert "By Diego Rayado Zumel" in texts
+    assert any("Texto de la licencia" in t and "LICENSE" in t for t in texts), "enlace a la licencia local"
+
+
+def _fake_release(tmp_path, version="9.0.0"):
+    import hashlib
+
+    from blackpdf.core.updates import Release
+
+    folder = tmp_path / "publicado"
+    folder.mkdir(exist_ok=True)
+    setup = folder / f"BlackPDF-{version}-Setup.exe"
+    setup.write_bytes(b"instalador nuevo" * 1000)
+    sums = folder / "SHA256SUMS.txt"
+    sums.write_text(f"{hashlib.sha256(setup.read_bytes()).hexdigest()}  {setup.name}\n")
+    return Release(version, "https://example.org/release", "### Novedades\n- Algo nuevo",
+                   assets={setup.name: setup.as_uri(), sums.name: sums.as_uri()})
+
+
+def test_update_dialog_depends_on_install_kind(qapp, tmp_path):
+    from blackpdf.core import updates as core
+    from blackpdf.ui.settings import settings
+    from blackpdf.ui.updates import UpdateDialog
+
+    release = _fake_release(tmp_path)
+    assert UpdateDialog(release, kind=core.KIND_WINDOWS).update_button.text() == "Actualizar ahora"
+    without_deb = UpdateDialog(release, kind=core.KIND_DEB)
+    assert without_deb.kind == core.KIND_MANUAL and without_deb.update_button.text() == "Ir a la descarga"
+    previous = settings().skipped_version
+    try:
+        dialog = UpdateDialog(release, kind=core.KIND_WINDOWS)
+        dialog.skip_button.click()
+        assert settings().skipped_version == "9.0.0"
+    finally:
+        settings().skipped_version = previous
+
+
+def test_update_dialog_downloads_and_verifies_in_background(qapp, tmp_path, monkeypatch):
+    from blackpdf.core import updates as core
+    from blackpdf.ui.updates import UpdateDialog
+
+    dialog = UpdateDialog(_fake_release(tmp_path), kind=core.KIND_WINDOWS)
+    monkeypatch.setattr(dialog, "_folder", lambda: tmp_path / "descarga")
+    requested = []
+    dialog.installRequested.connect(lambda kind, path: requested.append((kind, path)))
+    dialog.update_button.click()
+    assert not dialog.update_button.isEnabled() and dialog.later_button.text() == "Cancelar"
+    assert wait_until(qapp, lambda: requested, timeout=60)
+    kind, path = requested[0]
+    assert kind == core.KIND_WINDOWS and Path(path).read_bytes().startswith(b"instalador nuevo")
+
+
+def test_main_window_update_notices(qapp, window, monkeypatch, tmp_path):
+    from blackpdf.ui import main_window
+    from blackpdf.ui.settings import settings
+
+    toasts, shown = [], []
+    monkeypatch.setattr(main_window.Toast, "show_message",
+                        classmethod(lambda cls, parent, text, *args, **kwargs: toasts.append(text)))
+    monkeypatch.setattr(window, "show_update", lambda release: shown.append(release.version))
+    release = _fake_release(tmp_path)
+    window._update_available(release)
+    assert toasts == ["BlackPDF 9.0.0 ya está disponible"] and not shown, "automática: aviso discreto"
+    previous = settings().skipped_version
+    try:
+        settings().skipped_version = "9.0.0"
+        window._update_available(release)
+        assert len(toasts) == 1, "una versión omitida no vuelve a avisar sola"
+        window._manual_update_check = True
+        window._update_available(release)
+        assert shown == ["9.0.0"], "pedida desde el menú: se enseña aunque se omitiera"
+    finally:
+        settings().skipped_version = previous
+    window._manual_update_check = True
+    window._update_up_to_date()
+    assert toasts[-1].startswith("Tienes la última versión de BlackPDF")
+    window._fill_app_menu()
+    texts = [a.text() for a in window.app_menu.actions()]
+    assert "Buscar actualizaciones..." in texts and "Avisar de versiones nuevas" in texts

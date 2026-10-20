@@ -85,6 +85,9 @@ def main() -> int:
     window = MainWindow()
     instance.filesReceived.connect(window.open_and_raise)
     window.show()
+    # Tras una actualización se vuelven a abrir los documentos que había abiertos.
+    reopen = settings().take_reopen_paths()
+    paths = paths or reopen
     if paths:
         window.open_files(paths)
     code = app.exec()

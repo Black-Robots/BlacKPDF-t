@@ -66,3 +66,15 @@ class Model3DError(BlackPdfError):
 
 class Model3DEmptyError(BlackPdfError):
     """El modelo 3D se ha leído pero no contiene geometría visible (params: path)."""
+
+
+class UpdateCheckError(BlackPdfError):
+    """No se pudo consultar si hay versiones nuevas (sin conexión o GitHub no responde)."""
+
+
+class UpdateDownloadError(BlackPdfError):
+    """No se pudo descargar la versión nueva."""
+
+
+class UpdateVerifyError(BlackPdfError):
+    """La descarga no coincide con la suma SHA-256 publicada (o no hay suma con la que comprobarla)."""
