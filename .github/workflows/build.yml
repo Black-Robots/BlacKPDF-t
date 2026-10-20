@@ -36,7 +36,9 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          # Python 3.14, como build_windows_wine.sh: con 3.15, cryptography usa la ABI estable «abi3t»,
+          # que en Windows necesita python3t.dll y el programa empaquetado no la incluye.
+          python-version: "3.14"
       - name: Inno Setup 6.7.3
         # Versión fija, la misma que en build_windows_wine.sh: el instalador sale igual en local y en CI.
         shell: pwsh

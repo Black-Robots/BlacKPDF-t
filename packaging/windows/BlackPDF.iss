@@ -21,7 +21,7 @@
 #define MyAppExe "BlackPDF.exe"
 #define MyAppPublisher "The Black Robots Foundation"
 #define MyAppURL "https://blackrobots.org/blackpdf"
-#define MyRepoURL "https://github.com/TheBlackRobotsFoundation/BlackPDF"
+#define MyRepoURL "https://github.com/Black-Robots/BlackPDF"
 #define MyProgId "BlackPDF.Document"
 
 [Setup]

@@ -30,8 +30,8 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://blackrobots.org/blackpdf"
-Source = "https://github.com/TheBlackRobotsFoundation/BlackPDF"
-Issues = "https://github.com/TheBlackRobotsFoundation/BlackPDF/issues"
+Source = "https://github.com/Black-Robots/BlackPDF"
+Issues = "https://github.com/Black-Robots/BlackPDF/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "pyinstaller>=6.10", "pillow>=11", "cryptography>=48"]

@@ -14,8 +14,8 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>AGPL-3.0-only</project_license>
   <url type="homepage">https://blackrobots.org/blackpdf</url>
-  <url type="bugtracker">https://github.com/TheBlackRobotsFoundation/BlackPDF/issues</url>
-  <url type="vcs-browser">https://github.com/TheBlackRobotsFoundation/BlackPDF</url>
+  <url type="bugtracker">https://github.com/Black-Robots/BlackPDF/issues</url>
+  <url type="vcs-browser">https://github.com/Black-Robots/BlackPDF</url>
   <description>
     <p>BlackPDF brings together everything you need to work with PDF files offline: view, organize pages,
     merge, split, compress, convert, annotate, comment, sign with a digital certificate, protect, recognize

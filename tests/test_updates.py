@@ -25,7 +25,7 @@ def test_versions_compare_numerically():
 def _api_release(assets: dict[str, str]) -> dict:
     return {
         "tag_name": "v1.1.0",
-        "html_url": "https://github.com/TheBlackRobotsFoundation/BlackPDF/releases/tag/v1.1.0",
+        "html_url": "https://github.com/Black-Robots/BlackPDF/releases/tag/v1.1.0",
         "body": "### Novedades\n- Algo nuevo",
         "published_at": "2026-11-01T10:00:00Z",
         "assets": [{"name": name, "browser_download_url": url} for name, url in assets.items()],

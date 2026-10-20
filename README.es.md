@@ -6,7 +6,7 @@ Visor y editor de PDF de escritorio, libre y gratuito. Reúne lo que ofrecen los
 
 Disponible para **Windows 10/11** y **Linux**, en español, inglés, portugués y francés (elige el idioma del sistema; se cambia en Menú > Idioma).
 
-**[Descargar la última versión](https://github.com/TheBlackRobotsFoundation/BlackPDF/releases/latest)** · [Página web](https://blackrobots.org/blackpdf) · [Informar de un fallo](https://github.com/TheBlackRobotsFoundation/BlackPDF/issues)
+**[Descargar la última versión](https://github.com/Black-Robots/BlackPDF/releases/latest)** · [Página web](https://blackrobots.org/blackpdf) · [Informar de un fallo](https://github.com/Black-Robots/BlackPDF/issues)
 
 ![BlackPDF con un documento y sus comentarios](docs/screenshots/es/document.webp)
 
