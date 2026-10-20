@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import time
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -584,3 +585,28 @@ def test_open_model_file_from_main_window(qapp, window):
     for win in list(window._model_windows.values()):
         win.close()
     pump(qapp, 0.05)
+
+
+def test_closed_tab_ignores_theme_changes(qapp, opened):
+    """Al cerrar una pestaña, cambiar el tema no debe tocar sus paneles destruidos."""
+    from blackpdf.ui import theme
+
+    window, tab, _ = opened
+    tab.show_comments()
+    pump(qapp, 0.1)
+    errors = []
+    previous = sys.excepthook
+    sys.excepthook = lambda *info: errors.append(info)
+    try:
+        window.close_tab(window._tabs.index(tab))
+        pump(qapp, 0.1)
+        # Como en el bucle principal: las vistas de la pestaña se destruyen de verdad.
+        QApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        pump(qapp, 0.1)
+        theme.manager().apply("light")
+        pump(qapp, 0.1)
+        theme.manager().apply("dark")
+        pump(qapp, 0.1)
+    finally:
+        sys.excepthook = previous
+    assert not errors

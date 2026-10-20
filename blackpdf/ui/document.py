@@ -100,7 +100,9 @@ class PdfDocument(QObject):
 
     @property
     def page_count(self) -> int:
-        return self._doc.page_count
+        # Al cerrar una pestaña el documento se cierra antes de que Qt destruya
+        # sus vistas: si alguna pregunta entre medias, no tiene páginas.
+        return 0 if self._doc.is_closed else self._doc.page_count
 
     @property
     def is_modified(self) -> bool:

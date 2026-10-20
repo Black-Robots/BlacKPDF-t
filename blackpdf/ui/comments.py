@@ -278,9 +278,13 @@ class CommentsPanel(QWidget):
         self._refresh_timer.setInterval(120)
         self._refresh_timer.timeout.connect(self.refresh)
         document.changed.connect(self._on_changed)
-        theme.manager().changed.connect(lambda: self._on_changed(None))
+        # Método (no lambda): Qt lo desconecta solo cuando se destruye el panel.
+        theme.manager().changed.connect(self._on_theme_changed)
 
     # ---------- actualización ----------
+    def _on_theme_changed(self) -> None:
+        self._on_changed(None)
+
     def _on_changed(self, pages) -> None:
         self._dirty = True
         if self.isVisible():
