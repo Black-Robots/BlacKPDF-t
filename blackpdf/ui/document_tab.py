@@ -35,6 +35,7 @@ from .document import PdfDocument
 from .errors import show_error
 from .interaction import STYLED_TOOLS, RedactTool, SignatureTool, create_tool
 from .keys import shortcut_text
+from .attachments import AttachmentsPanel
 from .comments import CommentsPanel
 from .outline import OutlinePanel
 from .printing import print_document
@@ -223,6 +224,7 @@ class DocumentTab(QWidget):
         self._on_fit_mode(self.viewer.fit_mode)
         QTimer.singleShot(0, self._initial_layout)
         QTimer.singleShot(150, self._check_signatures)
+        QTimer.singleShot(400, self._announce_attachments)
         document.modifiedChanged.connect(self._signed_document_modified)
 
     # ======================================================================
@@ -369,10 +371,11 @@ class DocumentTab(QWidget):
         layout.setContentsMargins(10, 10, 10, 8)
         layout.setSpacing(10)
         self.sidebar_switch = SegmentedControl(
-            [("pages", ""), ("outline", "")],
+            [("pages", ""), ("outline", ""), ("attachments", "")],
             frame,
-            icons_map={"pages": "layout-grid", "outline": "list-tree"},
-            tooltips={"pages": self.tr("Páginas"), "outline": self.tr("Índice")},
+            icons_map={"pages": "layout-grid", "outline": "list-tree", "attachments": "paperclip"},
+            tooltips={"pages": self.tr("Páginas"), "outline": self.tr("Índice"),
+                      "attachments": self.tr("Archivos adjuntos")},
         )
         layout.addWidget(self.sidebar_switch)
         header = QHBoxLayout()
@@ -394,8 +397,13 @@ class DocumentTab(QWidget):
         self.thumb_model.insertFiles.connect(self.insert_files)
         self.outline = OutlinePanel(self.document, frame)
         self.outline.pageRequested.connect(lambda p: self.viewer.jump_to_page(p))
+        self.attachments = AttachmentsPanel(self.document, frame)
+        self.attachments.openFiles.connect(self.openRequested)
+        self.attachments.locate.connect(self._show_comment)
+        self.attachments.countChanged.connect(lambda _: self._update_sidebar_header())
         self.sidebar_stack.addWidget(self.thumbnails)
         self.sidebar_stack.addWidget(self.outline)
+        self.sidebar_stack.addWidget(self.attachments)
         layout.addWidget(self.sidebar_stack, 1)
         self.add_pdf_button = Button(self.tr("Añadir PDF"), "", "file-plus", frame)
         self.add_pdf_button.setToolTip(self.tr(
@@ -414,9 +422,15 @@ class DocumentTab(QWidget):
 
     def _update_sidebar_header(self) -> None:
         key = self.sidebar_switch.value()
-        titles = {"pages": self.tr("Páginas"), "outline": self.tr("Índice")}
+        titles = {"pages": self.tr("Páginas"), "outline": self.tr("Índice"), "attachments": self.tr("Adjuntos")}
         self.sidebar_title.setText(titles.get(key, "").upper())
-        self.sidebar_count.setText(str(self.document.page_count) if key == "pages" else "")
+        if key == "pages":
+            self.sidebar_count.setText(str(self.document.page_count))
+        elif key == "attachments":
+            count = self.attachments.count()
+            self.sidebar_count.setText(str(count) if count else "")
+        else:
+            self.sidebar_count.setText("")
 
     def _build_comments_panel(self) -> QFrame:
         """Panel de comentarios a la derecha de las páginas, independiente del panel lateral."""
@@ -443,6 +457,25 @@ class DocumentTab(QWidget):
         self.comments.countChanged.connect(self._comments_count_changed)
         layout.addWidget(self.comments, 1)
         return frame
+
+    def show_attachments(self) -> None:
+        """Abre el panel lateral en la pestaña de adjuntos."""
+        if self._organizing:
+            self.set_organize_mode(False)
+        if self.splitter.sizes()[0] < 20:
+            settings().sidebar_visible = True
+            self.sidebar_button.setChecked(True)
+            self._animate_sidebar(0, self._sidebar_width)
+        self.sidebar_switch.set_value("attachments")
+
+    def _announce_attachments(self) -> None:
+        """Los adjuntos pasan desapercibidos: se avisa al abrir un PDF que los lleve."""
+        count = self.attachments.count()
+        if not count:
+            return
+        text = (self.tr("Este PDF lleva un archivo adjunto") if count == 1
+                else self.tr("Este PDF lleva {0} archivos adjuntos").format(count))
+        Toast.show_message(self.window(), text, self.tr("Ver"), self.show_attachments, duration=6000)
 
     def _comments_count_changed(self, count: int) -> None:
         self.comments_count.setText(str(count) if count else "")
@@ -474,7 +507,7 @@ class DocumentTab(QWidget):
 
     def _sidebar_view_changed(self, key: str) -> None:
         pages = key == "pages"
-        widget = {"pages": self.thumbnails, "outline": self.outline}[key]
+        widget = {"pages": self.thumbnails, "outline": self.outline, "attachments": self.attachments}[key]
         self.sidebar_stack.setCurrentWidget(widget)
         self.add_pdf_button.setVisible(pages)
         self.sidebar_hint.setVisible(pages)

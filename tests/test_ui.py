@@ -848,3 +848,49 @@ def test_first_page_stays_below_annotation_bar_when_panels_change(qapp, opened):
         pump(qapp, 0.4)
         top = viewer._rects[0].top() - viewer.verticalScrollBar().value()
         assert top >= viewer._top_inset, f"la página empieza en {top}, bajo la barra ({viewer._top_inset})"
+
+
+def test_attachments_panel(qapp, window, tmp_path, monkeypatch):
+    from blackpdf.core import attachments as core_attachments
+    from blackpdf.ui import document_tab
+
+    doc = build_pdf(3)
+    doc.embfile_add("planos.step", b"ISO-10303-21;", filename="planos.step", desc="Pieza")
+    inner = build_pdf(1)
+    doc.embfile_add("anexo.pdf", inner.tobytes(), filename="anexo.pdf")
+    doc[1].add_file_annot((80, 80), b"cotas", "cotas.txt")
+    path = tmp_path / "planos.pdf"
+    doc.save(path)
+    toasts = []
+    monkeypatch.setattr(document_tab.Toast, "show_message",
+                        classmethod(lambda cls, parent, text, *args, **kwargs: toasts.append(text)))
+    window.open_files([str(path)])
+    pump(qapp, 0.8)
+    tab = window.current_tab()
+    assert "Este PDF lleva 3 archivos adjuntos" in toasts
+    tab.show_attachments()
+    pump(qapp, 0.5)
+    panel = tab.attachments
+    assert tab.sidebar_switch.value() == "attachments" and tab.sidebar_count.text() == "3"
+    assert [item.filename for item in panel.items] == ["planos.step", "anexo.pdf", "cotas.txt"], "orden del PDF"
+    opened = []
+    panel.openFiles.connect(opened.append)
+    panel.open_attachment(next(item for item in panel.items if item.filename == "anexo.pdf"))
+    assert opened and opened[0][0].endswith("anexo.pdf"), "un PDF adjunto se abre en BlackPDF"
+    pump(qapp, 0.4)
+    assert window.current_tab() is not tab, "en una pestaña nueva"
+    window.tab_bar.setCurrentIndex(window._tabs.index(tab))
+    pump(qapp, 0.3)
+
+    extra = tmp_path / "medidas.xlsx"
+    extra.write_bytes(b"hoja")
+    panel.add_files([str(extra)])
+    pump(qapp, 0.4)
+    assert "medidas.xlsx" in [item.filename for item in panel.items] and tab.document.is_modified
+    panel.remove_attachment(next(item for item in panel.items if item.filename == "planos.step"))
+    pump(qapp, 0.4)
+    assert "planos.step" not in [item.filename for item in panel.items]
+    tab.undo()
+    pump(qapp, 0.4)
+    assert core_attachments.count_attachments(tab.document.doc) == 4
+    tab.document._modified = False
