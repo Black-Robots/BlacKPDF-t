@@ -29,7 +29,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://blackrobots.org/blackpdf/"
+Homepage = "https://blackrobots.org/blackpdf"
 Source = "https://github.com/TheBlackRobotsFoundation/BlackPDF"
 Issues = "https://github.com/TheBlackRobotsFoundation/BlackPDF/issues"
 

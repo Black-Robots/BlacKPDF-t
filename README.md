@@ -6,7 +6,14 @@ A free and open PDF viewer and editor for the desktop. It does what online PDF s
 
 Available for **Windows 10/11** and **Linux**, in English, Spanish, Portuguese and French (it follows the system language; change it in Menu > Language).
 
-**[Download the latest version](https://github.com/TheBlackRobotsFoundation/BlackPDF/releases/latest)** · [Website](https://blackrobots.org/blackpdf/) · [Report a bug](https://github.com/TheBlackRobotsFoundation/BlackPDF/issues)
+**[Download the latest version](https://github.com/TheBlackRobotsFoundation/BlackPDF/releases/latest)** · [Website](https://blackrobots.org/blackpdf) · [Report a bug](https://github.com/TheBlackRobotsFoundation/BlackPDF/issues)
+
+![BlackPDF with a document and its comments](docs/screenshots/document.webp)
+
+<p align="center">
+  <img src="docs/screenshots/home.webp" width="49%" alt="Home screen with all the tools">
+  <img src="docs/screenshots/viewer3d.webp" width="49%" alt="3D viewer">
+</p>
 
 ## Features
 
