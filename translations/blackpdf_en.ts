@@ -1729,6 +1729,74 @@ Save anyway? With “Save as” the original keeps its signatures.</translation>
         </message>
     </context>
     <context>
+        <name>ExtractImagesDialog</name>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="195" />
+            <source>Extraer imágenes</source>
+            <translation>Extract images</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="198" />
+            <source>Guarda las fotos e ilustraciones del PDF con su calidad original, cada una una sola vez.</source>
+            <translation>Saves the PDF's photos and illustrations at their original quality, each one only once.</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="201" />
+            <source>Extraer</source>
+            <translation>Extract</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="208" />
+            <source>Páginas</source>
+            <translation>Pages</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="208" />
+            <source>Déjalo vacío para buscar en todas.</source>
+            <translation>Leave it empty to search all of them.</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="209" />
+            <source>Omitir imágenes pequeñas (iconos y viñetas de menos de 64 px)</source>
+            <translation>Skip small images (icons and bullets under 64 px)</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="225" />
+            <source>Elige la carpeta de destino.</source>
+            <translation>Choose the destination folder.</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="236" />
+            <source>Sin imágenes</source>
+            <translation>No images</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="236" />
+            <source>El PDF no tiene imágenes en esas páginas.</source>
+            <translation>The PDF has no images on those pages.</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="237" />
+            <source>Se ha guardado 1 imagen.</source>
+            <translation>1 image has been saved.</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="237" />
+            <source>Se han guardado {0} imágenes.</source>
+            <translation>{0} images have been saved.</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="238" />
+            <source>Carpeta: {0}</source>
+            <translation>Folder: {0}</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="239" />
+            <source>Imágenes extraídas</source>
+            <translation>Images extracted</translation>
+        </message>
+    </context>
+    <context>
         <name>FlattenDialog</name>
         <message>
             <location filename="../blackpdf/ui/dialogs/edit.py" line="557" />
@@ -1852,87 +1920,87 @@ Save anyway? With “Save as” the original keeps its signatures.</translation>
     <context>
         <name>ImagesToPdfDialog</name>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="194" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="247" />
             <source>Imagen a PDF</source>
             <translation>Image to PDF</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="197" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="250" />
             <source>Convierte fotos y escaneos (JPG, PNG, TIFF...) en un único PDF, una imagen por página.</source>
             <translation>Turns photos and scans (JPG, PNG, TIFF...) into a single PDF, one image per page.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="200" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="253" />
             <source>Crear PDF</source>
             <translation>Create PDF</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="205" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="258" />
             <source>Imágenes</source>
             <translation>Images</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="207" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="260" />
             <source>Tamaño de la imagen</source>
             <translation>Image size</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="207" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="260" />
             <source>Carta</source>
             <translation>Letter</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="212" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="265" />
             <source>Automática</source>
             <translation>Automatic</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="212" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="265" />
             <source>Vertical</source>
             <translation>Portrait</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="212" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="265" />
             <source>Horizontal</source>
             <translation>Landscape</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="214" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="267" />
             <source>Tamaño de página</source>
             <translation>Page size</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="215" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="268" />
             <source>Orientación</source>
             <translation>Orientation</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="216" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="269" />
             <source>Sin margen</source>
             <translation>No margin</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="216" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="269" />
             <source>Pequeño</source>
             <translation>Small</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="216" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="269" />
             <source>Grande</source>
             <translation>Large</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="218" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="271" />
             <source>Margen</source>
             <translation>Margin</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="221" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="274" />
             <source>Guardar como</source>
             <translation>Save as</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/convert.py" line="242" />
+            <location filename="../blackpdf/ui/dialogs/convert.py" line="295" />
             <source>Añade al menos una imagen.</source>
             <translation>Add at least one image.</translation>
         </message>
@@ -4700,131 +4768,141 @@ Save anyway? With “Save as” the original keeps its signatures.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/tools.py" line="46" />
+            <source>Extraer imágenes</source>
+            <translation>Extract images</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/tools.py" line="46" />
+            <source>Guarda las fotos del PDF con su calidad original.</source>
+            <translation>Saves the PDF's photos at their original quality.</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/tools.py" line="47" />
             <source>Imagen a PDF</source>
             <translation>Image to PDF</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="46" />
+            <location filename="../blackpdf/ui/tools.py" line="47" />
             <source>Convierte fotos y escaneos en un PDF.</source>
             <translation>Turns photos and scans into a PDF.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="47" />
+            <location filename="../blackpdf/ui/tools.py" line="48" />
             <source>Anotar y dibujar</source>
             <translation>Annotate and draw</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="47" />
+            <location filename="../blackpdf/ui/tools.py" line="48" />
             <source>Lápiz, resaltador, formas, texto y notas.</source>
             <translation>Pen, highlighter, shapes, text and notes.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="48" />
+            <location filename="../blackpdf/ui/tools.py" line="49" />
             <source>Firmar PDF</source>
             <translation>Sign PDF</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="48" />
+            <location filename="../blackpdf/ui/tools.py" line="49" />
             <source>Dibuja tu firma una vez y estámpala donde quieras.</source>
             <translation>Draw your signature once and stamp it wherever you want.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="49" />
+            <location filename="../blackpdf/ui/tools.py" line="50" />
             <source>Modelo 3D en PDF</source>
             <translation>3D model in PDF</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="49" />
+            <location filename="../blackpdf/ui/tools.py" line="50" />
             <source>Mete piezas STEP, STL, OBJ... para verlas en 3D en el PDF.</source>
             <translation>Puts STEP, STL, OBJ... parts in the PDF to view them in 3D.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="50" />
+            <location filename="../blackpdf/ui/tools.py" line="51" />
             <source>Rellenar formulario</source>
             <translation>Fill in form</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="50" />
+            <location filename="../blackpdf/ui/tools.py" line="51" />
             <source>Completa formularios PDF y, si quieres, aplánalos.</source>
             <translation>Fill in PDF forms and, if you want, flatten them.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="51" />
+            <location filename="../blackpdf/ui/tools.py" line="52" />
             <source>Marca de agua</source>
             <translation>Watermark</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="51" />
+            <location filename="../blackpdf/ui/tools.py" line="52" />
             <source>Estampa texto o una imagen con opacidad y giro.</source>
             <translation>Stamps text or an image with opacity and rotation.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="52" />
+            <location filename="../blackpdf/ui/tools.py" line="53" />
             <source>Números de página</source>
             <translation>Page numbers</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="52" />
+            <location filename="../blackpdf/ui/tools.py" line="53" />
             <source>Numera las páginas con el formato que elijas.</source>
             <translation>Numbers the pages with the format you choose.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="53" />
+            <location filename="../blackpdf/ui/tools.py" line="54" />
             <source>Recortar márgenes</source>
             <translation>Crop margins</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="53" />
+            <location filename="../blackpdf/ui/tools.py" line="54" />
             <source>Elimina márgenes blancos de forma automática o manual.</source>
             <translation>Removes blank margins automatically or manually.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="54" />
+            <location filename="../blackpdf/ui/tools.py" line="55" />
             <source>Cambiar tamaño</source>
             <translation>Change size</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="54" />
+            <location filename="../blackpdf/ui/tools.py" line="55" />
             <source>Ajusta las páginas a A4, Carta y otros tamaños.</source>
             <translation>Fits pages to A4, Letter and other sizes.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="55" />
+            <location filename="../blackpdf/ui/tools.py" line="56" />
             <source>Aplanar PDF</source>
             <translation>Flatten PDF</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="55" />
+            <location filename="../blackpdf/ui/tools.py" line="56" />
             <source>Fija anotaciones y formularios en el contenido.</source>
             <translation>Fixes annotations and forms into the content.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="56" />
+            <location filename="../blackpdf/ui/tools.py" line="57" />
             <source>Firma digital</source>
             <translation>Digital signature</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="56" />
+            <location filename="../blackpdf/ui/tools.py" line="57" />
             <source>Firma con tu certificado (FNMT, DNIe, empresa) con validez legal.</source>
             <translation>Sign with your digital certificate (eID, qualified or company) with legal validity.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="57" />
+            <location filename="../blackpdf/ui/tools.py" line="58" />
             <source>Proteger PDF</source>
             <translation>Protect PDF</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="57" />
+            <location filename="../blackpdf/ui/tools.py" line="58" />
             <source>Cifra con contraseña AES de 256 bits.</source>
             <translation>Encrypts with a 256-bit AES password.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="58" />
+            <location filename="../blackpdf/ui/tools.py" line="59" />
             <source>Desbloquear PDF</source>
             <translation>Unlock PDF</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="58" />
+            <location filename="../blackpdf/ui/tools.py" line="59" />
             <source>Quita la contraseña y las restricciones.</source>
             <translation>Removes the password and restrictions.</translation>
         </message>

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QPainter, QPen
-from PySide6.QtWidgets import QComboBox, QFrame, QHBoxLayout, QSlider, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QCheckBox, QComboBox, QFrame, QHBoxLayout, QSlider, QVBoxLayout, QWidget
 
 from ...core.files import unique_path
 from ...core.images import IMAGE_EXTENSIONS
@@ -184,6 +184,59 @@ class PdfToImagesDialog(_SingleSourceDialog):
         if result:
             detail += " " + self.tr("Carpeta: {0}").format(Path(result[0]).parent)
         return self.tr("Conversión terminada"), detail, [Path(p) for p in result]
+
+
+class ExtractImagesDialog(_SingleSourceDialog):
+    icon_name = "image-down"
+    output_mode = "folder"
+    output_suffix = "imagenes"
+
+    def title(self):
+        return self.tr("Extraer imágenes")
+
+    def description(self):
+        return self.tr("Guarda las fotos e ilustraciones del PDF con su calidad original, cada una una sola vez.")
+
+    def action_text(self):
+        return self.tr("Extraer")
+
+    def build(self):
+        self.add_source()
+        self.ranges = PageRangeEdit(allow_empty=True)
+        self.ranges.setText(self.preset.get("pages", ""))
+        self.ranges.textChanged.connect(lambda _: self.refresh())
+        self.add_field(self.tr("Páginas"), self.ranges, self.tr("Déjalo vacío para buscar en todas."))
+        self.skip_small = QCheckBox(self.tr("Omitir imágenes pequeñas (iconos y viñetas de menos de 64 px)"))
+        self.skip_small.setChecked(True)
+        self.form.addWidget(self.skip_small)
+        self.add_output("folder")
+        self.finish_build()
+
+    def on_source_changed(self):
+        self.ranges.set_page_count(self.source.page_count)
+
+    def is_ready(self):
+        return self.source.is_ready() and self.ranges.is_valid()
+
+    def job(self):
+        source = self.require_source()
+        folder = self.output.path()
+        if not folder:
+            raise ValidationError(self.tr("Elige la carpeta de destino."))
+        return "blackpdf.core.images:extract_images", (source, folder), {
+            "pages": self.ranges.text(),
+            "min_size": 64 if self.skip_small.isChecked() else 0,
+            "base_name": self.source.stem(),
+            **self.common_kwargs(),
+        }
+
+    def describe_result(self, result):
+        count = len(result)
+        if not count:
+            return self.tr("Sin imágenes"), self.tr("El PDF no tiene imágenes en esas páginas."), []
+        detail = self.tr("Se ha guardado 1 imagen.") if count == 1 else self.tr("Se han guardado {0} imágenes.").format(count)
+        detail += " " + self.tr("Carpeta: {0}").format(Path(result[0]).parent)
+        return self.tr("Imágenes extraídas"), detail, [Path(p) for p in result]
 
 
 class ImagesToPdfDialog(ToolDialog):

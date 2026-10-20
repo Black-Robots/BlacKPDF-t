@@ -157,3 +157,64 @@ def _new_page_for(
     else:
         width, height = min(width, height), max(width, height)
     return doc.new_page(width=width, height=height)
+
+
+_KEEP_AS_IS = {"jpeg": "jpg", "jpg": "jpg", "png": "png", "jpx": "jp2", "tiff": "tif", "bmp": "bmp", "gif": "gif"}
+
+
+def extract_images(
+    source: PdfSource,
+    out_dir: str | os.PathLike,
+    *,
+    pages: str = "",
+    min_size: int = 0,
+    base_name: str | None = None,
+    password: str | None = None,
+    progress: ProgressCallback | None = None,
+) -> list[Path]:
+    """Guarda las imágenes del PDF con su calidad original, cada una una sola vez.
+
+    Las que tienen transparencia se guardan en PNG con ella; los formatos que pocos
+    programas abren (JBIG2, fax) también se pasan a PNG. Con ``min_size`` se omiten
+    las imágenes más pequeñas (iconos, viñetas, logotipos diminutos).
+    """
+    doc = open_pdf(source, password)
+    try:
+        indices = parse_page_selection(pages, doc.page_count, allow_empty_all=True)
+        folder = Path(out_dir)
+        folder.mkdir(parents=True, exist_ok=True)
+        base = safe_filename(base_name or source_stem(source))
+        digits = max(3, len(str(doc.page_count)))
+        seen: set[int] = set()
+        outputs: list[Path] = []
+        for position, index in enumerate(indices):
+            report(progress, position, len(indices))
+            for number, info in enumerate(doc[index].get_images(full=True), 1):
+                xref, smask, width, height = info[0], info[1], info[2], info[3]
+                if xref in seen or min(width, height) < min_size:
+                    continue
+                seen.add(xref)
+                extracted = doc.extract_image(xref)
+                if not extracted:
+                    continue
+                ext = _KEEP_AS_IS.get(extracted.get("ext", "").lower())
+                stem = f"{base}_p{index + 1:0{digits}d}_{len(outputs) + 1:03d}"
+                if ext and not smask:
+                    target = unique_path(folder / f"{stem}.{ext}")
+                    target.write_bytes(extracted["image"])
+                else:
+                    pix = pymupdf.Pixmap(doc, xref)
+                    if smask:
+                        try:
+                            pix = pymupdf.Pixmap(pix, pymupdf.Pixmap(doc, smask))
+                        except (RuntimeError, ValueError):
+                            pass
+                    if pix.colorspace is not None and pix.colorspace.n > 3:
+                        pix = pymupdf.Pixmap(pymupdf.csRGB, pix)
+                    target = unique_path(folder / f"{stem}.png")
+                    pix.save(str(target), output="png")
+                outputs.append(target)
+        report(progress, len(indices), len(indices))
+        return outputs
+    finally:
+        doc.close()

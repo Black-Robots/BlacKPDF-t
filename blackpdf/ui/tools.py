@@ -43,6 +43,7 @@ def tool_specs() -> list[ToolSpec]:
         ToolSpec("compress", _tr("Comprimir PDF"), _tr("Reduce el tamaño manteniendo la mejor calidad posible."), "shrink", "optimize"),
         ToolSpec("ocr", _tr("Reconocer texto (OCR)"), _tr("Hace buscable y copiable el texto de documentos escaneados."), "scan-text", "optimize"),
         ToolSpec("to_images", _tr("PDF a imagen"), _tr("Convierte cada página en PNG o JPG."), "image", "convert"),
+        ToolSpec("extract_images", _tr("Extraer imágenes"), _tr("Guarda las fotos del PDF con su calidad original."), "image-down", "convert"),
         ToolSpec("from_images", _tr("Imagen a PDF"), _tr("Convierte fotos y escaneos en un PDF."), "images", "convert"),
         ToolSpec("annotate", _tr("Anotar y dibujar"), _tr("Lápiz, resaltador, formas, texto y notas."), "pen-line", "edit", True),
         ToolSpec("sign", _tr("Firmar PDF"), _tr("Dibuja tu firma una vez y estámpala donde quieras."), "signature", "edit", True),
@@ -74,6 +75,7 @@ def dialog_class(tool_id: str):
         "rotate": organize.RotateDialog,
         "compress": convert.CompressDialog,
         "to_images": convert.PdfToImagesDialog,
+        "extract_images": convert.ExtractImagesDialog,
         "from_images": convert.ImagesToPdfDialog,
         "watermark": edit.WatermarkDialog,
         "page_numbers": edit.PageNumbersDialog,
@@ -90,7 +92,7 @@ def dialog_class(tool_id: str):
 def document_menu_entries() -> list[tuple[str, str, str]]:
     """Herramientas aplicables al documento abierto, para su menú."""
     order = ["compress", "ocr", "-", "insert3d", "watermark", "page_numbers", "crop", "resize", "flatten", "forms", "-",
-             "split", "extract", "rotate", "merge", "alternate", "-", "to_images", "-", "sign_certificate", "protect", "unlock"]
+             "split", "extract", "rotate", "merge", "alternate", "-", "to_images", "extract_images", "-", "sign_certificate", "protect", "unlock"]
     specs = {t.id: t for t in tool_specs()}
     entries = []
     for tool_id in order:

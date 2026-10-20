@@ -1014,3 +1014,24 @@ def test_properties_dialog_edits_metadata(qapp, opened, monkeypatch):
     tab.undo()
     assert metadata.read_metadata(tab.document.doc)["author"] == values["author"]
     tab.document._modified = False
+
+
+def test_extract_images_tool(qapp, window, tmp_path):
+    from blackpdf.ui import tools
+
+    doc = pymupdf.open()
+    page = doc.new_page()
+    pix = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 120, 80), False)
+    pix.set_rect(pix.irect, (20, 120, 220))
+    page.insert_image(pymupdf.Rect(50, 50, 290, 210), stream=pix.tobytes("jpeg"))
+    path = tmp_path / "foto.pdf"
+    doc.save(path)
+    window.open_files([str(path)])
+    pump(qapp, 0.6)
+    tab = window.current_tab()
+    dialog = tools.dialog_class("extract_images")(window, window._context_for(tab), {})
+    dialog.output.picker.set_path(str(tmp_path / "salida"))
+    dialog.run()
+    assert wait_until(qapp, lambda: dialog.pages.currentWidget() is dialog.result_panel, 60)
+    assert [p.suffix for p in (tmp_path / "salida").iterdir()] == [".jpg"]
+    dialog.close()
