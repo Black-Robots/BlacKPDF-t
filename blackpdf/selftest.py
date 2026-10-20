@@ -159,6 +159,7 @@ def _gui_check() -> bool:
 def run(target: str | None = None) -> int:
     lines: list[str] = []
     ok = True
+    skip_qt = bool(os.environ.get("BLACKPDF_SELFTEST_SKIP_GUI"))
 
     def check(name: str, condition: bool, detail: str = "") -> None:
         nonlocal ok
@@ -188,25 +189,34 @@ def run(target: str | None = None) -> int:
             doc.save(source)
             pix = doc[0].get_pixmap(dpi=72)
             check("render", pix.width > 0)
-            output = Path(folder) / "salida.pdf"
-            result = run_blocking("blackpdf.core.compress:compress_pdf", str(source), str(output), "medium")
-            check("subproceso de trabajo", output.exists() and result.compressed_size > 0)
-            check("firma digital", _signature_check(Path(folder), source))
-            check("traducciones", _translations_check())
-            check("modelos 3D", _model3d_check(resources))
-            prc_ok = _prc_check(resources)
-            if prc_ok is None:
-                lines.append("SKIP modelos PRC nativos (biblioteca sin compilar)")
-            else:
-                check("modelos PRC nativos", prc_ok)
-            cad_ok = _cad_check(resources)
-            if cad_ok is None:
-                lines.append("SKIP CAD STEP (gmsh no instalado)")
-            else:
-                check("CAD STEP y piezas 3D en PDF", cad_ok)
+
+            def attempt(name: str, function, skip_reason: str = "") -> None:
+                """Cada comprobación por separado: un fallo no oculta el resultado de las demás."""
+                try:
+                    result = function()
+                except Exception as exc:
+                    check(name, False, repr(exc))
+                    return
+                if result is None:
+                    lines.append(f"SKIP {name} ({skip_reason})")
+                else:
+                    check(name, bool(result))
+
+            def compress() -> bool:
+                output = Path(folder) / "salida.pdf"
+                result = run_blocking("blackpdf.core.compress:compress_pdf", str(source), str(output), "medium")
+                return output.exists() and result.compressed_size > 0
+
+            attempt("subproceso de trabajo", compress)
+            attempt("firma digital", lambda: _signature_check(Path(folder), source))
+            # Sin Qt (Wine no trae la ICU de Windows) no se pueden cargar las traducciones.
+            attempt("traducciones", lambda: None if skip_qt else _translations_check(), "sin Qt")
+            attempt("modelos 3D", lambda: _model3d_check(resources))
+            attempt("modelos PRC nativos", lambda: _prc_check(resources), "biblioteca sin compilar")
+            attempt("CAD STEP y piezas 3D en PDF", lambda: _cad_check(resources), "gmsh no instalado")
     except Exception as exc:  # cualquier fallo debe quedar en el informe
         check("ejecución", False, repr(exc))
-    if os.environ.get("BLACKPDF_SELFTEST_SKIP_GUI"):
+    if skip_qt:
         lines.append("SKIP interfaz")
     else:
         try:
