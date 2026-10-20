@@ -119,6 +119,17 @@ def load_certificate(certificate: str | os.PathLike | bytes, password: str) -> C
 # ======================================================================
 # Firmar
 # ======================================================================
+@dataclass(frozen=True)
+class StampText:
+    """Textos del sello visible, en el idioma de quien firma (la interfaz los traduce)."""
+
+    signed_by: str = "Firmado digitalmente por"
+    date: str = "Fecha: {0}"
+    reason: str = "Motivo: {0}"
+    location: str = "Lugar: {0}"
+    date_format: str = "%d/%m/%Y %H:%M"
+
+
 @dataclass
 class SignOptions:
     visible: bool = True
@@ -135,6 +146,8 @@ class SignOptions:
     timestamp_url: str = ""
     """Servidor de sellado de tiempo (TSA). Vacío = sin sello de tiempo."""
     field_name: str = ""
+    text: StampText = field(default_factory=StampText)
+    """Textos del sello visible."""
 
 
 def stamp_rect(page: pymupdf.Page, position: str, size: tuple[float, float] = STAMP_SIZE) -> pymupdf.Rect:
@@ -172,8 +185,10 @@ def build_appearance(
     reason: str = "",
     location: str = "",
     handwritten: list | None = None,
+    text: StampText | None = None,
 ) -> bytes:
     """PDF de una página con el aspecto del sello: firma manuscrita y datos."""
+    text = text or StampText()
     doc = pymupdf.open()
     page = doc.new_page(width=width, height=height)
     regular = str(FONTS_DIR / "Inter-Regular.ttf")
@@ -199,22 +214,22 @@ def build_appearance(
         shape.finish(color=(0.07, 0.11, 0.33), width=1.4, closePath=False, lineCap=1, lineJoin=1)
         shape.commit()
         text_x = width * 0.46
-    lines = [("Firmado digitalmente por", regular, 6.5, (0.42, 0.42, 0.46))]
+    lines = [(text.signed_by, regular, 6.5, (0.42, 0.42, 0.46))]
     lines.append((signer, bold, 8.5, (0.08, 0.08, 0.1)))
-    lines.append((f"Fecha: {when.astimezone():%d/%m/%Y %H:%M}", regular, 6.5, (0.25, 0.25, 0.28)))
+    lines.append((text.date.format(when.astimezone().strftime(text.date_format)), regular, 6.5, (0.25, 0.25, 0.28)))
     if reason:
-        lines.append((f"Motivo: {reason}", regular, 6.5, (0.25, 0.25, 0.28)))
+        lines.append((text.reason.format(reason), regular, 6.5, (0.25, 0.25, 0.28)))
     if location:
-        lines.append((f"Lugar: {location}", regular, 6.5, (0.25, 0.25, 0.28)))
+        lines.append((text.location.format(location), regular, 6.5, (0.25, 0.25, 0.28)))
     total = sum(size * 1.3 for _, _, size, _ in lines)
     y = max(4.0, (height - total) / 2)
     available = width - text_x - 4
-    for text, font_file, size, color in lines:
+    for line, font_file, size, color in lines:
         font = pymupdf.Font(fontfile=font_file)
-        while size > 4.5 and font.text_length(text, fontsize=size) > available:
+        while size > 4.5 and font.text_length(line, fontsize=size) > available:
             size -= 0.5
         y += size * 1.05
-        page.insert_text((text_x, y), text, fontsize=size, fontfile=font_file,
+        page.insert_text((text_x, y), line, fontsize=size, fontfile=font_file,
                          fontname="InterB" if font_file == bold else "InterR", color=color)
         y += size * 0.25
     page.draw_line((text_x - 4, 6), (text_x - 4, height - 6), color=(0.898, 0.282, 0.302), width=1.2)
@@ -295,7 +310,7 @@ def sign_pdf(
         box = _pdf_box(page, visual)
         appearance = build_appearance(
             visual.width, visual.height, info.name, dt.datetime.now(dt.timezone.utc),
-            options.reason, options.location, options.handwritten,
+            options.reason, options.location, options.handwritten, options.text,
         )
         handle, appearance_file = tempfile.mkstemp(suffix=".pdf", prefix="blackpdf-firma-")
         os.close(handle)
@@ -375,6 +390,9 @@ class SignatureStatus:
     timestamped: bool
     page: int
     rect: tuple[float, float, float, float] | None
+    subject: tuple[tuple[str, str], ...] = ()
+    """Datos del titular en el orden de SUBJECT_FIELDS: ((campo, valor), ...)."""
+    signed_at: dt.datetime | None = None
 
     @property
     def level(self) -> str:
@@ -405,6 +423,11 @@ def trust_roots() -> list:
     return roots
 
 
+SUBJECT_FIELDS = (
+    "common_name", "given_name", "surname", "serial_number", "organization_name", "organizational_unit_name",
+    "organization_identifier", "title", "email_address", "locality_name", "state_or_province_name", "country_name",
+)
+
 _SUBJECT_LABELS = (
     ("common_name", "Nombre"),
     ("given_name", "Nombre de pila"),
@@ -421,15 +444,24 @@ _SUBJECT_LABELS = (
 )
 
 
-def describe_subject(native: dict) -> str:
-    """Datos del titular en español: «Nombre: ... · Número de serie: ... · País: ES»."""
-    parts = []
-    for key, name in _SUBJECT_LABELS:
+def subject_fields(native: dict) -> tuple[tuple[str, str], ...]:
+    """Campos del titular presentes, en un orden fijo: ((campo, valor), ...)."""
+    result = []
+    for key in SUBJECT_FIELDS:
         value = native.get(key)
         if value:
-            value = ", ".join(value) if isinstance(value, list) else str(value)
-            parts.append(f"{name}: {value}")
-    return "  ·  ".join(parts)
+            result.append((key, ", ".join(value) if isinstance(value, list) else str(value)))
+    return tuple(result)
+
+
+def describe_subject(native: dict, labels: dict[str, str] | None = None) -> str:
+    """Datos del titular: «Nombre: ... · Número de serie: ... · País: ES».
+
+    ``labels`` traduce los nombres de los campos (por defecto, en español)."""
+    names = dict(_SUBJECT_LABELS)
+    if labels:
+        names.update(labels)
+    return "  ·  ".join(f"{names.get(key, key)}: {value}" for key, value in subject_fields(native))
 
 
 def _format_time(value) -> str:
@@ -515,6 +547,8 @@ def list_signatures(source: PdfSource, *, progress: ProgressCallback | None = No
             timestamped=getattr(status, "timestamp_validity", None) is not None,
             page=locations.get(name, (-1, None))[0],
             rect=locations.get(name, (-1, None))[1],
+            subject=subject_fields(subject) if cert is not None else (),
+            signed_at=status.signer_reported_dt,
         ))
     report(progress, len(embedded), len(embedded))
     return results

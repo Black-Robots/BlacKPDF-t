@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QCoreApplication, Qt
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -18,9 +18,12 @@ from PySide6.QtWidgets import (
 )
 
 from ...core.document import DocumentInfo
-from ...core.files import human_size
-from .. import icons
+from .. import formatting, icons
 from ..widgets import Button, IconButton, label
+
+
+def _tr(text: str) -> str:
+    return QCoreApplication.translate("Dialogs", text)
 
 
 class PasswordDialog(QDialog):
@@ -85,15 +88,15 @@ def ask_password(parent: QWidget | None, path: str, retry: bool = False) -> str 
 def confirm_discard(parent: QWidget | None, name: str) -> QMessageBox.StandardButton:
     box = QMessageBox(parent)
     box.setIcon(QMessageBox.Icon.Question)
-    box.setWindowTitle(box.tr("Cambios sin guardar"))
-    box.setText("<b>" + box.tr("¿Guardar los cambios en «{0}»?").format(name) + "</b>")
-    box.setInformativeText(box.tr("Si no los guardas, se perderán."))
+    box.setWindowTitle(_tr("Cambios sin guardar"))
+    box.setText("<b>" + _tr("¿Guardar los cambios en «{0}»?").format(name) + "</b>")
+    box.setInformativeText(_tr("Si no los guardas, se perderán."))
     box.setStandardButtons(
         QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel
     )
-    box.button(QMessageBox.StandardButton.Save).setText(box.tr("Guardar"))
-    box.button(QMessageBox.StandardButton.Discard).setText(box.tr("No guardar"))
-    box.button(QMessageBox.StandardButton.Cancel).setText(box.tr("Cancelar"))
+    box.button(QMessageBox.StandardButton.Save).setText(_tr("Guardar"))
+    box.button(QMessageBox.StandardButton.Discard).setText(_tr("No guardar"))
+    box.button(QMessageBox.StandardButton.Cancel).setText(_tr("Cancelar"))
     box.setDefaultButton(QMessageBox.StandardButton.Save)
     return QMessageBox.StandardButton(box.exec())
 
@@ -128,7 +131,7 @@ class PropertiesDialog(QDialog):
         size_text = f"{width_mm:.0f} x {height_mm:.0f} mm" + (f" ({paper})" if paper else "")
         file_size = ""
         if path and Path(path).exists():
-            file_size = human_size(Path(path).stat().st_size)
+            file_size = formatting.size(Path(path).stat().st_size)
         rows = [
             (self.tr("Ubicación"), str(Path(path).parent) if path else "-"),
             (self.tr("Tamaño"), file_size or "-"),

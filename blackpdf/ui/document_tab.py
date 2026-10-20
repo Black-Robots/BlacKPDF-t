@@ -27,13 +27,14 @@ from ..core import pages as core_pages
 from ..core.errors import BlackPdfError
 from ..core.document import needs_password, document_info
 from ..core.ranges import format_page_ranges
-from . import icons, tasks, theme
+from . import formatting, icons, tasks, theme
 from .annotation_bar import TOOL_SHORTCUTS, AnnotationBar
 from .dialogs.common import PropertiesDialog, ask_password, confirm_discard
 from .dialogs.signature import SignatureDialog
 from .document import PdfDocument
 from .errors import show_error
 from .interaction import STYLED_TOOLS, RedactTool, SignatureTool, create_tool
+from .keys import shortcut_text
 from .comments import CommentsPanel
 from .outline import OutlinePanel
 from .printing import print_document
@@ -48,13 +49,6 @@ from .widgets import SHADOW_TOP, AutoStack, Button, IconButton, SectionLabel, Se
 ZOOM_PRESETS = (50, 75, 100, 125, 150, 200, 300, 400)
 
 
-def shortcut_text(sequence: QKeySequence | str) -> str:
-    """Atajo en su forma corta habitual en español: Ctrl+Mayús+S, Supr, AvPág."""
-    text = QKeySequence(sequence).toString(QKeySequence.SequenceFormat.PortableText)
-    for english, spanish in (("Shift", "Mayús"), ("Del", "Supr"), ("PgDown", "AvPág"), ("PgUp", "RePág"),
-                             ("Return", "Intro"), ("Backspace", "Retroceso")):
-        text = text.replace(english, spanish)
-    return text
 
 
 class ViewerArea(QWidget):
@@ -268,7 +262,7 @@ class DocumentTab(QWidget):
         self.zoom_box.setObjectName("ZoomBox")
         self.zoom_box.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         for value in ZOOM_PRESETS:
-            self.zoom_box.addItem(f"{value} %", value / 100)
+            self.zoom_box.addItem(formatting.percent(value), value / 100)
         self.zoom_box.activated.connect(lambda i: self.viewer.set_zoom(self.zoom_box.itemData(i)))
         self.zoom_box.lineEdit().returnPressed.connect(self._zoom_from_text)
         self.zoom_box.lineEdit().setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -673,7 +667,7 @@ class DocumentTab(QWidget):
         levels = [s.level for s in self._signatures]
         level = "invalid" if "invalid" in levels else ("warning" if "warning" in levels else "valid")
         if len(self._signatures) == 1:
-            icon_name, text = status_text(self._signatures[0], self.tr)
+            icon_name, text = status_text(self._signatures[0])
         else:
             count = len(self._signatures)
             icon_name = {"valid": "shield-check", "warning": "shield-alert", "invalid": "shield-x"}[level]
@@ -733,7 +727,7 @@ class DocumentTab(QWidget):
         self._update_sidebar_header()
 
     def _on_zoom(self, zoom: float) -> None:
-        self.zoom_box.lineEdit().setText(f"{round(zoom * 100)} %")
+        self.zoom_box.lineEdit().setText(formatting.percent(zoom * 100))
 
     def _on_fit_mode(self, mode: str) -> None:
         self.fit_width_button.setChecked(mode == "width")

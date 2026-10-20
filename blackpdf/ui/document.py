@@ -96,7 +96,7 @@ class PdfDocument(QObject):
     def suggested_path(self) -> str:
         if self._path:
             return self._path
-        return self._untitled_name or "documento.pdf"
+        return self._untitled_name or self.tr("documento.pdf")
 
     @property
     def page_count(self) -> int:

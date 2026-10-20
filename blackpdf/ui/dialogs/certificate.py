@@ -6,7 +6,7 @@ import datetime as dt
 from pathlib import Path
 
 import pymupdf
-from PySide6.QtCore import QRectF, Qt, QTimer, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication, QRectF, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -26,11 +26,12 @@ from ...core.signatures import (
     CertificatePasswordError,
     SignatureStatus,
     SignOptions,
+    StampText,
     build_appearance,
     load_certificate,
     stamp_rect,
 )
-from .. import icons
+from .. import formatting, icons
 from ..settings import settings
 from ..widgets import Button, PathPicker, SectionLabel, SegmentedControl, label
 from .base import ValidationError
@@ -39,17 +40,19 @@ from .security import PasswordField
 from .signature import SignatureDialog
 
 
-def certificate_filter() -> str:
-    from PySide6.QtCore import QCoreApplication
+def _tr(text: str) -> str:
+    return QCoreApplication.translate("Signatures", text)
 
-    return QCoreApplication.translate("Certificate", "Certificados digitales (*.p12 *.pfx)")
+
+def certificate_filter() -> str:
+    return _tr("Certificados digitales (*.p12 *.pfx)")
 
 
 REASONS = (
-    "Soy el autor de este documento",
-    "He revisado este documento",
-    "Apruebo este documento",
-    "Conforme con el contenido",
+    QT_TRANSLATE_NOOP("Signatures", "Soy el autor de este documento"),
+    QT_TRANSLATE_NOOP("Signatures", "He revisado este documento"),
+    QT_TRANSLATE_NOOP("Signatures", "Apruebo este documento"),
+    QT_TRANSLATE_NOOP("Signatures", "Conforme con el contenido"),
 )
 
 
@@ -135,8 +138,8 @@ class CertificateSignDialog(_PreviewDialog):
         self.reason = QComboBox()
         self.reason.setEditable(True)
         for reason in REASONS:
-            self.reason.addItem(self.tr(reason))
-        self.reason.setCurrentText(str(settings().value("signing/reason", "") or self.tr(REASONS[0])))
+            self.reason.addItem(_tr(reason))
+        self.reason.setCurrentText(str(settings().value("signing/reason", "") or _tr(REASONS[0])))
         self.location = QLineEdit(str(settings().value("signing/location", "") or ""))
         self.location.setPlaceholderText(self.tr("Ciudad (opcional)"))
         self.add_row(self.field_block(self.tr("Motivo"), self.reason), self.field_block(self.tr("Lugar"), self.location))
@@ -186,7 +189,7 @@ class CertificateSignDialog(_PreviewDialog):
             self.refresh()
             return
         self._info = info
-        valid_to = info.valid_to.astimezone().strftime("%d/%m/%Y")
+        valid_to = formatting.date(info.valid_to.astimezone())
         details = f"<b>{info.name}</b><br>" + self.tr("Emitido por {0}").format(info.issuer)
         if info.expired:
             details += "<br>" + self.tr("Caducó el {0}: no se puede usar para firmar.").format(valid_to)
@@ -242,6 +245,7 @@ class CertificateSignDialog(_PreviewDialog):
             stamp = pymupdf.open("pdf", build_appearance(
                 rect.width, rect.height, signer, dt.datetime.now(dt.timezone.utc),
                 self.reason.currentText().strip(), self.location.text().strip(), self._handwritten(),
+                stamp_text(),
             ))
             page.show_pdf_page(rect * page.derotation_matrix, stamp, 0, rotate=page.rotation)
             page.draw_rect(rect * page.derotation_matrix, color=(0.898, 0.282, 0.302), width=0.8, dashes="[3 2] 0")
@@ -273,6 +277,7 @@ class CertificateSignDialog(_PreviewDialog):
             location=location,
             handwritten=self._handwritten(),
             timestamp_url=tsa,
+            text=stamp_text(),
         )
         return "blackpdf.core.signatures:sign_pdf", (
             source, output, self.certificate.path(), self.cert_password.text(), options
@@ -284,21 +289,58 @@ class CertificateSignDialog(_PreviewDialog):
         ).format(Path(result).name), [Path(result)]
 
 
+def stamp_text() -> StampText:
+    """Textos del sello visible en el idioma de la interfaz."""
+    from ..i18n import current
+
+    return StampText(
+        signed_by=_tr("Firmado digitalmente por"),
+        date=_tr("Fecha: {0}"),
+        reason=_tr("Motivo: {0}"),
+        location=_tr("Lugar: {0}"),
+        # Fecha sin ambigüedad en inglés (el orden día/mes cambia según el país).
+        date_format="%Y-%m-%d %H:%M" if current() == "en" else "%d/%m/%Y %H:%M",
+    )
+
+
+SUBJECT_LABELS = {
+    "common_name": QT_TRANSLATE_NOOP("Signatures", "Nombre"),
+    "given_name": QT_TRANSLATE_NOOP("Signatures", "Nombre de pila"),
+    "surname": QT_TRANSLATE_NOOP("Signatures", "Apellidos"),
+    "serial_number": QT_TRANSLATE_NOOP("Signatures", "Número de serie"),
+    "organization_name": QT_TRANSLATE_NOOP("Signatures", "Organización"),
+    "organizational_unit_name": QT_TRANSLATE_NOOP("Signatures", "Unidad"),
+    "organization_identifier": QT_TRANSLATE_NOOP("Signatures", "Identificador de la organización"),
+    "title": QT_TRANSLATE_NOOP("Signatures", "Cargo"),
+    "email_address": QT_TRANSLATE_NOOP("Signatures", "Correo"),
+    "locality_name": QT_TRANSLATE_NOOP("Signatures", "Localidad"),
+    "state_or_province_name": QT_TRANSLATE_NOOP("Signatures", "Provincia"),
+    "country_name": QT_TRANSLATE_NOOP("Signatures", "País"),
+}
+
+
+def subject_text(status: SignatureStatus) -> str:
+    """Datos del titular con los nombres de campo traducidos."""
+    if not status.subject:
+        return status.signer_details
+    return "  ·  ".join(f"{_tr(SUBJECT_LABELS.get(key, key))}: {value}" for key, value in status.subject)
+
+
 # ======================================================================
 # Detalle de firmas
 # ======================================================================
-def status_text(status: SignatureStatus, tr) -> tuple[str, str]:
+def status_text(status: SignatureStatus) -> tuple[str, str]:
     """(icono, frase) que resume una firma."""
-    who = status.signer or tr("firmante desconocido")
+    who = status.signer or _tr("firmante desconocido")
     if status.level == "invalid":
-        return "shield-x", tr("La firma de {0} no es válida: el documento se ha modificado después de firmarse.").format(who)
+        return "shield-x", _tr("La firma de {0} no es válida: el documento se ha modificado después de firmarse.").format(who)
     if not (status.covers_whole_file or status.changes_allowed):
-        return "shield-alert", tr("Firmado por {0}, pero se hicieron cambios después de la firma.").format(who)
+        return "shield-alert", _tr("Firmado por {0}, pero se hicieron cambios después de la firma.").format(who)
     if not status.trusted:
-        return "shield-alert", tr(
+        return "shield-alert", _tr(
             "Firmado por {0}. El documento no se ha modificado, pero el certificado no procede de una "
             "entidad de confianza reconocida.").format(who)
-    return "shield-check", tr("Firmado por {0}. La firma es válida y el documento no se ha modificado.").format(who)
+    return "shield-check", _tr("Firmado por {0}. La firma es válida y el documento no se ha modificado.").format(who)
 
 
 ROLE_FOR_LEVEL = {"valid": icons.ROLE_SUCCESS, "warning": icons.ROLE_WARNING, "invalid": icons.ROLE_DANGER}
@@ -344,16 +386,17 @@ class SignaturesDialog(QDialog):
         layout.setContentsMargins(16, 14, 16, 14)
         layout.setSpacing(8)
         header = QHBoxLayout()
-        icon_name, summary = status_text(status, self.tr)
+        icon_name, summary = status_text(status)
         glyph = QLabel()
         glyph.setPixmap(icons.pixmap(icon_name, 26, ROLE_FOR_LEVEL[status.level], self.devicePixelRatioF()))
         header.addWidget(glyph, 0, Qt.AlignmentFlag.AlignTop)
         header.addWidget(label(summary, "body", wrap=True), 1)
         layout.addLayout(header)
         details = [
-            (self.tr("Firmante"), status.signer_details or status.signer or "-"),
+            (self.tr("Firmante"), subject_text(status) or status.signer or "-"),
             (self.tr("Emisor del certificado"), status.issuer or "-"),
-            (self.tr("Fecha de la firma"), status.signing_time or "-"),
+            (self.tr("Fecha de la firma"),
+             formatting.date_time(status.signed_at) if status.signed_at else status.signing_time or "-"),
         ]
         if status.reason:
             details.append((self.tr("Motivo"), status.reason))

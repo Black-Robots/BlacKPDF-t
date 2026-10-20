@@ -28,12 +28,6 @@ _SYSTEM_CANDIDATES = (
     "/opt/homebrew/share/tessdata",
 )
 
-LANGUAGE_NAMES = {
-    "spa": "Español", "eng": "Inglés", "fra": "Francés", "deu": "Alemán", "ita": "Italiano",
-    "por": "Portugués", "cat": "Catalán", "glg": "Gallego", "eus": "Euskera", "nld": "Neerlandés",
-}
-
-
 def tessdata_folders() -> list[Path]:
     folders = []
     env = os.environ.get("TESSDATA_PREFIX")

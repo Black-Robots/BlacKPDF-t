@@ -7,12 +7,14 @@ from pathlib import Path
 from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
+    QApplication,
     QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QMenu,
+    QMessageBox,
     QStackedWidget,
     QTabBar,
     QToolButton,
@@ -24,14 +26,15 @@ from .. import APP_NAME
 from ..core.document import OPENABLE_EXTENSIONS
 from ..core.model3d import MODEL_EXTENSIONS
 from ..core.errors import BlackPdfError, PasswordRequiredError, WrongPasswordError
-from . import icons, platform, tasks, theme, tools
+from . import i18n, icons, platform, tasks, theme, tools
 from .command_palette import Command, CommandPalette
 from .dialogs.about import AboutDialog, ShortcutsDialog
 from .dialogs.base import SourceContext
 from .dialogs.common import ask_password
 from .dialogs.forms import FormFillDialog
 from .document import PdfDocument
-from .document_tab import DocumentTab, shortcut_text
+from .document_tab import DocumentTab
+from .keys import shortcut_text
 from .errors import show_error
 from .home import HomePage
 from .settings import settings
@@ -54,6 +57,8 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(icons.app_icon())
         self.setAcceptDrops(True)
         self.setMinimumSize(QSize(900, 600))
+        self.restart_paths: list[str] | None = None
+        """Documentos que reabrir si la ventana se cerró para reiniciar (cambio de idioma)."""
         self._tabs: list[QWidget] = []
         self._actions: list[QAction] = []
         self._fullscreen_restore = False
@@ -167,6 +172,14 @@ class MainWindow(QMainWindow):
             action = theme_menu.addAction(name, lambda m=mode: self.set_theme(m))
             action.setCheckable(True)
             action.setChecked(theme.manager().mode == mode)
+        language_menu = menu.addMenu(icons.icon("languages"), self.tr("Idioma"))
+        chosen = settings().language
+        system_name = i18n.language_name(i18n.system_language())
+        options = [("auto", self.tr("Según el sistema ({0})").format(system_name))] + list(i18n.LANGUAGES)
+        for code, name in options:
+            action = language_menu.addAction(name, lambda c=code: self.set_language(c))
+            action.setCheckable(True)
+            action.setChecked(chosen == code or (code == "auto" and chosen not in i18n.codes()))
         menu.addSeparator()
         menu.addAction(icons.icon("keyboard"), self.tr("Atajos de teclado"), lambda: ShortcutsDialog(self).exec())
         menu.addAction(icons.icon("info"), self.tr("Acerca de BlackPDF"), lambda: AboutDialog(self).exec())
@@ -544,7 +557,7 @@ class MainWindow(QMainWindow):
                 Command(tr("Propiedades del documento"), doc, "info", tab.show_properties, shortcut_text("Ctrl+D")),
                 Command(tr("Girar páginas a la derecha"), tr("Páginas"), "rotate-cw", lambda: tab.rotate_pages(90)),
                 Command(tr("Girar páginas a la izquierda"), tr("Páginas"), "rotate-ccw", lambda: tab.rotate_pages(-90)),
-                Command(tr("Eliminar páginas seleccionadas"), tr("Páginas"), "trash-2", tab.delete_pages, "Supr"),
+                Command(tr("Eliminar páginas seleccionadas"), tr("Páginas"), "trash-2", tab.delete_pages, shortcut_text("Del")),
                 Command(tr("Duplicar páginas"), tr("Páginas"), "copy", tab.duplicate_pages),
                 Command(tr("Insertar página en blanco"), tr("Páginas"), "file-plus-2", tab.insert_blank),
                 Command(tr("Insertar páginas desde archivo"), tr("Páginas"), "file-input", tab.insert_from_file),
@@ -633,6 +646,36 @@ class MainWindow(QMainWindow):
         if paths:
             event.acceptProposedAction()
             self.open_files(paths)
+
+    # ======================================================================
+    # Idioma
+    # ======================================================================
+    def set_language(self, code: str) -> None:
+        settings().language = code
+        settings().sync()
+        target = i18n.resolve(code)
+        if target == i18n.current():
+            return
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Question)
+        box.setWindowTitle(self.tr("Cambiar idioma"))
+        box.setText("<b>" + self.tr("BlackPDF se mostrará en {0}").format(i18n.language_name(target)) + "</b>")
+        box.setInformativeText(self.tr("Hay que reiniciar la aplicación. Los documentos abiertos se volverán a abrir."))
+        restart = box.addButton(self.tr("Reiniciar ahora"), QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(self.tr("Más tarde"), QMessageBox.ButtonRole.RejectRole)
+        box.setDefaultButton(restart)
+        box.exec()
+        if box.clickedButton() is restart:
+            self.restart()
+
+    def restart(self) -> None:
+        """Cierra (preguntando por los cambios sin guardar) y vuelve a abrir la aplicación."""
+        paths = [tab.document.path for tab in self.document_tabs() if tab.document.path]
+        self.restart_paths = paths
+        if not self.close():
+            self.restart_paths = None
+            return
+        QApplication.instance().quit()
 
     def closeEvent(self, event: QCloseEvent) -> None:
         for tab in list(self.document_tabs()):

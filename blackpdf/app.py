@@ -33,7 +33,7 @@ def main() -> int:
 
             return run(arg.partition("=")[2] or None)
 
-    from PySide6.QtCore import QLibraryInfo, QLocale, Qt, QTranslator
+    from PySide6.QtCore import Qt
     from PySide6.QtGui import QGuiApplication
     from PySide6.QtWidgets import QApplication
 
@@ -48,14 +48,12 @@ def main() -> int:
     app.setDesktopFileName(APP_ID)
     app.setStyle("Fusion")
 
-    translator = QTranslator(app)
-    if translator.load(QLocale("es_ES"), "qtbase", "_", QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)):
-        app.installTranslator(translator)
-
-    from .ui import icons, theme
+    from .ui import i18n, icons, theme
     from .ui.errors import install_excepthook, setup_logging
     from .ui.platform import set_app_user_model_id
     from .ui.settings import settings
+
+    i18n.install(settings().language)
     from .ui.single_instance import SingleInstance
 
     setup_logging()
@@ -88,7 +86,24 @@ def main() -> int:
     from .ui import tasks
 
     tasks.shutdown()
+    if window.restart_paths is not None:
+        instance.close()
+        _relaunch(window.restart_paths)
     return code
+
+
+def _relaunch(paths: list[str]) -> None:
+    """Abre otra vez BlackPDF (al cambiar de idioma)."""
+    from PySide6.QtCore import QProcess
+
+    if os.environ.get("APPIMAGE"):
+        # Dentro de un AppImage el ejecutable vive en un montaje que desaparece al salir.
+        program, args = os.environ["APPIMAGE"], list(paths)
+    elif getattr(sys, "frozen", False):
+        program, args = sys.executable, list(paths)
+    else:
+        program, args = sys.executable, ["-m", "blackpdf", *paths]
+    QProcess.startDetached(program, args)
 
 
 if __name__ == "__main__":

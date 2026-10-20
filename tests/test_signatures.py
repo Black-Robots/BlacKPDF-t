@@ -17,7 +17,9 @@ from blackpdf.core.signatures import (
     CertificateError,
     CertificatePasswordError,
     SignOptions,
+    StampText,
     build_appearance,
+    describe_subject,
     has_signatures,
     list_signatures,
     load_certificate,
@@ -89,6 +91,8 @@ def test_visible_signature_is_valid_and_covers_whole_file(certificate, document,
     assert status.reason == "Conforme" and status.location == "Madrid"
     assert not status.trusted and status.level == "warning", "certificado de prueba: no es de una CA de confianza"
     assert status.page == 2, "por defecto en la última página"
+    assert dict(status.subject)["common_name"] == "GARCÍA LÓPEZ DIEGO - 12345678Z"
+    assert status.signed_at is not None and status.signed_at.tzinfo is not None
     page = pymupdf.open(output)[2]
     expected = stamp_rect(page, "bottom-right")
     assert status.rect[0] == pytest.approx(expected.x0, abs=1) and status.rect[3] == pytest.approx(expected.y1, abs=1)
@@ -156,6 +160,22 @@ def test_handwritten_appearance_and_unicode():
     text = page.get_text()
     assert "Íñigo Muñoz" in text and "Logroño" in text
     assert page.get_drawings(), "incluye los trazos de la firma manuscrita"
+
+
+def test_stamp_text_in_another_language():
+    when = dt.datetime(2026, 3, 4, 15, 30, tzinfo=dt.timezone.utc)
+    text = StampText("Digitally signed by", "Date: {0}", "Reason: {0}", "Location: {0}", "%Y-%m-%d")
+    data = build_appearance(230, 74, "Jane Doe", when, "Approved", "Lisbon", text=text)
+    content = pymupdf.open("pdf", data)[0].get_text()
+    assert "Digitally signed by" in content and "Reason: Approved" in content and "Location: Lisbon" in content
+    assert f"Date: {when.astimezone():%Y-%m-%d}" in content
+    assert "Firmado" not in content
+
+
+def test_describe_subject_labels():
+    subject = {"common_name": "Ana", "country_name": "PT", "organization_name": ["A", "B"]}
+    assert describe_subject(subject) == "Nombre: Ana  ·  Organización: A, B  ·  País: PT"
+    assert describe_subject(subject, {"common_name": "Name", "country_name": "Country"}).startswith("Name: Ana")
 
 
 def test_expired_certificate_is_refused(tmp_path, document):

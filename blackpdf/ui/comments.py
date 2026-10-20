@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QRectF, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QCoreApplication, QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import (
     QFrame,
@@ -42,19 +42,23 @@ KIND_ICONS = {
 }
 
 
-def kind_label(kind: str, tr) -> str:
+def _tr(text: str) -> str:
+    return QCoreApplication.translate("Comments", text)
+
+
+def kind_label(kind: str) -> str:
     return {
-        "Text": tr("Comentario"),
-        "FreeText": tr("Cuadro de texto"),
-        "Highlight": tr("Resaltado"),
-        "Underline": tr("Subrayado"),
-        "StrikeOut": tr("Tachado"),
-        "Squiggly": tr("Ondulado"),
-        "Ink": tr("Dibujo"),
-        "Square": tr("Rectángulo"),
-        "Circle": tr("Elipse"),
-        "Line": tr("Línea"),
-        "Stamp": tr("Sello"),
+        "Text": _tr("Comentario"),
+        "FreeText": _tr("Cuadro de texto"),
+        "Highlight": _tr("Resaltado"),
+        "Underline": _tr("Subrayado"),
+        "StrikeOut": _tr("Tachado"),
+        "Squiggly": _tr("Ondulado"),
+        "Ink": _tr("Dibujo"),
+        "Square": _tr("Rectángulo"),
+        "Circle": _tr("Elipse"),
+        "Line": _tr("Línea"),
+        "Stamp": _tr("Sello"),
     }.get(kind, kind)
 
 
@@ -148,7 +152,7 @@ class CommentCard(QFrame):
         author = label(comment.author or self.tr("Sin autor"), "", wrap=True)
         author.setStyleSheet("font-weight: 600;")
         names.addWidget(author)
-        meta = kind_label(comment.kind, self.tr)
+        meta = kind_label(comment.kind)
         if comment.modified:
             meta += "  ·  " + comment.modified
         names.addWidget(label(meta, "caption", wrap=True))

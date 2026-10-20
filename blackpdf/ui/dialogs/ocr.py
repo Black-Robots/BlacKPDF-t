@@ -2,12 +2,30 @@
 
 from __future__ import annotations
 
+from PySide6.QtCore import QT_TRANSLATE_NOOP
 from PySide6.QtWidgets import QCheckBox, QComboBox
 
-from ...core.ocr import LANGUAGE_NAMES, available_languages
+from ...core.ocr import available_languages
+from .. import i18n
 from ..widgets import PageRangeEdit, label
 from .base import ValidationError
 from .organize import _SingleSourceDialog
+
+# Nombres de los idiomas de Tesseract (ISO 639-2) en el idioma de la interfaz.
+OCR_NAMES = {
+    "spa": QT_TRANSLATE_NOOP("OcrDialog", "Español"),
+    "eng": QT_TRANSLATE_NOOP("OcrDialog", "Inglés"),
+    "por": QT_TRANSLATE_NOOP("OcrDialog", "Portugués"),
+    "fra": QT_TRANSLATE_NOOP("OcrDialog", "Francés"),
+    "deu": QT_TRANSLATE_NOOP("OcrDialog", "Alemán"),
+    "ita": QT_TRANSLATE_NOOP("OcrDialog", "Italiano"),
+    "cat": QT_TRANSLATE_NOOP("OcrDialog", "Catalán"),
+    "glg": QT_TRANSLATE_NOOP("OcrDialog", "Gallego"),
+    "eus": QT_TRANSLATE_NOOP("OcrDialog", "Euskera"),
+    "nld": QT_TRANSLATE_NOOP("OcrDialog", "Neerlandés"),
+}
+# Idioma de la interfaz -> idioma de OCR que se propone primero.
+UI_TO_OCR = {"es": "spa", "en": "eng", "pt": "por", "fr": "fra"}
 
 
 class OcrDialog(_SingleSourceDialog):
@@ -26,15 +44,21 @@ class OcrDialog(_SingleSourceDialog):
     def action_text(self):
         return self.tr("Reconocer texto")
 
+    def _name(self, code: str) -> str:
+        return self.tr(OCR_NAMES[code]) if code in OCR_NAMES else code
+
     def build(self):
         self.add_source()
         self.languages = available_languages()
         self.language = QComboBox()
-        codes = sorted(self.languages, key=lambda c: (c != "spa", c != "eng", LANGUAGE_NAMES.get(c, c)))
+        first = UI_TO_OCR.get(i18n.current(), "eng")
+        codes = sorted(self.languages, key=lambda c: (c != first, c != "eng", self._name(c)))
         for code in codes:
-            self.language.addItem(LANGUAGE_NAMES.get(code, code), [code])
-        if "spa" in self.languages and "eng" in self.languages:
-            self.language.insertItem(1, self.tr("Español + Inglés"), ["spa", "eng"])
+            self.language.addItem(self._name(code), [code])
+        if first != "eng" and first in self.languages and "eng" in self.languages:
+            # Documentos mezclados (p. ej. español con términos en inglés).
+            self.language.insertItem(1, self.tr("{0} + {1}").format(self._name(first), self._name("eng")),
+                                     [first, "eng"])
         self.language.setCurrentIndex(0)
         self.quality = QComboBox()
         self.quality.addItem(self.tr("Rápida (200 ppp)"), 200)

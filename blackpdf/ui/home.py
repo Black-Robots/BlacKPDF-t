@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
 from .. import __version__
 from ..core.document import OPENABLE_EXTENSIONS
 from ..core.model3d import MODEL_EXTENSIONS
-from . import icons, theme
+from . import formatting, icons, theme
 from .settings import settings
 from .tools import ToolSpec, categories, tool_specs
 from .widgets import Button, DropZone, SectionLabel, label
@@ -151,7 +151,7 @@ class RecentCard(HoverCard):
         detail = Path(path).parent.name
         try:
             modified = dt.datetime.fromtimestamp(Path(path).stat().st_mtime)
-            detail = f"{detail}  ·  {modified:%d/%m/%Y}"
+            detail = f"{detail}  ·  {formatting.date(modified)}"
         except OSError:
             pass
         caption = label(detail, "caption")

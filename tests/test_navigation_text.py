@@ -76,3 +76,4 @@ def test_file_helpers(tmp_path):
     assert human_size(512) == "512 B"
     assert human_size(2048) == "2,0 KB"
     assert human_size(5 * 1024 * 1024) == "5,0 MB"
+    assert human_size(1536, ".") == "1.5 KB"

@@ -153,7 +153,7 @@ class SourcePicker(QWidget):
     def stem(self) -> str:
         if self.context is not None:
             return Path(self.context.name).stem
-        return Path(self.path).stem if self.path else "documento"
+        return Path(self.path).stem if self.path else self.tr("documento")
 
     def value(self):
         """Lo que se pasa al subproceso: ruta o contenido en memoria.

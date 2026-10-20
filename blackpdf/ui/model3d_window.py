@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QPoint, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QEvent, QPoint, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QActionGroup, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
@@ -28,24 +28,20 @@ from PySide6.QtWidgets import (
 )
 
 from ..core.model3d import Scene
-from . import errors, icons, tasks, theme
+from . import errors, formatting, icons, tasks, theme
 from .viewer3d import Viewer3D, opengl_available
 from .widgets import Button, FloatingPanel, IconButton, SegmentedControl, label, separator
 
 MODES = ("solid", "outline", "wireframe", "transparent")
 VIEW_NAMES = {
-    "front": "Frente",
-    "back": "Detrás",
-    "left": "Izquierda",
-    "right": "Derecha",
-    "top": "Arriba",
-    "bottom": "Abajo",
-    "iso": "Isométrica",
+    "front": QT_TRANSLATE_NOOP("Model3DWindow", "Frente"),
+    "back": QT_TRANSLATE_NOOP("Model3DWindow", "Detrás"),
+    "left": QT_TRANSLATE_NOOP("Model3DWindow", "Izquierda"),
+    "right": QT_TRANSLATE_NOOP("Model3DWindow", "Derecha"),
+    "top": QT_TRANSLATE_NOOP("Model3DWindow", "Arriba"),
+    "bottom": QT_TRANSLATE_NOOP("Model3DWindow", "Abajo"),
+    "iso": QT_TRANSLATE_NOOP("Model3DWindow", "Isométrica"),
 }
-
-
-def _thousands(value: int) -> str:
-    return f"{value:,}".replace(",", ".")
 
 
 class _Overlay(FloatingPanel):
@@ -190,7 +186,7 @@ class PartsPanel(QFrame):
             item.setCheckState(Qt.CheckState.Unchecked if index in hidden else Qt.CheckState.Checked)
             item.setToolTip(item.text())
             self.list.addItem(item)
-        self.count.setText(_thousands(len(scene.parts)))
+        self.count.setText(formatting.number(len(scene.parts)))
         self._updating = False
 
     def sync_hidden(self, hidden: set[int]) -> None:
@@ -533,8 +529,8 @@ class Model3DWindow(QWidget):
         triangles = scene.triangle_count
         parts = len(scene.parts)
         info = [scene.format]
-        info.append(self.tr("{0} triángulos").format(_thousands(triangles)))
-        info.append(self.tr("{0} piezas").format(_thousands(parts)) if parts != 1 else self.tr("1 pieza"))
+        info.append(self.tr("{0} triángulos").format(formatting.number(triangles)))
+        info.append(self.tr("{0} piezas").format(formatting.number(parts)) if parts != 1 else self.tr("1 pieza"))
         self.info_label.setText("  ·  ".join(info))
         self.parts_button.setChecked(parts > 1 and self.width() > 900)
         self._set_tools_enabled(True)
@@ -621,7 +617,7 @@ class Model3DWindow(QWidget):
     def _export_image(self) -> None:
         if self.scene is None:
             return
-        base = Path(self._title).stem or "modelo"
+        base = Path(self._title).stem or self.tr("modelo")
         path, _ = QFileDialog.getSaveFileName(
             self, self.tr("Guardar imagen"), str(Path.home() / f"{base}.png"), self.tr("Imagen PNG (*.png)")
         )

@@ -46,6 +46,16 @@ class Settings:
     def sync(self) -> None:
         self._qs.sync()
 
+    # ---------- idioma ----------
+    @property
+    def language(self) -> str:
+        """«auto» (el del sistema) o un código de idioma (es, en, pt, fr)."""
+        return str(self._qs.value("appearance/language", "auto"))
+
+    @language.setter
+    def language(self, value: str) -> None:
+        self._qs.setValue("appearance/language", value)
+
     # ---------- apariencia ----------
     @property
     def theme(self) -> str:

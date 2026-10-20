@@ -8,9 +8,9 @@ from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QPainter, QPen
 from PySide6.QtWidgets import QComboBox, QFrame, QHBoxLayout, QSlider, QVBoxLayout, QWidget
 
-from ...core.files import human_size, unique_path
+from ...core.files import unique_path
 from ...core.images import IMAGE_EXTENSIONS
-from .. import theme
+from .. import formatting, theme
 from ..widgets import FileListWidget, PageRangeEdit, SegmentedControl, image_filter, label, pdf_filter
 from .base import OutputPicker, ToolDialog, ValidationError
 from .organize import _SingleSourceDialog
@@ -105,10 +105,10 @@ class CompressDialog(_SingleSourceDialog):
     def describe_result(self, result):
         before, after = result.original_size, result.compressed_size
         if result.saved_ratio < 0.01:
-            detail = self.tr("El archivo ya estaba optimizado y no se ha podido reducir más ({0}).").format(human_size(after))
+            detail = self.tr("El archivo ya estaba optimizado y no se ha podido reducir más ({0}).").format(formatting.size(after))
         else:
             detail = self.tr("{0} → {1}  ·  {2} % más pequeño").format(
-                human_size(before), human_size(after), round(result.saved_ratio * 100)
+                formatting.size(before), formatting.size(after), round(result.saved_ratio * 100)
             )
         return self.tr("PDF comprimido"), detail, [result.path]
 
@@ -146,8 +146,8 @@ class PdfToImagesDialog(_SingleSourceDialog):
         row.setContentsMargins(0, 0, 0, 0)
         row.addWidget(self.quality, 1)
         row.addWidget(self.quality_label)
-        self.quality.valueChanged.connect(lambda v: self.quality_label.setText(f"{v} %"))
-        self.quality_label.setText("90 %")
+        self.quality.valueChanged.connect(lambda v: self.quality_label.setText(formatting.percent(v)))
+        self.quality_label.setText(formatting.percent(90))
         self.quality_block = self.add_field(self.tr("Calidad JPG"), quality_row)
         self.quality_block.setVisible(False)
         self.format.changed.connect(lambda key: self.quality_block.setVisible(key == "jpg"))

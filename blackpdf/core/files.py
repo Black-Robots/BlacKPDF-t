@@ -36,15 +36,16 @@ def with_suffix_name(path: str | os.PathLike, label: str, extension: str = ".pdf
     return path.with_name(f"{path.stem}_{label}{extension}")
 
 
-def human_size(num_bytes: int) -> str:
+def human_size(num_bytes: int, decimal_point: str = ",") -> str:
+    """Tamaño legible: 1,5 MB (o 1.5 MB con ``decimal_point="."``)."""
     size = float(num_bytes)
     for unit in ("B", "KB", "MB", "GB"):
         if size < 1024 or unit == "GB":
             if unit == "B":
                 return f"{int(size)} {unit}"
-            return f"{size:.1f} {unit}".replace(".", ",")
+            return f"{size:.1f} {unit}".replace(".", decimal_point)
         size /= 1024
-    return f"{size:.1f} GB"
+    return f"{size:.1f} GB".replace(".", decimal_point)
 
 
 def _default_mode() -> int:

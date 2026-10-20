@@ -79,7 +79,7 @@ def user_message(exc: BaseException) -> tuple[str, str]:
         ).format(_name(path))
     if isinstance(exc, core_errors.OcrUnavailableError):
         return _tr("Reconocimiento de texto no disponible"), _tr(
-            "Para reconocer texto hace falta instalar Tesseract OCR con el idioma español."
+            "Faltan los datos de idioma del reconocimiento de texto. Reinstala BlackPDF para recuperarlos."
         )
     if isinstance(exc, core_errors.Model3DEmptyError):
         return _tr("Modelo 3D vacío"), _tr("El modelo 3D no contiene piezas visibles.")

@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QRectF, Qt
+from PySide6.QtCore import QCoreApplication, QRectF, Qt
 from PySide6.QtGui import QImage, QPageLayout, QPainter
 from PySide6.QtPrintSupport import QPrintDialog, QPrinter
 from PySide6.QtWidgets import QApplication, QProgressDialog, QWidget
 
 from .document import PdfDocument
+
+
+def _tr(text: str) -> str:
+    return QCoreApplication.translate("Printing", text)
+
 
 MAX_PRINT_DPI = 300
 
@@ -21,7 +26,7 @@ def print_document(parent: QWidget, document: PdfDocument, current_page: int = 0
         QPageLayout.Orientation.Landscape if first.width() > first.height() else QPageLayout.Orientation.Portrait
     )
     dialog = QPrintDialog(printer, parent)
-    dialog.setWindowTitle(parent.tr("Imprimir"))
+    dialog.setWindowTitle(_tr("Imprimir"))
     dialog.setOption(QPrintDialog.PrintDialogOption.PrintPageRange, True)
     dialog.setOption(QPrintDialog.PrintDialogOption.PrintCurrentPage, True)
     dialog.setMinMax(1, document.page_count)
@@ -39,7 +44,7 @@ def print_document(parent: QWidget, document: PdfDocument, current_page: int = 0
         return False
 
     dpi = min(MAX_PRINT_DPI, printer.resolution())
-    progress = QProgressDialog(parent.tr("Preparando la impresión..."), parent.tr("Cancelar"), 0, len(pages), parent)
+    progress = QProgressDialog(_tr("Preparando la impresión..."), _tr("Cancelar"), 0, len(pages), parent)
     progress.setWindowModality(Qt.WindowModality.WindowModal)
     progress.setMinimumDuration(400)
 

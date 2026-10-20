@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QEasingCurve, QPoint, QPropertyAnimation, QSize, Qt, Signal
+from PySide6.QtCore import QCoreApplication, QEasingCurve, QPoint, QPropertyAnimation, QSize, Qt, Signal
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMenu, QSlider, QToolButton, QVBoxLayout, QWidget
 
-from . import icons, theme
+from . import formatting, icons, theme
 from .interaction import PRESET_COLORS, STYLED_TOOLS, WIDTH_TOOLS, ToolStyle, load_style
 from .widgets import SHADOW_TOP, ColorButton, FloatingPanel, IconButton, separator
 
@@ -18,23 +18,27 @@ TOOL_GROUPS = (
 )
 
 
-def tool_labels(tr) -> dict[str, str]:
+def _tr(text: str) -> str:
+    return QCoreApplication.translate("AnnotationTools", text)
+
+
+def tool_labels() -> dict[str, str]:
     return {
-        "select": tr("Seleccionar texto (V)"),
-        "hand": tr("Mano (H)"),
-        "pen": tr("Lápiz (P)"),
-        "highlight": tr("Resaltar (R)"),
-        "underline": tr("Subrayar (U)"),
-        "strikeout": tr("Tachar (T)"),
-        "rect": tr("Rectángulo"),
-        "ellipse": tr("Elipse"),
-        "arrow": tr("Flecha"),
-        "line": tr("Línea"),
-        "text": tr("Cuadro de texto (X)"),
-        "note": tr("Nota (N)"),
-        "signature": tr("Firma (F)"),
-        "eraser": tr("Goma: borra la anotación bajo el cursor (E)"),
-        "redact": tr("Censurar: elimina de forma definitiva lo que cubras (C)"),
+        "select": _tr("Seleccionar texto (V)"),
+        "hand": _tr("Mano (H)"),
+        "pen": _tr("Lápiz (P)"),
+        "highlight": _tr("Resaltar (R)"),
+        "underline": _tr("Subrayar (U)"),
+        "strikeout": _tr("Tachar (T)"),
+        "rect": _tr("Rectángulo"),
+        "ellipse": _tr("Elipse"),
+        "arrow": _tr("Flecha"),
+        "line": _tr("Línea"),
+        "text": _tr("Cuadro de texto (X)"),
+        "note": _tr("Nota (N)"),
+        "signature": _tr("Firma (F)"),
+        "eraser": _tr("Goma: borra la anotación bajo el cursor (E)"),
+        "redact": _tr("Censurar: elimina de forma definitiva lo que cubras (C)"),
     }
 
 
@@ -80,7 +84,7 @@ class WidthPopup(QFrame):
 
     def _update_label(self) -> None:
         value = self.slider.value() * self._step
-        text = f"{value:.1f}".rstrip("0").rstrip(".").replace(".", ",")
+        text = formatting.decimal(value)
         self.value_label.setText(f"{text} {self._suffix}")
 
 
@@ -90,7 +94,7 @@ class AnnotationBar(FloatingPanel):
 
     def __init__(self, parent: QWidget):
         super().__init__(parent, inner=(6, 5, 6, 5))
-        self._labels = tool_labels(self.tr)
+        self._labels = tool_labels()
         layout = QHBoxLayout(self)
         self.apply_margins(layout)
         layout.setSpacing(2)

@@ -6,11 +6,12 @@ import sys
 
 import pymupdf
 from PySide6 import __version__ as pyside_version
-from PySide6.QtCore import Qt, qVersion
+from PySide6.QtCore import QT_TRANSLATE_NOOP, Qt, qVersion
 from PySide6.QtWidgets import QDialog, QGridLayout, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from ... import __version__
 from .. import icons
+from ..keys import shortcut_text
 from ..widgets import Button, SectionLabel, label
 
 
@@ -58,26 +59,38 @@ class AboutDialog(QDialog):
         layout.addLayout(row)
 
 
+def _n(text: str) -> str:
+    return QT_TRANSLATE_NOOP("ShortcutsDialog", text)
+
+
+# (teclas en formato portable de Qt o texto traducible, acción)
 SHORTCUTS = (
-    ("Archivo", (
-        ("Ctrl+O", "Abrir"), ("Ctrl+S", "Guardar"), ("Ctrl+Mayús+S", "Guardar como"), ("Ctrl+P", "Imprimir"),
-        ("Ctrl+W", "Cerrar pestaña"), ("Ctrl+Tab", "Pestaña siguiente"), ("Ctrl+K", "Paleta de comandos"),
+    (_n("Archivo"), (
+        ("Ctrl+O", _n("Abrir")), ("Ctrl+S", _n("Guardar")), ("Ctrl+Shift+S", _n("Guardar como")),
+        ("Ctrl+P", _n("Imprimir")), ("Ctrl+W", _n("Cerrar pestaña")), ("Ctrl+Tab", _n("Pestaña siguiente")),
+        ("Ctrl+K", _n("Paleta de comandos")),
     )),
-    ("Edición", (
-        ("Ctrl+Z", "Deshacer"), ("Ctrl+Y", "Rehacer"), ("Ctrl+C", "Copiar texto"), ("Ctrl+A", "Seleccionar texto de la página"),
-        ("Supr", "Eliminar páginas seleccionadas"), ("Ctrl+Mayús+R", "Girar a la derecha"), ("Ctrl+Mayús+L", "Girar a la izquierda"),
+    (_n("Edición"), (
+        ("Ctrl+Z", _n("Deshacer")), ("Ctrl+Y", _n("Rehacer")), ("Ctrl+C", _n("Copiar texto")),
+        ("Ctrl+A", _n("Seleccionar texto de la página")), ("Del", _n("Eliminar páginas seleccionadas")),
+        ("Ctrl+Shift+R", _n("Girar a la derecha")), ("Ctrl+Shift+L", _n("Girar a la izquierda")),
     )),
-    ("Vista", (
-        ("Ctrl++  /  +", "Acercar"), ("Ctrl+-  /  -", "Alejar"), ("Ctrl+0", "Tamaño real"), ("Ctrl+1", "Ajustar al ancho"),
-        ("Ctrl+2", "Página completa"), ("Ctrl+rueda", "Zoom con el ratón"), ("Ctrl+F", "Buscar"), ("Ctrl+M", "Modo noche"),
-        ("F4", "Panel lateral"), ("F11", "Pantalla completa"), ("Flechas", "Página anterior / siguiente"),
+    (_n("Vista"), (
+        ("Ctrl++  /  +", _n("Acercar")), ("Ctrl+-  /  -", _n("Alejar")), ("Ctrl+0", _n("Tamaño real")),
+        ("Ctrl+1", _n("Ajustar al ancho")), ("Ctrl+2", _n("Página completa")),
+        (_n("Ctrl+rueda"), _n("Zoom con el ratón")), ("Ctrl+F", _n("Buscar")), ("Ctrl+M", _n("Modo noche")),
+        ("F4", _n("Panel lateral")), ("F11", _n("Pantalla completa")),
+        (_n("Flechas"), _n("Página anterior / siguiente")),
     )),
-    ("Anotar", (
-        ("V", "Seleccionar texto"), ("H", "Mano"), ("P", "Lápiz"), ("R", "Resaltar"), ("U", "Subrayar"),
-        ("T", "Tachar"), ("X", "Cuadro de texto"), ("N", "Nota"), ("F", "Firma"), ("E", "Goma"),
-        ("Ctrl+E", "Mostrar u ocultar la barra de anotación"), ("Esc", "Volver a seleccionar"),
+    (_n("Anotar"), (
+        ("V", _n("Seleccionar texto")), ("H", _n("Mano")), ("P", _n("Lápiz")), ("R", _n("Resaltar")),
+        ("U", _n("Subrayar")), ("T", _n("Tachar")), ("X", _n("Cuadro de texto")), ("N", _n("Nota")),
+        ("F", _n("Firma")), ("E", _n("Goma")), ("Ctrl+E", _n("Mostrar u ocultar la barra de anotación")),
+        ("Esc", _n("Volver a seleccionar")),
     )),
 )
+
+_TEXT_KEYS = {"Ctrl+rueda", "Flechas"}
 
 
 class ShortcutsDialog(QDialog):
@@ -101,6 +114,10 @@ class ShortcutsDialog(QDialog):
             grid.setHorizontalSpacing(16)
             grid.setVerticalSpacing(8)
             for row, (keys, action) in enumerate(items):
+                if keys in _TEXT_KEYS:
+                    keys = self.tr(keys)
+                elif "/" not in keys:
+                    keys = shortcut_text(keys)
                 key_label = label(keys, "kbd")
                 key_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 grid.addWidget(key_label, row, 0, Qt.AlignmentFlag.AlignLeft)

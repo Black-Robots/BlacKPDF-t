@@ -56,6 +56,13 @@ class SingleInstance(QObject):
         server.newConnection.connect(self._accept)
         self._server = server
 
+    def close(self) -> None:
+        """Deja de recibir archivos (antes de reiniciar la aplicación)."""
+        if self._server is not None:
+            self._server.close()
+            self._server = None
+            QLocalServer.removeServer(self._name)
+
     def _accept(self) -> None:
         while self._server is not None and self._server.hasPendingConnections():
             socket = self._server.nextPendingConnection()
