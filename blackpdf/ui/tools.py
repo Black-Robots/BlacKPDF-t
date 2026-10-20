@@ -56,6 +56,7 @@ def tool_specs() -> list[ToolSpec]:
         ToolSpec("flatten", _tr("Aplanar PDF"), _tr("Fija anotaciones y formularios en el contenido."), "layers", "edit"),
         ToolSpec("sign_certificate", _tr("Firma digital"), _tr("Firma con tu certificado (FNMT, DNIe, empresa) con validez legal."), "shield-check", "security"),
         ToolSpec("protect", _tr("Proteger PDF"), _tr("Cifra con contraseña AES de 256 bits."), "lock", "security"),
+        ToolSpec("clean", _tr("Limpiar datos ocultos"), _tr("Quita autor, fechas, JavaScript y adjuntos antes de enviar."), "eye-off", "security"),
         ToolSpec("unlock", _tr("Desbloquear PDF"), _tr("Quita la contraseña y las restricciones."), "lock-open", "security"),
     ]
 
@@ -84,6 +85,7 @@ def dialog_class(tool_id: str):
         "flatten": edit.FlattenDialog,
         "protect": security.ProtectDialog,
         "unlock": security.UnlockDialog,
+        "clean": security.CleanDialog,
         "ocr": ocr.OcrDialog,
         "sign_certificate": certificate.CertificateSignDialog,
     }.get(tool_id)
@@ -92,7 +94,7 @@ def dialog_class(tool_id: str):
 def document_menu_entries() -> list[tuple[str, str, str]]:
     """Herramientas aplicables al documento abierto, para su menú."""
     order = ["compress", "ocr", "-", "insert3d", "watermark", "page_numbers", "crop", "resize", "flatten", "forms", "-",
-             "split", "extract", "rotate", "merge", "alternate", "-", "to_images", "extract_images", "-", "sign_certificate", "protect", "unlock"]
+             "split", "extract", "rotate", "merge", "alternate", "-", "to_images", "extract_images", "-", "sign_certificate", "protect", "unlock", "clean"]
     specs = {t.id: t for t in tool_specs()}
     entries = []
     for tool_id in order:

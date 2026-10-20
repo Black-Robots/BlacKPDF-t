@@ -1035,3 +1035,26 @@ def test_extract_images_tool(qapp, window, tmp_path):
     assert wait_until(qapp, lambda: dialog.pages.currentWidget() is dialog.result_panel, 60)
     assert [p.suffix for p in (tmp_path / "salida").iterdir()] == [".jpg"]
     dialog.close()
+
+
+def test_clean_tool(qapp, window, tmp_path):
+    from blackpdf.ui import tools
+
+    doc = pymupdf.open()
+    doc.new_page().insert_text((72, 72), "Hola")
+    doc.set_metadata({"author": "Diego", "title": "Interno"})
+    doc.embfile_add("datos.csv", b"a,b", filename="datos.csv")
+    path = tmp_path / "sucio.pdf"
+    doc.save(path)
+    window.open_files([str(path)])
+    pump(qapp, 0.6)
+    tab = window.current_tab()
+    dialog = tools.dialog_class("clean")(window, window._context_for(tab), {})
+    assert dialog.options["metadata"].isChecked() and not dialog.options["comments"].isChecked()
+    output = tmp_path / "limpio.pdf"
+    dialog.output.picker.set_path(str(output))
+    dialog.run()
+    assert wait_until(qapp, lambda: dialog.pages.currentWidget() is dialog.result_panel, 60)
+    clean = pymupdf.open(output)
+    assert not clean.metadata["author"] and clean.embfile_count() == 0
+    dialog.close()

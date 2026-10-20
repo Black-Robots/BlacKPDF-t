@@ -555,6 +555,149 @@
         </message>
     </context>
     <context>
+        <name>CleanDialog</name>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="186" />
+            <source>Limpiar datos ocultos</source>
+            <translation>Supprimer les données cachées</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="189" />
+            <source>Quita lo que no se ve pero viaja dentro del PDF antes de enviarlo: autor, programa, fechas, JavaScript, adjuntos... El original no se toca.</source>
+            <translation>Supprime ce qui ne se voit pas mais voyage dans le PDF avant de l'envoyer : auteur, programme, dates, JavaScript, pièces jointes... L'original n'est pas modifié.</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="193" />
+            <source>Limpiar</source>
+            <translation>Nettoyer</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="203" />
+            <source>Metadatos: autor, programa, fechas y XMP</source>
+            <translation>Métadonnées : auteur, programme, dates et XMP</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="204" />
+            <source>JavaScript y acciones automáticas</source>
+            <translation>JavaScript et actions automatiques</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="205" />
+            <source>Archivos adjuntos</source>
+            <translation>Pièces jointes</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="206" />
+            <source>Miniaturas guardadas en el PDF</source>
+            <translation>Vignettes enregistrées dans le PDF</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="212" />
+            <source>Datos ocultos</source>
+            <translation>Données cachées</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="218" />
+            <source>Comentarios y anotaciones</source>
+            <translation>Commentaires et annotations</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="219" />
+            <source>Enlaces</source>
+            <translation>Liens</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="220" />
+            <source>Valores de los formularios</source>
+            <translation>Valeurs des formulaires</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="221" />
+            <source>Texto invisible (también el del OCR)</source>
+            <translation>Texte invisible (y compris celui de l'OCR)</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="226" />
+            <source>También cambian lo que se ve</source>
+            <translation>Ceux-ci modifient aussi ce qui est visible</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="227" />
+            <source>Quitar el texto invisible hace que un escaneo con OCR deje de poder buscarse.</source>
+            <translation>Supprimer le texte invisible rend une numérisation avec OCR impossible à rechercher.</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="241" />
+            <source>metadatos</source>
+            <translation>métadonnées</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="243" />
+            <source>JavaScript</source>
+            <translation>JavaScript</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="245" />
+            <source>1 adjunto</source>
+            <translation>1 pièce jointe</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="245" />
+            <source>{0} adjuntos</source>
+            <translation>{0} pièces jointes</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="246" />
+            <source>1 miniatura</source>
+            <translation>1 vignette</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="246" />
+            <source>{0} miniaturas</source>
+            <translation>{0} vignettes</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="247" />
+            <source>1 comentario</source>
+            <translation>1 commentaire</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="247" />
+            <source>{0} comentarios</source>
+            <translation>{0} commentaires</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="248" />
+            <source>1 enlace</source>
+            <translation>1 lien</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="248" />
+            <source>{0} enlaces</source>
+            <translation>{0} liens</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="253" />
+            <source>Se ha quitado: {0}.</source>
+            <translation>Supprimé : {0}.</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="254" />
+            <source>No había datos ocultos de los elegidos.</source>
+            <translation>Il n'y avait aucune donnée cachée des types choisis.</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="255" />
+            <source>Se ha guardado «{0}».</source>
+            <translation>« {0} » a été enregistré.</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/security.py" line="256" />
+            <source>Documento limpio</source>
+            <translation>Document nettoyé</translation>
+        </message>
+    </context>
+    <context>
         <name>CommandPalette</name>
         <message>
             <location filename="../blackpdf/ui/command_palette.py" line="146" />
@@ -4898,11 +5041,21 @@ Enregistrer quand même ? Avec « Enregistrer sous », l'original conserve ses s
         </message>
         <message>
             <location filename="../blackpdf/ui/tools.py" line="59" />
+            <source>Limpiar datos ocultos</source>
+            <translation>Supprimer les données cachées</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/tools.py" line="59" />
+            <source>Quita autor, fechas, JavaScript y adjuntos antes de enviar.</source>
+            <translation>Supprime l'auteur, les dates, le JavaScript et les pièces jointes avant l'envoi.</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/tools.py" line="60" />
             <source>Desbloquear PDF</source>
             <translation>Déverrouiller un PDF</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/tools.py" line="59" />
+            <location filename="../blackpdf/ui/tools.py" line="60" />
             <source>Quita la contraseña y las restricciones.</source>
             <translation>Supprime le mot de passe et les restrictions.</translation>
         </message>

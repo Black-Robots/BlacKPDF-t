@@ -174,3 +174,83 @@ class UnlockDialog(_SingleSourceDialog):
         output = self.require_output(self.output, [self.source.original_path()])
         return "blackpdf.core.security:unlock_pdf", (source, output, self.source.source_password() or ""), {}
 
+
+
+class CleanDialog(_SingleSourceDialog):
+    """Limpiar datos ocultos antes de compartir el documento."""
+
+    icon_name = "eye-off"
+    output_suffix = "limpio"
+
+    def title(self):
+        return self.tr("Limpiar datos ocultos")
+
+    def description(self):
+        return self.tr("Quita lo que no se ve pero viaja dentro del PDF antes de enviarlo: autor, programa, "
+                       "fechas, JavaScript, adjuntos... El original no se toca.")
+
+    def action_text(self):
+        return self.tr("Limpiar")
+
+    def build(self):
+        self.add_source()
+        self.options: dict[str, QCheckBox] = {}
+        hidden = QWidget()
+        grid = QGridLayout(hidden)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setVerticalSpacing(8)
+        for index, (key, text) in enumerate((
+            ("metadata", self.tr("Metadatos: autor, programa, fechas y XMP")),
+            ("javascript", self.tr("JavaScript y acciones automáticas")),
+            ("attachments", self.tr("Archivos adjuntos")),
+            ("thumbnails", self.tr("Miniaturas guardadas en el PDF")),
+        )):
+            box = QCheckBox(text)
+            box.setChecked(True)
+            self.options[key] = box
+            grid.addWidget(box, index // 2, index % 2)
+        self.add_field(self.tr("Datos ocultos"), hidden)
+        visible = QWidget()
+        grid = QGridLayout(visible)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setVerticalSpacing(8)
+        for index, (key, text) in enumerate((
+            ("comments", self.tr("Comentarios y anotaciones")),
+            ("links", self.tr("Enlaces")),
+            ("forms", self.tr("Valores de los formularios")),
+            ("hidden_text", self.tr("Texto invisible (también el del OCR)")),
+        )):
+            box = QCheckBox(text)
+            self.options[key] = box
+            grid.addWidget(box, index // 2, index % 2)
+        self.add_field(self.tr("También cambian lo que se ve"), visible,
+                       self.tr("Quitar el texto invisible hace que un escaneo con OCR deje de poder buscarse."))
+        self.add_output()
+        self.finish_build()
+
+    def job(self):
+        source = self.require_source()
+        output = self.require_output(self.output, [self.source.original_path()])
+        options = {key: box.isChecked() for key, box in self.options.items()}
+        return "blackpdf.core.sanitize:clean_pdf", (source, output, options), self.common_kwargs()
+
+    def describe_result(self, result):
+        before, after = result.before, result.after
+        removed = []
+        if before.metadata and not after.metadata or before.xmp and not after.xmp:
+            removed.append(self.tr("metadatos"))
+        if before.javascript and not after.javascript:
+            removed.append(self.tr("JavaScript"))
+        for count_before, count_after, one, many in (
+            (before.attachments, after.attachments, self.tr("1 adjunto"), self.tr("{0} adjuntos")),
+            (before.thumbnails, after.thumbnails, self.tr("1 miniatura"), self.tr("{0} miniaturas")),
+            (before.comments, after.comments, self.tr("1 comentario"), self.tr("{0} comentarios")),
+            (before.links, after.links, self.tr("1 enlace"), self.tr("{0} enlaces")),
+        ):
+            gone = count_before - count_after
+            if gone > 0:
+                removed.append(one if gone == 1 else many.format(gone))
+        detail = (self.tr("Se ha quitado: {0}.").format(", ".join(removed)) if removed
+                  else self.tr("No había datos ocultos de los elegidos."))
+        detail += " " + self.tr("Se ha guardado «{0}».").format(result.path.name)
+        return self.tr("Documento limpio"), detail, [result.path]
