@@ -546,6 +546,52 @@ def nurbs_surface(degree_u, degree_v, rows, knots_u, knots_v):
     return write
 
 
+def _placement(w: BitWriter, origin=(0.0, 0.0, 0.0), x_axis=None, y_axis=None) -> None:
+    """Transformación de una superficie analítica: traslación y, si se da, giro (ejes x e y)."""
+    behaviour = (0x01 if any(origin) else 0) | (0x02 if x_axis is not None else 0)
+    if not behaviour:
+        w.bit(0)
+        return
+    w.bit(1)
+    w.char(behaviour)
+    if behaviour & 0x01:
+        w.doubles(*origin)
+    if behaviour & 0x02:
+        w.doubles(*x_axis)
+        w.doubles(*y_axis)
+
+
+def cylinder_surface(radius: float, height: float, origin=(0.0, 0.0, 0.0), x_axis=None, y_axis=None):
+    """Cilindro sin tapas, de eje z local (addCylinder de Asymptote)."""
+
+    def write(w: BitWriter) -> None:
+        w.uint(82)  # PRC_TYPE_SURF_Cylinder
+        w.bit(0)
+        w.uint(0)
+        _placement(w, origin, x_axis, y_axis)
+        w.bit(0)
+        w.doubles(0.0, 0.0, 2 * math.pi, height)
+        w.doubles(1.0, 1.0, 0.0, 0.0)
+        w.double(radius)
+    return write
+
+
+def torus_surface(major: float, minor: float, origin=(0.0, 0.0, 0.0), x_axis=None, y_axis=None):
+    """Toro completo de eje z local (addTorus de Asymptote)."""
+
+    def write(w: BitWriter) -> None:
+        w.uint(92)  # PRC_TYPE_SURF_Torus
+        w.bit(0)
+        w.uint(0)
+        _placement(w, origin, x_axis, y_axis)
+        w.bit(0)
+        w.doubles(0.0, 0.0, 2 * math.pi, 2 * math.pi)
+        w.doubles(1.0, 1.0, 0.0, 0.0)
+        w.double(major)
+        w.double(minor)
+    return write
+
+
 def sphere_surface(radius: float, origin=(0.0, 0.0, 0.0)):
     def write(w: BitWriter) -> None:
         w.uint(88)  # PRC_TYPE_SURF_Sphere
@@ -561,7 +607,7 @@ def sphere_surface(radius: float, origin=(0.0, 0.0, 0.0)):
     return write
 
 
-def disk_surface(radius: float):
+def disk_surface(radius: float, origin=(0.0, 0.0, 0.0), x_axis=None, y_axis=None):
     """Disco como superficie reglada entre dos círculos (addDisk de Asymptote)."""
 
     def circle(w: BitWriter, r: float) -> None:
@@ -578,7 +624,7 @@ def disk_surface(radius: float):
         w.uint(87)  # PRC_TYPE_SURF_Ruled
         w.bit(0)
         w.uint(0)
-        w.bit(0)  # sin transformación
+        _placement(w, origin, x_axis, y_axis)
         w.bit(0)
         w.doubles(0.0, 0.0, 1.0, 2 * math.pi)
         w.doubles(1.0, -1.0, 0.0, 2 * math.pi)

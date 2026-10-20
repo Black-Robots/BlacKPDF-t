@@ -19,7 +19,7 @@ from blackpdf.core.model3d.scene import IDENTITY, Scene, build_triangles, invert
 
 from prc_writer import (
     BitWriter, bezier_wire, brep, build_brep_prc, build_prc, compressed_brep, disk_surface, nurbs_surface,
-    offset_surface, sphere_surface,
+    cylinder_surface, offset_surface, sphere_surface, torus_surface,
 )
 
 DATA = Path(__file__).parent / "data" / "model3d"
@@ -601,3 +601,25 @@ def test_unsupported_body_keeps_the_readable_ones():
     scene = file.scene()
     assert [part.name for part in scene.parts] == ["Buena"]
     assert scene.triangle_count > 0
+
+
+def test_prc_cylinder_and_torus_with_rotation():
+    # Rueda de eje y: el eje z local se lleva a -y con los ejes x=(1,0,0), y=(0,0,1).
+    axes = {"x_axis": (1.0, 0.0, 0.0), "y_axis": (0.0, 0.0, 1.0)}
+    data = build_brep_prc(
+        [brep([cylinder_surface(0.5, 2.0, origin=(0.0, 0.0, 1.0)),
+               torus_surface(3.0, 1.0, origin=(10.0, 0.0, 0.0), **axes)])],
+        [("brep", "Rueda", 0, 0)],
+        colors=[(0.2, 0.2, 0.2)],
+    )
+    file = prc.PRCFile(data)
+    assert not file.warnings
+    cylinder, torus = (face.surface for face in file.structures[0].geometry[0][0].faces)
+    assert cylinder.point(0.0, 2.0) == pytest.approx((0.5, 0.0, 3.0))
+    assert cylinder.point(0.5 * math.pi, 0.0) == pytest.approx((0.0, 0.5, 1.0), abs=1e-12)
+    # Toro: punto más exterior en u=0, v=0; con el giro, el eje del toro es -y.
+    assert torus.point(0.0, 0.0) == pytest.approx((14.0, 0.0, 0.0))
+    assert torus.point(0.0, 0.5 * math.pi) == pytest.approx((13.0, -1.0, 0.0), abs=1e-12)
+    lo, hi = file.scene().bounds()
+    assert hi[0] == pytest.approx(14.0, abs=0.01)
+    assert lo[1] == pytest.approx(-1.0, abs=0.01) and hi[1] == pytest.approx(1.0, abs=0.01)
