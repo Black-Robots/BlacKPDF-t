@@ -15,6 +15,8 @@ dependencies = [
     "PySide6-Essentials>=6.10",
     "PyMuPDF>=1.26",
     "pyhanko>=0.38",
+    # STEP e IGES: OpenCASCADE a través de gmsh (GPL-2.0 o posterior, compatible con la AGPL).
+    "gmsh>=4.13",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",

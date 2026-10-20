@@ -963,6 +963,71 @@ class RedactTool(AnnotationTool):
         painter.drawRect(area)
 
 
+class PlaceRectTool(ViewerTool):
+    """Dibuja un recuadro en una página y lo devuelve (por ejemplo, para colocar un modelo 3D)."""
+
+    name = "place"
+    placed = Signal(int, object)
+    """(página, rectángulo en coordenadas visibles de la página)."""
+
+    def __init__(self, viewer):
+        super().__init__(viewer)
+        self._page = -1
+        self._start = QPointF()
+        self._end = QPointF()
+
+    def cursor(self):
+        return QCursor(Qt.CursorShape.CrossCursor)
+
+    def hover(self, event):
+        self.viewer.viewport().setCursor(self.cursor())
+
+    def press(self, event):
+        hit = self.viewer.hit_test(event.position())
+        if hit is None:
+            return
+        self._page = hit.page
+        self._start = self._end = hit.point
+
+    def move(self, event):
+        if self._page < 0:
+            return
+        hit = self.viewer.hit_test(event.position(), clamp=True)
+        if hit is not None and hit.page == self._page:
+            self._end = hit.point
+            self.update()
+
+    def release(self, event):
+        if self._page < 0:
+            return
+        page = self._page
+        area = QRectF(self._start, self._end).normalized()
+        self.cancel()
+        size = self.viewer.model.page_size(page)
+        if area.width() * self.viewer.scale < 12 or area.height() * self.viewer.scale < 12:
+            # Un clic: recuadro de la mitad del ancho de la página, centrado donde se ha pulsado.
+            width = size.width() * 0.5
+            height = width * 0.75
+            left = min(max(0.0, area.center().x() - width / 2), size.width() - width)
+            top = min(max(0.0, area.center().y() - height / 2), size.height() - height)
+            area = QRectF(left, top, width, height)
+        self.placed.emit(page, pymupdf.Rect(area.left(), area.top(), area.right(), area.bottom()))
+        self.finished.emit()
+
+    def cancel(self):
+        self._page = -1
+        self.update()
+
+    def paint_page(self, painter, page):
+        if page != self._page:
+            return
+        fill = QColor(theme.color("accent"))
+        fill.setAlphaF(0.10)
+        painter.setBrush(fill)
+        painter.setPen(QPen(theme.color("accent"), 1.0 / max(self.viewer.scale, 0.1) * 1.5, Qt.PenStyle.DashLine))
+        painter.drawRect(QRectF(self._start, self._end).normalized())
+
+
 TOOL_CLASSES = {
     "select": SelectTool,
     "hand": HandTool,

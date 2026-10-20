@@ -63,9 +63,9 @@ def open_any_filter() -> str:
     """Filtro de «Abrir»: documentos y modelos 3D sueltos."""
     return ";;".join((
         tr("Todos los compatibles (*.pdf *.xps *.oxps *.epub *.cbz *.fb2 *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.gif "
-           "*.webp *.u3d *.prc)"),
+           "*.webp *.u3d *.prc *.step *.stp *.iges *.igs *.stl *.obj *.3mf *.glb *.gltf)"),
         tr("Documentos PDF (*.pdf)"),
-        tr("Modelos 3D (*.u3d *.prc)"),
+        tr("Modelos 3D (*.step *.stp *.iges *.igs *.stl *.obj *.3mf *.glb *.gltf *.u3d *.prc)"),
     ))
 
 

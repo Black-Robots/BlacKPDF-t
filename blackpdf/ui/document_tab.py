@@ -32,8 +32,8 @@ from .annotation_bar import TOOL_SHORTCUTS, AnnotationBar
 from .dialogs.common import PropertiesDialog, ask_password, confirm_discard
 from .dialogs.signature import SignatureDialog
 from .document import PdfDocument
-from .errors import show_error
-from .interaction import STYLED_TOOLS, RedactTool, SignatureTool, create_tool
+from .errors import show_crash, show_error
+from .interaction import STYLED_TOOLS, PlaceRectTool, RedactTool, SignatureTool, create_tool
 from .keys import shortcut_text
 from .attachments import AttachmentsPanel
 from .comments import CommentsPanel
@@ -399,6 +399,7 @@ class DocumentTab(QWidget):
         self.outline.pageRequested.connect(lambda p: self.viewer.jump_to_page(p))
         self.attachments = AttachmentsPanel(self.document, frame)
         self.attachments.openFiles.connect(self.openRequested)
+        self.attachments.insert3dRequested.connect(lambda path: self.insert_model_3d(path, already_attached=True))
         self.attachments.locate.connect(self._show_comment)
         self.attachments.countChanged.connect(lambda _: self._update_sidebar_header())
         self.sidebar_stack.addWidget(self.thumbnails)
@@ -1200,6 +1201,7 @@ class DocumentTab(QWidget):
                                lambda: self.show_comments(edit_xref=xref))
             menu.addAction(icons.icon("message-square-plus"), self.tr("Añadir comentario aquí"),
                            lambda: self._comment_at(hit.page, hit.point))
+            menu.addAction(icons.icon("box"), self.tr("Insertar modelo 3D..."), lambda: self.insert_model_3d())
             menu.addAction(icons.icon("text-select"), self.tr("Seleccionar texto de la página"),
                            lambda: self.viewer.select_page_text(hit.page))
             menu.addSeparator()
@@ -1375,6 +1377,86 @@ class DocumentTab(QWidget):
             menu.addAction(icons.icon("box"), self.tr("Página {0} · {1}").format(item.page + 1, item.format),
                            lambda i=item: self.open_model(i))
         menu.exec(QCursor.pos())
+
+    # ---------- insertar modelos 3D ----------
+    def insert_model_3d(self, path: str = "", already_attached: bool = False) -> None:
+        """Mete una pieza 3D en el PDF: en un recuadro que se dibuja o en una página nueva."""
+        from PySide6.QtWidgets import QDialog
+
+        from .dialogs.model3d_insert import Insert3DDialog
+
+        if self._organizing:
+            self.set_organize_mode(False)
+        dialog = Insert3DDialog(self, path, already_attached)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        options = dialog.options()
+        if options.placement == "page":
+            size = self.document.page_size(self.viewer.current_page)
+            margin = min(size.width(), size.height()) * 0.06
+            self._prepare_model(options, None, None,
+                                (size.width() - 2 * margin) / max(1.0, size.height() - 2 * margin))
+            return
+        tool = PlaceRectTool(self.viewer)
+        tool.placed.connect(lambda page, rect: self._prepare_model(options, page, rect, rect.width / rect.height))
+        tool.finished.connect(lambda: self.set_tool("select"))
+        self._tool_name = "place"
+        self.viewer.set_tool(tool)
+        self.annotation_bar.set_active("")
+        Toast.show_message(self.window(), self.tr("Arrastra un recuadro donde quieras la vista 3D (Esc para cancelar)"),
+                           duration=6000)
+
+    def _prepare_model(self, options, page, rect, aspect: float) -> None:
+        """Convierte la pieza en segundo plano (un STEP grande puede tardar) y luego la inserta."""
+        from PySide6.QtWidgets import QProgressDialog
+
+        progress = QProgressDialog(self.tr("Preparando el modelo 3D..."), self.tr("Cancelar"), 0, 0, self.window())
+        progress.setWindowTitle(self.tr("Insertar modelo 3D"))
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setAutoClose(False)
+        progress.setAutoReset(False)
+        task = tasks.start("blackpdf.core.model3d.insert:prepare", options.path, aspect, options.background)
+
+        def finished(handler):
+            def call(*args):
+                progress.close()
+                progress.deleteLater()
+                self._model_task = None
+                handler(*args)
+            return call
+
+        task.signals.progress.connect(lambda done, total: (progress.setRange(0, total), progress.setValue(done)))
+        task.signals.succeeded.connect(finished(lambda prepared: self._insert_prepared(options, page, rect, prepared)))
+        task.signals.failed.connect(finished(lambda exc: show_error(self, exc)))
+        task.signals.crashed.connect(finished(lambda details: show_crash(self, details)))
+        task.signals.cancelled.connect(finished(lambda: None))
+        progress.canceled.connect(task.cancel)
+        progress.show()
+        self._model_task = task
+
+    def _insert_prepared(self, options, page, rect, prepared) -> None:
+        from ..core import attachments as core_attachments
+        from ..core.model3d import insert as model_insert
+
+        current = self.viewer.current_page
+
+        def operation(doc):
+            if page is None:
+                index, target = model_insert.new_page_rect(doc, current)
+            else:
+                index, target = page, rect
+            model_insert.insert_model(doc, index, target, prepared)
+            if options.attach_original:
+                core_attachments.add_attachment(doc, options.path, self.tr("Archivo original del modelo 3D"))
+            return index
+
+        index = self._edit(self.tr("Insertar modelo 3D"), operation)
+        if index is None:
+            return
+        QTimer.singleShot(0, lambda: self.viewer.go_to_page(index))
+        Toast.show_message(self.window(), self.tr("Modelo 3D insertado. Haz clic en él para verlo en 3D."),
+                           self.tr("Deshacer"), self.undo, kind="success", duration=6000)
 
     def show_properties(self) -> None:
         PropertiesDialog(document_info(self.document.doc), self.document.path, self).exec()

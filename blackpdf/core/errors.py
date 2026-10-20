@@ -64,6 +64,10 @@ class Model3DError(BlackPdfError):
     """El modelo 3D no se puede leer: formato desconocido o datos dañados (params: path)."""
 
 
+class CadUnavailableError(BlackPdfError):
+    """Falta el componente que lee STEP e IGES (gmsh) (params: path)."""
+
+
 class Model3DEmptyError(BlackPdfError):
     """El modelo 3D se ha leído pero no contiene geometría visible (params: path)."""
 

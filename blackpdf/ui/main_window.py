@@ -527,6 +527,8 @@ class MainWindow(QMainWindow):
             tab.set_tool("pen")
         elif tool_id == "organize":
             tab.set_organize_mode(True)
+        elif tool_id == "insert3d":
+            tab.insert_model_3d()
 
     # ======================================================================
     # Acciones globales

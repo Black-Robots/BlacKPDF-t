@@ -29,7 +29,10 @@ __all__ = [
     "page_models",
 ]
 
-MODEL_EXTENSIONS = (".u3d", ".prc")
+from .meshes import CAD_EXTENSIONS, MESH_EXTENSIONS  # noqa: E402
+
+MODEL_EXTENSIONS = (".u3d", ".prc") + MESH_EXTENSIONS + CAD_EXTENSIONS
+"""Lo que abre el visor 3D: modelos de PDF 3D, mallas y archivos de CAD."""
 
 
 def _decode_errors():
@@ -55,8 +58,15 @@ def detect_format(data: bytes) -> str | None:
 
 
 def load_file(path: str, progress: ProgressCallback | None = None) -> Scene:
-    """Lee un archivo .u3d o .prc suelto."""
+    """Lee un modelo suelto: .u3d, .prc, una malla (STL, OBJ...) o un archivo de CAD (STEP, IGES)."""
+    from pathlib import Path
+
     from .pdf3d import decode
+
+    if Path(path).suffix.lower() in MESH_EXTENSIONS + CAD_EXTENSIONS:
+        from .meshes import load_mesh_file
+
+        return _checked(load_mesh_file(path, progress), path)
 
     try:
         with open(path, "rb") as handle:

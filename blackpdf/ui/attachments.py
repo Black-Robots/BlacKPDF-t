@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 from ..core import attachments as core
 from ..core.errors import BlackPdfError
 from ..core.model3d import MODEL_EXTENSIONS
+from ..core.model3d.insert import INSERTABLE_EXTENSIONS
 from . import formatting, icons, platform
 from .comments import ColorDot
 from .document import PdfDocument
@@ -52,6 +53,7 @@ def _temp_folder() -> Path:
 
 class AttachmentCard(QFrame):
     openRequested = Signal(object)
+    insert3dRequested = Signal(object)
     saveRequested = Signal(object)
     removeRequested = Signal(object)
     locateRequested = Signal(object)
@@ -87,6 +89,8 @@ class AttachmentCard(QFrame):
         menu = QMenu(more)
         menu.addAction(icons.icon("external-link"), self.tr("Abrir"), lambda: self.openRequested.emit(item))
         menu.addAction(icons.icon("download"), self.tr("Guardar como..."), lambda: self.saveRequested.emit(item))
+        if item.extension in INSERTABLE_EXTENSIONS:
+            menu.addAction(icons.icon("box"), self.tr("Insertar como vista 3D"), lambda: self.insert3dRequested.emit(item))
         if item.page is not None:
             menu.addAction(icons.icon("search"), self.tr("Ir a la página"), lambda: self.locateRequested.emit(item))
         menu.addSeparator()
@@ -114,6 +118,8 @@ class AttachmentsPanel(QWidget):
     openFiles = Signal(list)
     """Adjuntos que se abren en BlackPDF (PDF, XPS, EPUB o modelos 3D)."""
     locate = Signal(int, QRectF)
+    insert3dRequested = Signal(str)
+    """Ruta temporal de un adjunto 3D para meterlo como vista 3D."""
 
     def __init__(self, document: PdfDocument, parent=None):
         super().__init__(parent)
@@ -203,6 +209,7 @@ class AttachmentsPanel(QWidget):
         for item in self.items:
             card = AttachmentCard(item)
             card.openRequested.connect(self.open_attachment)
+            card.insert3dRequested.connect(self._insert_3d)
             card.saveRequested.connect(self.save_attachment)
             card.removeRequested.connect(self.remove_attachment)
             card.locateRequested.connect(self._locate)
@@ -242,6 +249,15 @@ class AttachmentsPanel(QWidget):
             QMessageBox.information(self, self.tr("Abrir adjunto"), self.tr(
                 "No hay ningún programa para abrir archivos {0} en este equipo. "
                 "Guárdalo y ábrelo con el programa que uses.").format(item.extension or ""))
+
+    def _insert_3d(self, item: core.Attachment) -> None:
+        try:
+            path = core.save_attachment(self.document.doc, item,
+                                        str(_temp_folder() / core.safe_filename(item.filename)))
+        except BlackPdfError as exc:
+            show_error(self, exc)
+            return
+        self.insert3dRequested.emit(path)
 
     def save_attachment(self, item: core.Attachment) -> None:
         suggested = str(Path(settings().last_directory) / core.safe_filename(item.filename))

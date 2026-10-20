@@ -92,7 +92,9 @@ def _items(obj) -> list:
 
 
 def _stream_bytes(obj) -> bytes:
-    return bytes(mupdf.pdf_load_stream(obj).fz_buffer_extract())
+    # Copia: con objetos creados en memoria MuPDF devuelve su propio búfer, y
+    # fz_buffer_extract lo vaciaría (se perdería, por ejemplo, la portada del modelo).
+    return bytes(mupdf.pdf_load_stream(obj).fz_buffer_extract_copy())
 
 
 def _page_box(page_obj) -> tuple[float, float, float, float]:

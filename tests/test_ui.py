@@ -894,3 +894,96 @@ def test_attachments_panel(qapp, window, tmp_path, monkeypatch):
     pump(qapp, 0.4)
     assert core_attachments.count_attachments(tab.document.doc) == 4
     tab.document._modified = False
+
+
+def _stl_cube(path):
+    import struct
+
+    cube = [(0, 0, 0), (10, 0, 0), (10, 10, 0), (0, 10, 0), (0, 0, 10), (10, 0, 10), (10, 10, 10), (0, 10, 10)]
+    quads = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
+    tris = [(q[0], q[1], q[2]) for q in quads] + [(q[0], q[2], q[3]) for q in quads]
+    data = bytearray(b"\0" * 80 + struct.pack("<I", len(tris)))
+    for tri in tris:
+        data += struct.pack("<12fH", 0, 0, 0, *cube[tri[0]], *cube[tri[1]], *cube[tri[2]], 0)
+    path.write_bytes(bytes(data))
+    return path
+
+
+def test_insert3d_dialog_validates_file(qapp, tmp_path):
+    from blackpdf.ui.dialogs.model3d_insert import Insert3DDialog
+
+    dialog = Insert3DDialog(None, "")
+    assert not dialog.ok.isEnabled()
+    dialog.picker.set_path(str(_stl_cube(tmp_path / "pieza.stl")))
+    assert dialog.ok.isEnabled()
+    dialog.placement.set_value("page")
+    assert dialog.ok.text() == "Insertar"
+    dialog.placement.set_value("rect")
+    assert dialog.ok.text() == "Dibujar el recuadro"
+    other = tmp_path / "plano.dwg"
+    other.write_bytes(b"x")
+    dialog.picker.set_path(str(other))
+    assert not dialog.ok.isEnabled() and dialog.cad_note.isVisibleTo(dialog)
+    attached = Insert3DDialog(None, str(tmp_path / "pieza.stl"), already_attached=True)
+    assert not attached.attach.isChecked(), "si ya va adjunta no se vuelve a adjuntar"
+
+
+def test_insert_model_in_rect_and_new_page(qapp, opened, tmp_path):
+    import pymupdf
+
+    from blackpdf.core import attachments as core_attachments
+    from blackpdf.core import model3d
+    from blackpdf.ui.dialogs.model3d_insert import Insert3DOptions
+
+    _, tab, _ = opened
+    stl = _stl_cube(tmp_path / "pieza.stl")
+    pages = tab.document.page_count
+    rect = pymupdf.Rect(60, 60, 360, 285)
+    tab._prepare_model(Insert3DOptions(str(stl), "rect", (1.0, 1.0, 1.0), False), 0, rect, rect.width / rect.height)
+    assert wait_until(qapp, lambda: model3d.find_models(tab.document.doc), timeout=60)
+    assert tab.document.page_count == pages and model3d.find_models(tab.document.doc)[0].page == 0
+    middle = QPointF((rect.x0 + rect.x1) / 2, (rect.y0 + rect.y1) / 2)
+    assert tab.viewer.model_at(tab.viewer.hit_test(tab.viewer.page_to_viewport(0, middle))) is not None, "se puede pulsar"
+
+    tab._prepare_model(Insert3DOptions(str(stl), "page", (0.11, 0.11, 0.13), True), None, None, 4 / 3)
+    assert wait_until(qapp, lambda: tab.document.page_count == pages + 1, timeout=60)
+    pump(qapp, 0.2)
+    assert len(model3d.find_models(tab.document.doc)) == 2
+    assert [a.filename for a in core_attachments.list_attachments(tab.document.doc)] == ["pieza.stl"]
+    tab.undo()
+    pump(qapp, 0.3)
+    assert tab.document.page_count == pages and len(model3d.find_models(tab.document.doc)) == 1
+    assert core_attachments.count_attachments(tab.document.doc) == 0
+    tab.document._modified = False
+
+
+def test_place_rect_tool_click_gives_default_rect(qapp, opened):
+    from blackpdf.ui.interaction import PlaceRectTool
+
+    _, tab, _ = opened
+    tool = PlaceRectTool(tab.viewer)
+    tab.viewer.set_tool(tool)
+    placed = []
+    tool.placed.connect(lambda page, rect: placed.append((page, rect)))
+    point = tab.viewer.page_to_viewport(0, QPointF(300, 400))
+    mouse(tab.viewer.viewport(), "press", point)
+    mouse(tab.viewer.viewport(), "release", point)
+    assert placed and placed[0][0] == 0
+    rect = placed[0][1]
+    size = tab.document.page_size(0)
+    assert rect.width == size.width() * 0.5 and 0 <= rect.x0 and rect.x1 <= size.width()
+    tab.set_tool("select")
+
+
+def test_open_mesh_file_in_3d_viewer(qapp, window, tmp_path):
+    from blackpdf.core import model3d
+
+    stl = _stl_cube(tmp_path / "pieza.stl")
+    tabs_before = window.tab_bar.count()
+    window.open_files([str(stl)])
+    pump(qapp, 0.2)
+    assert window.tab_bar.count() == tabs_before and len(window._model_windows) == 1, "va al visor 3D"
+    assert model3d.load_file(str(stl)).triangle_count == 12
+    for win in list(window._model_windows.values()):
+        win.close()
+    pump(qapp, 0.05)

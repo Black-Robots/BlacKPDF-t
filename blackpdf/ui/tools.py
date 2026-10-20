@@ -46,6 +46,7 @@ def tool_specs() -> list[ToolSpec]:
         ToolSpec("from_images", _tr("Imagen a PDF"), _tr("Convierte fotos y escaneos en un PDF."), "images", "convert"),
         ToolSpec("annotate", _tr("Anotar y dibujar"), _tr("Lápiz, resaltador, formas, texto y notas."), "pen-line", "edit", True),
         ToolSpec("sign", _tr("Firmar PDF"), _tr("Dibuja tu firma una vez y estámpala donde quieras."), "signature", "edit", True),
+        ToolSpec("insert3d", _tr("Modelo 3D en PDF"), _tr("Mete piezas STEP, STL, OBJ... para verlas en 3D en el PDF."), "box", "edit", True),
         ToolSpec("forms", _tr("Rellenar formulario"), _tr("Completa formularios PDF y, si quieres, aplánalos."), "text-cursor-input", "edit", True),
         ToolSpec("watermark", _tr("Marca de agua"), _tr("Estampa texto o una imagen con opacidad y giro."), "stamp", "edit"),
         ToolSpec("page_numbers", _tr("Números de página"), _tr("Numera las páginas con el formato que elijas."), "hash", "edit"),
@@ -88,7 +89,7 @@ def dialog_class(tool_id: str):
 
 def document_menu_entries() -> list[tuple[str, str, str]]:
     """Herramientas aplicables al documento abierto, para su menú."""
-    order = ["compress", "ocr", "-", "watermark", "page_numbers", "crop", "resize", "flatten", "forms", "-",
+    order = ["compress", "ocr", "-", "insert3d", "watermark", "page_numbers", "crop", "resize", "flatten", "forms", "-",
              "split", "extract", "rotate", "merge", "alternate", "-", "to_images", "-", "sign_certificate", "protect", "unlock"]
     specs = {t.id: t for t in tool_specs()}
     entries = []
