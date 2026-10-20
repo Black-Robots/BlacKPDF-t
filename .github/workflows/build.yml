@@ -79,11 +79,15 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v5
       - uses: actions/download-artifact@v5
         with:
           path: dist
           merge-multiple: true
+      - name: Sumas de comprobación
+        run: cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
         with:
           files: dist/*
+          body_path: RELEASE_NOTES.md
           generate_release_notes: true
