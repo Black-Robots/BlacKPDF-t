@@ -281,7 +281,7 @@ class DocumentTab(QWidget):
         layout.addWidget(self.page_total)
         layout.addStretch(1)
 
-        self.zoom_out_button = self._button("zoom-out", self.tr("Alejar"), self.viewer.zoom_out, "Ctrl+-")
+        self.zoom_out_button = self._button("zoom-out", self.tr("Alejar"), self.zoom_out, "Ctrl+-")
         layout.addWidget(self.zoom_out_button)
         self.zoom_box = QComboBox(bar)
         self.zoom_box.setEditable(True)
@@ -290,17 +290,17 @@ class DocumentTab(QWidget):
         self.zoom_box.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         for value in ZOOM_PRESETS:
             self.zoom_box.addItem(formatting.percent(value), value / 100)
-        self.zoom_box.activated.connect(lambda i: self.viewer.set_zoom(self.zoom_box.itemData(i)))
-        self.zoom_box.lineEdit().returnPressed.connect(self._zoom_from_text)
+        self.zoom_box.activated.connect(lambda i: (self.leave_organize(), self.viewer.set_zoom(self.zoom_box.itemData(i))))
+        self.zoom_box.lineEdit().returnPressed.connect(self._in_viewer(self._zoom_from_text))
         self.zoom_box.lineEdit().setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.zoom_box)
-        self.zoom_in_button = self._button("zoom-in", self.tr("Acercar"), self.viewer.zoom_in, "Ctrl++")
+        self.zoom_in_button = self._button("zoom-in", self.tr("Acercar"), self.zoom_in, "Ctrl++")
         layout.addWidget(self.zoom_in_button)
         self.fit_width_button = self._button(
-            "move-horizontal", self.tr("Ajustar al ancho"), lambda: self.viewer.set_fit_mode("width"), "Ctrl+1", True
+            "move-horizontal", self.tr("Ajustar al ancho"), self._in_viewer(lambda: self.viewer.set_fit_mode("width")), "Ctrl+1", True
         )
         self.fit_page_button = self._button(
-            "scan", self.tr("Página completa"), lambda: self.viewer.set_fit_mode("page"), "Ctrl+2", True
+            "scan", self.tr("Página completa"), self._in_viewer(lambda: self.viewer.set_fit_mode("page")), "Ctrl+2", True
         )
         layout.addWidget(self.fit_width_button)
         layout.addWidget(self.fit_page_button)
@@ -458,6 +458,9 @@ class DocumentTab(QWidget):
             self.comments.edit_comment_later(edit_xref)
 
     def toggle_comments(self) -> None:
+        if self.leave_organize() and self._comments_shown:
+            self.comments_button.setChecked(True)
+            return
         self.set_comments_visible(not self._comments_shown)
 
     def set_comments_visible(self, visible: bool) -> None:
@@ -586,10 +589,33 @@ class DocumentTab(QWidget):
             self._set_panel_widths(left=self._sidebar_width if self._sidebar_before_organize else 0,
                                    right=self._comments_width if self._comments_shown else 0)
             self.viewer.setFocus()
-        for widget in (self.zoom_out_button, self.zoom_box, self.zoom_in_button, self.fit_width_button,
-                       self.fit_page_button, self.annotate_button, self.comments_button, self.search_button,
-                       self.sidebar_button, self.split_button):
-            widget.setEnabled(not on)
+
+    def leave_organize(self) -> bool:
+        """Vuelve de la cuadrícula al visor (al pulsar otra vista). Devuelve si estaba en ella."""
+        if not self._organizing:
+            return False
+        self.set_organize_mode(False)
+        return True
+
+    def zoom_in(self) -> None:
+        """En la cuadrícula agranda las miniaturas (como Ctrl+rueda); si no, acerca el documento."""
+        if self._organizing:
+            self.organizer.set_box(round(self.organizer.organizer_delegate.box * 1.15))
+        else:
+            self.viewer.zoom_in()
+
+    def zoom_out(self) -> None:
+        if self._organizing:
+            self.organizer.set_box(round(self.organizer.organizer_delegate.box / 1.15))
+        else:
+            self.viewer.zoom_out()
+
+    def _in_viewer(self, slot):
+        """`slot` envuelto para que antes salga de la cuadrícula."""
+        def call():
+            self.leave_organize()
+            slot()
+        return call
 
     def _open_from_organizer(self, page: int) -> None:
         self.set_organize_mode(False)
@@ -597,6 +623,9 @@ class DocumentTab(QWidget):
 
     # ---------- vista dividida ----------
     def toggle_split(self) -> None:
+        if self.leave_organize() and self.split_pane is not None:
+            self.split_button.setChecked(True)
+            return
         self.set_split(self.split_pane is None)
 
     def set_split(self, on: bool, model: PdfDocument | None = None) -> None:
@@ -644,9 +673,9 @@ class DocumentTab(QWidget):
         for key, slot in (
             ("Ctrl+Shift+L", lambda: self.rotate_pages(-90)),
             ("Ctrl+Shift+R", lambda: self.rotate_pages(90)),
-            ("Ctrl+1", lambda: self.viewer.set_fit_mode("width")),
-            ("Ctrl+2", lambda: self.viewer.set_fit_mode("page")),
-            ("Ctrl+0", lambda: self.viewer.set_zoom(1.0)),
+            ("Ctrl+1", self._in_viewer(lambda: self.viewer.set_fit_mode("width"))),
+            ("Ctrl+2", self._in_viewer(lambda: self.viewer.set_fit_mode("page"))),
+            ("Ctrl+0", self._in_viewer(lambda: self.viewer.set_zoom(1.0))),
             ("Ctrl+M", lambda: self.set_night_mode(not self.viewer.night_mode)),
             ("Ctrl+E", self.toggle_annotation_bar),
             ("Ctrl+C", self.copy),
@@ -809,6 +838,9 @@ class DocumentTab(QWidget):
     # Panel lateral, barras y modos
     # ======================================================================
     def toggle_sidebar(self) -> None:
+        if self.leave_organize() and self.splitter.sizes()[0] >= 20:
+            self.sidebar_button.setChecked(True)
+            return
         visible = self.splitter.sizes()[0] < 20
         settings().sidebar_visible = visible
         self.sidebar_button.setChecked(visible)
@@ -857,6 +889,9 @@ class DocumentTab(QWidget):
                                right=self._comments_width if visible and self._comments_shown else 0)
 
     def toggle_annotation_bar(self) -> None:
+        if self.leave_organize() and self.annotation_bar.isVisible():
+            self.annotate_button.setChecked(True)
+            return
         visible = not self.annotation_bar.isVisible()
         settings().annotation_bar_visible = visible
         self.annotation_bar.setVisible(visible)
@@ -879,6 +914,7 @@ class DocumentTab(QWidget):
             self.split_pane.set_night_mode(enabled)
 
     def find(self) -> None:
+        self.leave_organize()
         text = self.viewer.selected_text().strip()
         self.search_bar.open_bar(text if text and "\n" not in text else "")
         self.area.layout_overlays()

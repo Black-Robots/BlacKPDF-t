@@ -51,6 +51,25 @@ from .widgets import (
 )
 
 
+class HeaderTabBar(QTabBar):
+    """Pestañas de la cabecera: el «+» va justo detrás de la última."""
+
+
+    def minimumSizeHint(self) -> QSize:
+        # Qt reserva siempre el sitio de las flechas de desplazamiento; si todas
+        # las pestañas caben no hacen falta y dejarían un hueco antes del «+».
+        minimum = super().minimumSizeHint()
+        return QSize(min(minimum.width(), self.sizeHint().width()), minimum.height())
+
+    def minimumTabSizeHint(self, index: int) -> QSize:
+        # Sin sitio, las pestañas de documentos se acortan solo hasta aquí y luego se
+        # desplazan con las flechas: así el nombre se sigue leyendo.
+        size = super().minimumTabSizeHint(index)
+        if index > 0:
+            size.setWidth(max(size.width(), min(self.tabSizeHint(index).width(), 140)))
+        return size
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -111,7 +130,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(brand)
         layout.addSpacing(14)
 
-        self.tab_bar = QTabBar(header)
+        self.tab_bar = HeaderTabBar(header)
         self.tab_bar.setDocumentMode(True)
         self.tab_bar.setTabsClosable(True)
         self.tab_bar.setMovable(True)
@@ -345,6 +364,9 @@ class MainWindow(QMainWindow):
             if tab is not None:
                 last = tab
         if last is not None:
+            # Antes, la anchura definitiva de las pestañas: con varias a la vez Qt
+            # calcularía el desplazamiento con la barra estrecha y dejaría un hueco.
+            self.header.layout().activate()
             self.tab_bar.setCurrentIndex(self._tabs.index(last))
 
     def open_and_raise(self, paths: list[str]) -> None:
@@ -534,12 +556,12 @@ class MainWindow(QMainWindow):
     def _zoom_in(self) -> None:
         tab = self.current_tab()
         if tab is not None:
-            tab.viewer.zoom_in()
+            tab.zoom_in()
 
     def _zoom_out(self) -> None:
         tab = self.current_tab()
         if tab is not None:
-            tab.viewer.zoom_out()
+            tab.zoom_out()
 
     def _update_actions(self) -> None:
         has_document = self.current_tab() is not None

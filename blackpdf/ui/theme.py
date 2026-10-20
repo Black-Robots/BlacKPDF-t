@@ -179,6 +179,8 @@ def _cache_dir() -> Path:
 _ICON_SVGS = {
     "chevron-down": '<path d="m6 9 6 6 6-6"/>',
     "chevron-up": '<path d="m18 15-6-6-6 6"/>',
+    "chevron-left": '<path d="m15 18-6-6 6-6"/>',
+    "chevron-right": '<path d="m9 18 6-6-6-6"/>',
     "check": '<path d="M20 6 9 17l-5-5"/>',
     "dot": None,
 }
@@ -210,6 +212,10 @@ def _tint(value: str, alpha: float) -> str:
 def stylesheet(p: Palette) -> str:
     chevron = _write_svg("chevron-down", p.text_muted)
     chevron_up = _write_svg("chevron-up", p.text_muted)
+    tab_left = _write_svg("chevron-left", p.text_secondary, 2.6)
+    tab_right = _write_svg("chevron-right", p.text_secondary, 2.6)
+    tab_left_off = _write_svg("chevron-left", p.text_faint, 2.6)
+    tab_right_off = _write_svg("chevron-right", p.text_faint, 2.6)
     check = _write_svg("check", p.accent_text, 3.0)
     dot = _write_svg("dot", p.accent_text)
     r = RADIUS
@@ -501,6 +507,13 @@ QTabBar::tab {{
 QTabBar::tab:hover {{ background: {p.hover}; color: {p.text}; }}
 QTabBar::tab:selected {{ background: {p.surface_alt}; color: {p.text}; border-color: {p.border_strong}; }}
 QTabBar QToolButton {{ background: {p.surface}; border: 1px solid {p.border}; border-radius: {RADIUS_SMALL}px; }}
+QTabBar::scroller {{ width: 60px; }}
+QTabBar QToolButton:hover {{ background: {p.hover}; }}
+QTabBar QToolButton::left-arrow {{ image: url("{tab_left}"); width: 16px; height: 16px; }}
+QTabBar QToolButton::right-arrow {{ image: url("{tab_right}"); width: 16px; height: 16px; }}
+QTabBar QToolButton::left-arrow:disabled {{ image: url("{tab_left_off}"); }}
+QTabBar QToolButton::right-arrow:disabled {{ image: url("{tab_right_off}"); }}
+QTabBar::tear {{ image: none; width: 0px; border: none; }}
 
 /* ---------- Menús ---------- */
 QMenu {{

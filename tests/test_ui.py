@@ -342,6 +342,52 @@ def test_organizer_mode_reorders_and_acts(qapp, opened):
     assert tab.viewer.current_page == 1
 
 
+def test_other_views_leave_the_grid(qapp, opened):
+    """En la cuadrícula los demás botones siguen activos: al pulsarlos se vuelve al visor."""
+    _, tab, _ = opened
+
+    def grid():
+        tab.set_organize_mode(True)
+        pump(qapp, 0.1)
+        assert tab.zoom_in_button.isEnabled() and tab.split_button.isEnabled()
+
+    def in_viewer():
+        return tab.view_stack.currentWidget() is tab.view_splitter and not tab.organize_button.isChecked()
+
+    grid()
+    tab.fit_width_button.click()
+    assert in_viewer() and tab.viewer.fit_mode == "width"
+    grid()
+    box = tab.organizer.organizer_delegate.box
+    tab.zoom_in_button.click()
+    assert not in_viewer() and tab.organizer.organizer_delegate.box > box, "en la cuadrícula agranda las miniaturas"
+    zoom = tab.viewer.zoom
+    tab.set_organize_mode(False)
+    tab.zoom_in_button.click()
+    assert tab.viewer.zoom > zoom
+    grid()
+    tab.zoom_box.activated.emit(tab.zoom_box.findData(1.5))
+    assert in_viewer() and abs(tab.viewer.zoom - 1.5) < 1e-6
+    grid()
+    tab.split_button.click()
+    pump(qapp, 0.1)
+    assert in_viewer() and tab.split_pane is not None
+    grid()
+    tab.split_button.click()
+    assert in_viewer() and tab.split_pane is not None, "ya estaba dividida: sigue dividida"
+    tab.set_split(False)
+    sidebar_open = tab.splitter.sizes()[0] > 20
+    grid()
+    tab.sidebar_button.click()
+    pump(qapp, 0.4)
+    assert in_viewer() and tab.splitter.sizes()[0] > 20 and tab.sidebar_button.isChecked()
+    assert sidebar_open or tab.splitter.sizes()[0] > 20
+    grid()
+    tab.search_button.click()
+    assert in_viewer() and tab.search_bar.isVisible()
+    tab.search_bar.close_bar()
+
+
 def test_redact_tool_removes_content(qapp, opened):
     _, tab, _ = opened
     tab.set_tool("redact")
