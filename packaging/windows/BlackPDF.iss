@@ -1,5 +1,11 @@
-; Instalador de BlackPDF para Windows (Inno Setup 6).
+; Instalador de BlackPDF para Windows (Inno Setup 6.7).
 ; Compilar: ISCC.exe /DMyAppVersion=1.0.0 /DSourceDir=..\..\build\dist-win\BlackPDF BlackPDF.iss
+; Firmar (cuando haya certificado): ISCC.exe /Ssigntool="signtool.exe sign /fd sha256 ... $f" /DSignTool=signtool ...
+;
+; Actualizar: el mismo AppId instala encima de la versión anterior (misma carpeta, mismas opciones)
+; y conserva las preferencias. Actualización desatendida, la que usará la propia aplicación:
+;   BlackPDF-x.y.z-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /relaunch=1
+; cierra BlackPDF si está abierto, actualiza y lo vuelve a abrir.
 
 #ifndef MyAppVersion
   #define MyAppVersion "1.0.0"
@@ -39,8 +45,19 @@ UninstallDisplayIcon={app}\{#MyAppExe}
 UninstallDisplayName={#MyAppName}
 Compression=lzma2/max
 SolidCompression=yes
-WizardStyle=modern
+; Claro u oscuro según Windows, como la aplicación.
+WizardStyle=modern dynamic windows11
 WizardSizePercent=110
+WizardImageFile=wizard\large-100.png,wizard\large-125.png,wizard\large-150.png,wizard\large-175.png,wizard\large-200.png,wizard\large-250.png
+WizardImageFileDynamicDark=wizard\large-100.png,wizard\large-125.png,wizard\large-150.png,wizard\large-175.png,wizard\large-200.png,wizard\large-250.png
+WizardSmallImageFile=wizard\small-100.png,wizard\small-125.png,wizard\small-150.png,wizard\small-175.png,wizard\small-200.png,wizard\small-250.png
+WizardSmallImageFileDynamicDark=wizard\small-100.png,wizard\small-125.png,wizard\small-150.png,wizard\small-175.png,wizard\small-200.png,wizard\small-250.png
+WizardImageBackColor=#0A0A0B
+WizardImageBackColorDynamicDark=#0A0A0B
+; Al actualizar no se vuelve a preguntar la carpeta.
+DisableDirPage=auto
+; Nunca dos instalaciones a la vez (por ejemplo, una actualización y otra a mano).
+SetupMutex=BlackPDFSetup,Global\BlackPDFSetup
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ; Qt 6 usa la ICU de Windows (icuuc.dll), disponible desde Windows 10 1903.
@@ -54,6 +71,10 @@ VersionInfoVersion={#MyAppVersion}
 VersionInfoProductName={#MyAppName}
 VersionInfoDescription={#MyAppName} Setup
 VersionInfoCompany={#MyAppPublisher}
+#ifdef SignTool
+SignTool={#SignTool}
+SignedUninstaller=yes
+#endif
 
 [Languages]
 ; El instalador elige el idioma de Windows; la aplicación hace lo mismo al arrancar.
@@ -95,8 +116,14 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "associate"; Description: "{cm:AssocTask}"; GroupDescription: "PDF:"
 Name: "makedefault"; Description: "{cm:DefaultTask}"; GroupDescription: "PDF:"; Flags: unchecked
 
+[InstallDelete]
+; Al actualizar se borra la versión anterior de las bibliotecas: así no quedan archivos
+; de versiones viejas mezclados con los nuevos.
+Type: filesandordirs; Name: "{app}\_internal"
+
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExe}"; AppUserModelID: "BlackPDF.BlackPDF"
@@ -126,6 +153,16 @@ Root: HKA; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#MyAppE
 [Run]
 Filename: "ms-settings:defaultapps"; Flags: shellexec nowait postinstall skipifsilent; Tasks: makedefault; Description: "{cm:DefaultTask}"
 Filename: "{app}\{#MyAppExe}"; Description: "{cm:LaunchApp}"; Flags: nowait postinstall skipifsilent
+; Tras una actualización desatendida (/relaunch=1) se vuelve a abrir BlackPDF.
+Filename: "{app}\{#MyAppExe}"; Flags: nowait runasoriginaluser; Check: RelaunchAfterUpdate
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\_internal"
+; Caché de la interfaz (las preferencias del usuario se conservan).
+Type: filesandordirs; Name: "{localappdata}\BlackPDF\BlackPDF\cache"
+
+[Code]
+function RelaunchAfterUpdate: Boolean;
+begin
+  Result := WizardSilent and (ExpandConstant('{param:relaunch|0}') = '1');
+end;

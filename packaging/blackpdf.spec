@@ -14,6 +14,8 @@ from blackpdf import __version__  # noqa: E402
 IS_WINDOWS = sys.platform.startswith("win")
 
 datas = [(str(ROOT / "blackpdf" / "resources"), "blackpdf/resources")]
+# La AGPL exige entregar el texto de la licencia con el programa.
+datas += [(str(ROOT / "LICENSE"), ".")]
 datas += collect_data_files("pyhanko") + collect_data_files("pyhanko_certvalidator") + collect_data_files("certifi")
 
 # Las herramientas se cargan por nombre en el subproceso de trabajo.

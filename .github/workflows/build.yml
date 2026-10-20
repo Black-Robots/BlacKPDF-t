@@ -37,8 +37,12 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - name: Inno Setup
-        run: choco install innosetup --no-progress -y
+      - name: Inno Setup 6.7.3
+        # Versión fija, la misma que en build_windows_wine.sh: el instalador sale igual en local y en CI.
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe -OutFile innosetup.exe
+          Start-Process .\innosetup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/CURRENTUSER' -Wait
       - name: Compilar instalador
         run: powershell -ExecutionPolicy Bypass -File packaging\windows\build_windows.ps1
       - uses: actions/upload-artifact@v5
