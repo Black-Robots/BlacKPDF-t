@@ -1459,7 +1459,15 @@ class DocumentTab(QWidget):
                            self.tr("Deshacer"), self.undo, kind="success", duration=6000)
 
     def show_properties(self) -> None:
-        PropertiesDialog(document_info(self.document.doc), self.document.path, self).exec()
+        from ..core import metadata
+
+        values = metadata.read_metadata(self.document.doc) if self.document.doc.is_pdf else None
+        dialog = PropertiesDialog(document_info(self.document.doc), self.document.path, self, values)
+        if dialog.exec() == PropertiesDialog.DialogCode.Accepted and values is not None and dialog.changes():
+            changes = dialog.changes()
+            if self._edit(self.tr("Cambiar propiedades"), lambda doc: metadata.set_metadata(doc, changes) or True):
+                Toast.show_message(self.window(), self.tr("Propiedades cambiadas. Guarda el PDF para conservarlas."),
+                                   kind="success")
 
     def shutdown(self) -> None:
         self.remember_position()

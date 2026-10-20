@@ -987,3 +987,30 @@ def test_open_mesh_file_in_3d_viewer(qapp, window, tmp_path):
     for win in list(window._model_windows.values()):
         win.close()
     pump(qapp, 0.05)
+
+
+def test_properties_dialog_edits_metadata(qapp, opened, monkeypatch):
+    from blackpdf.core import metadata
+    from blackpdf.ui import document_tab
+    from blackpdf.ui.dialogs.common import PropertiesDialog
+
+    _, tab, _ = opened
+    values = metadata.read_metadata(tab.document.doc)
+    dialog = PropertiesDialog(document_tab.document_info(tab.document.doc), "", None, values)
+    assert not dialog.save_button.isEnabled(), "sin cambios no se guarda"
+    dialog._edits["title"].setText("Planos de la nave")
+    dialog._edits["keywords"].setText("nave, estructura")
+    assert dialog.save_button.isEnabled()
+    assert dialog.changes() == {"title": "Planos de la nave", "keywords": "nave, estructura"}
+
+    class Accepting(PropertiesDialog):
+        def exec(self):
+            self._edits["author"].setText("Ana")
+            return PropertiesDialog.DialogCode.Accepted
+
+    monkeypatch.setattr(document_tab, "PropertiesDialog", Accepting)
+    tab.show_properties()
+    assert metadata.read_metadata(tab.document.doc)["author"] == "Ana" and tab.document.is_modified
+    tab.undo()
+    assert metadata.read_metadata(tab.document.doc)["author"] == values["author"]
+    tab.document._modified = False

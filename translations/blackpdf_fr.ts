@@ -1452,6 +1452,16 @@ Enregistrer quand même ? Avec « Enregistrer sous », l'original conserve ses s
             <source>Modelo 3D insertado. Haz clic en él para verlo en 3D.</source>
             <translation>Modèle 3D inséré. Cliquez dessus pour le voir en 3D.</translation>
         </message>
+        <message>
+            <location filename="../blackpdf/ui/document_tab.py" line="1468" />
+            <source>Cambiar propiedades</source>
+            <translation>Modifier les propriétés</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/document_tab.py" line="1469" />
+            <source>Propiedades cambiadas. Guarda el PDF para conservarlas.</source>
+            <translation>Propriétés modifiées. Enregistrez le PDF pour les conserver.</translation>
+        </message>
     </context>
     <context>
         <name>EraserTool</name>
@@ -3411,101 +3421,126 @@ Enregistrer quand même ? Avec « Enregistrer sous », l'original conserve ses s
     <context>
         <name>PropertiesDialog</name>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="118" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="122" />
             <source>Propiedades del documento</source>
             <translation>Propriétés du document</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="123" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="127" />
             <source>Documento sin guardar</source>
             <translation>Document non enregistré</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="136" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="140" />
             <source>Ubicación</source>
             <translation>Emplacement</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="137" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="141" />
             <source>Tamaño</source>
             <translation>Taille</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="138" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="142" />
             <source>Páginas</source>
             <translation>Pages</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="139" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="143" />
             <source>Tamaño de página</source>
             <translation>Format de page</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="140" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="144" />
             <source>Título</source>
             <translation>Titre</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="141" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="145" />
             <source>Autor</source>
             <translation>Auteur</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="142" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="146" />
             <source>Asunto</source>
             <translation>Sujet</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="143" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="147" />
+            <source>Palabras clave</source>
+            <translation>Mots-clés</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/common.py" line="148" />
             <source>Creado con</source>
             <translation>Créé avec</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="144" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="149" />
             <source>Productor PDF</source>
             <translation>Producteur PDF</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="145" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="150" />
             <source>Creación</source>
             <translation>Création</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="146" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="151" />
             <source>Modificación</source>
             <translation>Modification</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="147" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="152" />
             <source>Versión PDF</source>
             <translation>Version PDF</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="148" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="153" />
             <source>Protegido</source>
             <translation>Protégé</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="148" />
-            <location filename="../blackpdf/ui/dialogs/common.py" line="149" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="153" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="154" />
             <source>Sí</source>
             <translation>Oui</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="148" />
-            <location filename="../blackpdf/ui/dialogs/common.py" line="149" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="153" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="154" />
             <source>No</source>
             <translation>Non</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="149" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="154" />
             <source>Formulario</source>
             <translation>Formulaire</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/common.py" line="158" />
+            <location filename="../blackpdf/ui/dialogs/common.py" line="156" />
+            <source>Varios autores, separados por punto y coma</source>
+            <translation>Plusieurs auteurs, séparés par des points-virgules</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/common.py" line="157" />
+            <source>Separadas por comas</source>
+            <translation>Séparés par des virgules</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/common.py" line="179" />
             <source>Cerrar</source>
             <translation>Fermer</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/common.py" line="185" />
+            <source>Cancelar</source>
+            <translation>Annuler</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/common.py" line="188" />
+            <source>Guardar</source>
+            <translation>Enregistrer</translation>
         </message>
     </context>
     <context>

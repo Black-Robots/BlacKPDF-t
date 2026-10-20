@@ -113,8 +113,12 @@ def _paper_name(width: float, height: float) -> str:
 
 
 class PropertiesDialog(QDialog):
-    def __init__(self, info: DocumentInfo, path: str, parent: QWidget | None = None):
+    """Datos del documento; con ``values`` (título, autor, asunto y palabras clave) se pueden editar."""
+
+    def __init__(self, info: DocumentInfo, path: str, parent: QWidget | None = None, values: dict | None = None):
         super().__init__(parent)
+        self._values = dict(values or {})
+        self._edits: dict[str, QLineEdit] = {}
         self.setWindowTitle(self.tr("Propiedades del documento"))
         self.setMinimumWidth(460)
         layout = QVBoxLayout(self)
@@ -137,9 +141,10 @@ class PropertiesDialog(QDialog):
             (self.tr("Tamaño"), file_size or "-"),
             (self.tr("Páginas"), str(info.page_count)),
             (self.tr("Tamaño de página"), size_text),
-            (self.tr("Título"), info.title or "-"),
-            (self.tr("Autor"), info.author or "-"),
-            (self.tr("Asunto"), info.subject or "-"),
+            ("title", self.tr("Título"), info.title),
+            ("author", self.tr("Autor"), info.author),
+            ("subject", self.tr("Asunto"), info.subject),
+            ("keywords", self.tr("Palabras clave"), self._values.get("keywords", "")),
             (self.tr("Creado con"), info.creator or "-"),
             (self.tr("Productor PDF"), info.producer or "-"),
             (self.tr("Creación"), info.created or "-"),
@@ -148,13 +153,48 @@ class PropertiesDialog(QDialog):
             (self.tr("Protegido"), self.tr("Sí") if info.encrypted else self.tr("No")),
             (self.tr("Formulario"), self.tr("Sí") if info.has_forms else self.tr("No")),
         ]
-        for name, value in rows:
+        placeholders = {"author": self.tr("Varios autores, separados por punto y coma"),
+                        "keywords": self.tr("Separadas por comas")}
+        for row in rows:
+            if len(row) == 3:
+                field, name, value = row
+                if values is not None:
+                    edit = QLineEdit(self._values.get(field, value or ""), self)
+                    edit.setPlaceholderText(placeholders.get(field, ""))
+                    edit.textChanged.connect(self._refresh)
+                    self._edits[field] = edit
+                    form.addRow(label(name, "muted"), edit)
+                    continue
+                if field == "keywords" and not value:
+                    continue
+                row = (name, value or "-")
+            name, value = row
             key = label(name, "muted")
             text = label(value, wrap=True)
             text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             form.addRow(key, text)
         layout.addLayout(form)
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        buttons.button(QDialogButtonBox.StandardButton.Close).setText(self.tr("Cerrar"))
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
+        if values is None:
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+            buttons.button(QDialogButtonBox.StandardButton.Close).setText(self.tr("Cerrar"))
+            buttons.rejected.connect(self.reject)
+            layout.addWidget(buttons)
+            return
+        row_layout = QHBoxLayout()
+        row_layout.addStretch(1)
+        cancel = Button(self.tr("Cancelar"), "ghost")
+        cancel.clicked.connect(self.reject)
+        row_layout.addWidget(cancel)
+        self.save_button = Button(self.tr("Guardar"), "primary")
+        self.save_button.clicked.connect(self.accept)
+        row_layout.addWidget(self.save_button)
+        layout.addLayout(row_layout)
+        self._refresh()
+
+    def _refresh(self, *_args) -> None:
+        self.save_button.setEnabled(bool(self.changes()))
+
+    def changes(self) -> dict[str, str]:
+        """Campos que han cambiado (vacío si ninguno)."""
+        return {field: edit.text().strip() for field, edit in self._edits.items()
+                if edit.text().strip() != (self._values.get(field) or "").strip()}
