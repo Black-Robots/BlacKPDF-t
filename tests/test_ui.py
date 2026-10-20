@@ -572,6 +572,23 @@ def test_signed_document_banner_and_safe_save(qapp, window, tmp_path):
     assert tab.signature_banner.property("level") == "warning", "certificado de prueba: íntegro pero no de confianza"
     assert tab.save() and signed.read_bytes() == original, "guardar sin cambios no toca el archivo"
     tab.rotate_pages(90)
+    assert "se añadirán al final" in tab.signature_banner.text.text()
+    tab.undo()
+
+    # Comentar y guardar: los cambios se añaden detrás de lo firmado y la firma los permite.
+    tab.document.edit("Nota", lambda doc: doc[0].add_text_annot((100, 100), "Visto bueno"), pages=[0])
+    assert tab.save(), "sin preguntar: las firmas siguen valiendo"
+    saved = signed.read_bytes()
+    assert saved.startswith(original) and saved != original
+    status = list_signatures(signed)[0]
+    assert status.intact and status.comments_added
+    assert wait_until(qapp, lambda: bool(tab._signatures), 60)
+
+    # Censurar no puede dejar el texto en la revisión firmada: obliga a reescribir y se avisa.
+    from blackpdf.core.annotations import redact_areas
+
+    tab._edit("Censurar", lambda doc: redact_areas(doc[1], [pymupdf.Rect(60, 60, 300, 160)]), [1], rewrite=True)
+    assert not tab.document.saves_incrementally
     assert "Has modificado" in tab.signature_banner.text.text()
     tab.undo()
     tab.document._modified = False

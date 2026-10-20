@@ -309,7 +309,7 @@ class AttachmentsPanel(QWidget):
 
     def remove_attachment(self, item: core.Attachment) -> None:
         try:
-            self.document.edit(self.tr("Quitar adjunto"), lambda doc: core.remove_attachment(doc, item))
+            self.document.edit(self.tr("Quitar adjunto"), lambda doc: core.remove_attachment(doc, item), rewrite=True)
         except BlackPdfError as exc:
             show_error(self, exc)
             return

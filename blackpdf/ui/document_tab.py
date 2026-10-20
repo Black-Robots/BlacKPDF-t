@@ -226,6 +226,7 @@ class DocumentTab(QWidget):
         QTimer.singleShot(150, self._check_signatures)
         QTimer.singleShot(400, self._announce_attachments)
         document.modifiedChanged.connect(self._signed_document_modified)
+        document.changed.connect(lambda _pages: self._signed_document_modified(self.document.is_modified))
 
     # ======================================================================
     # Construcción
@@ -793,6 +794,11 @@ class DocumentTab(QWidget):
     def _signed_document_modified(self, modified: bool) -> None:
         if not modified or not self._signatures:
             return
+        if self.document.saves_incrementally:
+            self.signature_banner.show_state("", "shield", self.tr(
+                "Al guardar, tus cambios se añadirán al final del documento firmado sin tocar lo firmado. "
+                "Los comentarios están permitidos; cualquier otro cambio constará como hecho después de firmar."))
+            return
         self.signature_banner.show_state("warning", "shield-alert", self.tr(
             "Has modificado un documento firmado: al guardar, sus firmas dejarán de ser válidas. "
             "Si guardas con otro nombre, el archivo original las conserva intactas."))
@@ -1024,9 +1030,9 @@ class DocumentTab(QWidget):
         selected = self.page_view().selected_pages()
         return selected if selected else [self.viewer.current_page]
 
-    def _edit(self, label: str, operation, pages=None):
+    def _edit(self, label: str, operation, pages=None, rewrite: bool = False):
         try:
-            return self.document.edit(label, operation, pages)
+            return self.document.edit(label, operation, pages, rewrite=rewrite)
         except BlackPdfError as exc:
             show_error(self, exc)
         except Exception as exc:
@@ -1138,7 +1144,7 @@ class DocumentTab(QWidget):
         box.button(QMessageBox.StandardButton.Cancel).setText(self.tr("Cancelar"))
         if box.exec() != QMessageBox.StandardButton.Yes:
             return
-        result = self._edit(self.tr("Censurar"), lambda doc: redact_text(doc, query))
+        result = self._edit(self.tr("Censurar"), lambda doc: redact_text(doc, query), rewrite=True)
         if result:
             self.search_bar.close_bar()
             Toast.show_message(self.window(), self.tr("{0} apariciones censuradas").format(result),
@@ -1285,7 +1291,7 @@ class DocumentTab(QWidget):
             # Nunca se reescribe un archivo sin cambios (rompería, por ejemplo, sus firmas digitales).
             Toast.show_message(self.window(), self.tr("No hay cambios que guardar"), duration=1800)
             return True
-        if self._signatures:
+        if self._signatures and not self.document.saves_incrementally:
             answer = QMessageBox.question(
                 self, self.tr("Documento firmado"),
                 self.tr("Este documento tiene firmas digitales. Si lo guardas con cambios, sus firmas dejarán de "

@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.x509.oid import NameOID
 
+from blackpdf.core.document import open_pdf
 from blackpdf.core.errors import InvalidOptionError
 from blackpdf.core.signatures import (
     CertificateError,
@@ -206,3 +207,44 @@ def test_signing_encrypted_pdf(certificate, tmp_path):
     output = tmp_path / "firmado.pdf"
     sign_pdf(locked, output, certificate, PASSWORD, password="abrir")
     assert list_signatures(output)[0].intact
+
+
+def test_incremental_save_keeps_signature_valid(certificate, document, tmp_path):
+    from blackpdf.core.document import restore, save_incremental
+
+    signed = tmp_path / "firmado.pdf"
+    sign_pdf(document, signed, certificate, PASSWORD, SignOptions(visible=False))
+    original = signed.read_bytes()
+    doc = open_pdf(original)
+    doc[0].add_text_annot((100, 100), "Revisado, conforme")
+    doc = restore(doc.tobytes())  # como tras deshacer y rehacer: los objetos conservan su número
+    after = save_incremental(doc, original, signed)
+    assert signed.read_bytes() == after and after.startswith(original), "lo firmado queda intacto, byte a byte"
+    status = list_signatures(signed)[0]
+    assert status.intact and status.valid and not status.covers_whole_file
+    assert status.changes_allowed and status.comments_added, "añadir comentarios está permitido"
+    with pymupdf.open(signed) as saved:
+        assert saved[0].first_annot.info["content"] == "Revisado, conforme"
+
+    # Un segundo guardado añade otra revisión detrás de la primera.
+    doc[1].add_text_annot((120, 120), "Otra nota")
+    final = tmp_path / "copia-final.pdf"
+    data = save_incremental(doc, after, final)
+    assert data.startswith(after)
+    second = list_signatures(final)[0]
+    assert second.intact and second.comments_added
+    reopened = pymupdf.open(final)
+    assert [len(list(page.annots())) for page in reopened][:2] == [1, 1] and not reopened.is_repaired
+
+
+def test_incremental_content_change_is_not_a_comment(certificate, document, tmp_path):
+    from blackpdf.core.document import save_incremental
+
+    signed = tmp_path / "firmado.pdf"
+    sign_pdf(document, signed, certificate, PASSWORD, SignOptions(visible=False))
+    original = signed.read_bytes()
+    doc = open_pdf(original)
+    doc[1].insert_text((72, 300), "Cláusula añadida después de firmar")
+    save_incremental(doc, original, signed)
+    status = list_signatures(signed)[0]
+    assert status.intact and not status.comments_added and not status.changes_allowed and status.level != "valid"

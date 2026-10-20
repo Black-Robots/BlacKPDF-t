@@ -182,10 +182,10 @@ class ViewerTool(QObject):
         self.viewer.viewport().setToolTip("")
         return False
 
-    def apply(self, label: str, page: int, operation) -> bool:
+    def apply(self, label: str, page: int, operation, rewrite: bool = False) -> bool:
         """Aplica una anotación con deshacer; los errores previstos se ignoran."""
         try:
-            self.model.edit(label, lambda doc: operation(doc[page]), pages=[page])
+            self.model.edit(label, lambda doc: operation(doc[page]), pages=[page], rewrite=rewrite)
         except BlackPdfError:
             return False
         return True
@@ -945,7 +945,8 @@ class RedactTool(AnnotationTool):
         if area.width() * self.viewer.scale < 4 or area.height() * self.viewer.scale < 4:
             return
         rect = pymupdf.Rect(area.left(), area.top(), area.right(), area.bottom())
-        if self.apply(self.tr("Censurar"), page, lambda pg: core_annots.redact_areas(pg, [rect])):
+        # Lo censurado no puede quedar en una revisión anterior del archivo: se guarda entero.
+        if self.apply(self.tr("Censurar"), page, lambda pg: core_annots.redact_areas(pg, [rect]), rewrite=True):
             self.finished.emit()
 
     def cancel(self):

@@ -337,9 +337,15 @@ def status_text(status: SignatureStatus) -> tuple[str, str]:
     if not (status.covers_whole_file or status.changes_allowed):
         return "shield-alert", _tr("Firmado por {0}, pero se hicieron cambios después de la firma.").format(who)
     if not status.trusted:
+        if status.comments_added:
+            return "shield-alert", _tr(
+                "Firmado por {0}. Después se han añadido comentarios (permitido), pero el certificado no procede "
+                "de una entidad de confianza reconocida.").format(who)
         return "shield-alert", _tr(
             "Firmado por {0}. El documento no se ha modificado, pero el certificado no procede de una "
             "entidad de confianza reconocida.").format(who)
+    if status.comments_added:
+        return "shield-check", _tr("Firmado por {0}. La firma es válida; después se han añadido comentarios.").format(who)
     return "shield-check", _tr("Firmado por {0}. La firma es válida y el documento no se ha modificado.").format(who)
 
 

@@ -6,6 +6,7 @@ import pytest
 from blackpdf.core.document import (
     document_info,
     format_pdf_date,
+    incremental_update,
     needs_password,
     open_pdf,
     restore,
@@ -14,7 +15,13 @@ from blackpdf.core.document import (
     source_size,
     source_stem,
 )
-from blackpdf.core.errors import FileOpenError, NotPdfError, PasswordRequiredError, WrongPasswordError
+from blackpdf.core.errors import (
+    FileOpenError,
+    IncrementalSaveError,
+    NotPdfError,
+    PasswordRequiredError,
+    WrongPasswordError,
+)
 from blackpdf.core.security import protect_pdf
 
 from .conftest import build_pdf, page_labels
@@ -63,6 +70,50 @@ def test_password_flow(make_pdf, tmp_path):
     with pytest.raises(WrongPasswordError):
         open_pdf(locked, "otra")
     assert open_pdf(locked, "secreto").page_count == 1
+
+
+def test_incremental_update_appends_only_the_changes():
+    import re
+
+    import pymupdf
+
+    base = build_pdf(3).tobytes(garbage=3, deflate=True, use_objstms=1)
+    doc = open_pdf(base)
+    doc[0].add_text_annot((100, 100), "Nota")
+    doc = restore(doc.tobytes())  # deshacer/rehacer reabre el documento: los números de objeto se conservan
+    doc[2].add_highlight_annot(pymupdf.Rect(72, 80, 160, 105))
+    data = incremental_update(doc, base)
+    assert data.startswith(base) and len(re.findall(rb"%%EOF", data)) == 2
+    result = pymupdf.open(stream=data, filetype="pdf")
+    assert [len(list(page.annots())) for page in result] == [1, 0, 1] and not result.is_repaired
+    assert "P2" in result[1].get_text()
+    # Sin cambios no se añade nada nuevo que importe: el contenido es el mismo.
+    again = pymupdf.open(stream=incremental_update(result, data), filetype="pdf")
+    assert [len(list(page.annots())) for page in again] == [1, 0, 1]
+
+
+def test_incremental_update_keeps_encryption(make_pdf, tmp_path):
+    import pymupdf
+
+    locked = tmp_path / "cifrado.pdf"
+    protect_pdf(make_pdf(pages=2), locked, "secreto")
+    base = locked.read_bytes()
+    doc = open_pdf(base, "secreto")
+    doc[1].add_text_annot((80, 80), "Confidencial")
+    data = incremental_update(doc, base, "secreto")
+    assert data.startswith(base)
+    result = pymupdf.open(stream=data, filetype="pdf")
+    assert result.needs_pass and result.authenticate("secreto")
+    assert [len(list(page.annots())) for page in result] == [0, 1]
+    assert b"Confidencial" not in data, "lo añadido también va cifrado"
+
+
+def test_incremental_update_refuses_damaged_original():
+    data = build_pdf(1).tobytes()
+    damaged = data.replace(b"startxref", b"startxrfe")  # MuPDF tiene que reconstruirlo al abrir
+    doc = open_pdf(damaged)
+    with pytest.raises(IncrementalSaveError):
+        incremental_update(doc, damaged)
 
 
 @pytest.mark.skipif(os.name == "nt", reason="permisos POSIX")

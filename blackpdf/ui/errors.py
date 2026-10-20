@@ -77,6 +77,11 @@ def user_message(exc: BaseException) -> tuple[str, str]:
             "No se ha podido escribir «{0}». Comprueba que la carpeta existe, que hay espacio libre "
             "y que el archivo no está abierto en otro programa."
         ).format(_name(path))
+    if isinstance(exc, core_errors.IncrementalSaveError):
+        return _tr("No se pueden conservar las firmas"), _tr(
+            "Este PDF no admite que se le añadan los cambios al final, así que habría que reescribirlo y sus "
+            "firmas digitales dejarían de ser válidas. Vuelve a guardar si quieres hacerlo de todos modos."
+        )
     if isinstance(exc, core_errors.OcrUnavailableError):
         return _tr("Reconocimiento de texto no disponible"), _tr(
             "Faltan los datos de idioma del reconocimiento de texto. Reinstala BlackPDF para recuperarlos."

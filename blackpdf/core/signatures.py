@@ -393,6 +393,8 @@ class SignatureStatus:
     subject: tuple[tuple[str, str], ...] = ()
     """Datos del titular en el orden de SUBJECT_FIELDS: ((campo, valor), ...)."""
     signed_at: dt.datetime | None = None
+    comments_added: bool = False
+    """Después de firmar solo se han añadido o cambiado comentarios (como admite Acrobat)."""
 
     @property
     def level(self) -> str:
@@ -491,6 +493,44 @@ def has_signatures(source: PdfSource) -> bool:
             doc.close()
 
 
+def comments_only_after(data: bytes, revision_end: int) -> bool:
+    """True si lo añadido después de la revisión firmada son solo comentarios.
+
+    pyHanko no reconoce como permitido añadir comentarios; Acrobat sí. Se comparan la
+    revisión firmada y la final: mismas páginas, mismo contenido, mismos campos de
+    formulario y enlaces, y las anotaciones nuevas o cambiadas son de tipo comentario.
+    """
+    from .sanitize import _COMMENT_TYPES
+
+    try:
+        signed = pymupdf.open(stream=data[:revision_end], filetype="pdf")
+        final = pymupdf.open(stream=data, filetype="pdf")
+    except Exception:
+        return False
+    if signed.page_count != final.page_count:
+        return False
+    try:
+        for before, after in zip(signed, final):
+            if before.rect != after.rect or before.rotation != after.rotation:
+                return False
+            if before.get_contents() != after.get_contents():
+                return False
+            if any(signed.xref_stream_raw(x) != final.xref_stream_raw(x) for x in before.get_contents()):
+                return False
+            old = {annot.xref: annot.type[0] for annot in before.annots()}
+            new = {annot.xref: annot.type[0] for annot in after.annots()}
+            changed = [xref for xref, kind in new.items()
+                       if xref not in old or signed.xref_object(xref) != final.xref_object(xref)]
+            if any(new[xref] not in _COMMENT_TYPES for xref in changed):
+                return False
+            fields = lambda page: {(w.field_name, str(w.field_value)) for w in page.widgets()}  # noqa: E731
+            if fields(before) != fields(after) or before.get_links() != after.get_links():
+                return False
+    except Exception:
+        return False
+    return True
+
+
 def list_signatures(source: PdfSource, *, progress: ProgressCallback | None = None) -> list[SignatureStatus]:
     """Valida cada firma del documento (sin conexión: no se consulta la revocación)."""
     from pyhanko.pdf_utils.reader import PdfFileReader
@@ -529,6 +569,18 @@ def list_signatures(source: PdfSource, *, progress: ProgressCallback | None = No
         sig_object = signature.sig_object
         coverage = getattr(status, "coverage", None)
         level = getattr(status, "modification_level", None)
+        covers_whole_file = coverage is not None and coverage.name == "ENTIRE_FILE"
+        changes_allowed = level is not None and level in (
+            ModificationLevel.NONE, ModificationLevel.LTA_UPDATES, ModificationLevel.FORM_FILLING,
+        )
+        comments_added = False
+        if status.intact and status.valid and not covers_whole_file and not changes_allowed:
+            try:
+                byte_range = [int(v) for v in sig_object["/ByteRange"]]
+                comments_added = comments_only_after(data, byte_range[2] + byte_range[3])
+            except Exception:
+                comments_added = False
+            changes_allowed = comments_added
         results.append(SignatureStatus(
             field_name=name,
             signer=str(subject.get("common_name", "") or (cert.subject.human_friendly if cert else "")),
@@ -540,15 +592,14 @@ def list_signatures(source: PdfSource, *, progress: ProgressCallback | None = No
             intact=bool(status.intact),
             valid=bool(status.valid),
             trusted=bool(status.trusted),
-            covers_whole_file=coverage is not None and coverage.name == "ENTIRE_FILE",
-            changes_allowed=level is not None and level in (
-                ModificationLevel.NONE, ModificationLevel.LTA_UPDATES, ModificationLevel.FORM_FILLING,
-            ),
+            covers_whole_file=covers_whole_file,
+            changes_allowed=changes_allowed,
             timestamped=getattr(status, "timestamp_validity", None) is not None,
             page=locations.get(name, (-1, None))[0],
             rect=locations.get(name, (-1, None))[1],
             subject=subject_fields(subject) if cert is not None else (),
             signed_at=status.signer_reported_dt,
+            comments_added=comments_added,
         ))
     report(progress, len(embedded), len(embedded))
     return results

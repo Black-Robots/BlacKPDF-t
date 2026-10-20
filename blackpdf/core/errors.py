@@ -52,6 +52,10 @@ class WriteError(BlackPdfError):
     """No se pudo escribir el archivo de salida (params: path)."""
 
 
+class IncrementalSaveError(BlackPdfError):
+    """No se puede añadir una revisión al original (estaba dañado): hay que guardarlo entero."""
+
+
 class OcrUnavailableError(BlackPdfError):
     """Tesseract no está instalado o no se encuentran sus idiomas."""
 

@@ -10,6 +10,7 @@ from PySide6.QtCore import QObject, QSizeF, Signal
 
 from ..core import document as core_document
 from ..core import page_labels as core_page_labels
+from ..core.errors import IncrementalSaveError
 from ..core.history import History
 
 
@@ -41,6 +42,9 @@ class PdfDocument(QObject):
         self._labels: list[str] | None | bool = False
         self._untitled_name = ""
         self._source_suffix = ".pdf"
+        self._base: bytes | None = None
+        """Contenido del archivo firmado tal como se abrió: se guarda añadiéndole los cambios."""
+        self._rewrite_needed = False
         self._recompute_sizes()
 
     # ---------- creación ----------
@@ -56,6 +60,15 @@ class PdfDocument(QObject):
         doc = core_document.open_pdf(data if Path(path).suffix.lower() == ".pdf" else path, password)
         is_pdf = Path(path).suffix.lower() == ".pdf"
         model = cls(doc, path if is_pdf else None, password, encrypted)
+        if is_pdf:
+            from ..core.signatures import has_signatures
+
+            try:
+                # Si MuPDF tuvo que reconstruirlo al abrir, no se le puede añadir una revisión.
+                if has_signatures(doc) and not doc.is_repaired:
+                    model._base = data
+            except Exception:
+                pass
         if not is_pdf:
             model._untitled_name = Path(path).stem + ".pdf"
             model._source_suffix = Path(path).suffix.lower()
@@ -118,6 +131,11 @@ class PdfDocument(QObject):
     def history(self) -> History:
         return self._history
 
+    @property
+    def saves_incrementally(self) -> bool:
+        """Si al guardar se añadirán los cambios al final del archivo (las firmas siguen cubriendo lo firmado)."""
+        return self._base is not None and not self._rewrite_needed
+
     def page_size(self, index: int) -> QSizeF:
         """Tamaño visible (con rotación) en puntos."""
         return self._sizes[index]
@@ -162,10 +180,12 @@ class PdfDocument(QObject):
             self.modifiedChanged.emit(value)
 
     def edit(self, label: str, operation: Callable[[pymupdf.Document], object],
-             pages: Iterable[int] | None = None):
+             pages: Iterable[int] | None = None, *, rewrite: bool = False):
         """Aplica `operation(doc)` con posibilidad de deshacer.
 
-        Si la operación falla a medias se restaura el estado anterior.
+        Si la operación falla a medias se restaura el estado anterior. `rewrite`
+        indica que lo quitado no debe seguir dentro del archivo (censurar, quitar un
+        adjunto): entonces un documento firmado se guarda entero, no añadiendo cambios.
         """
         before = self._doc.tobytes()
         try:
@@ -175,6 +195,7 @@ class PdfDocument(QObject):
             self.changed.emit(None)
             raise
         self._history.push(label, before)
+        self._rewrite_needed = self._rewrite_needed or rewrite
         affected = None if pages is None else sorted(set(pages))
         self._recompute_sizes(affected)
         self._set_modified(True)
@@ -218,10 +239,34 @@ class PdfDocument(QObject):
 
     # ---------- guardado ----------
     def save(self, path: str | None = None) -> str:
-        """Guarda en `path` (o en la ruta actual). Conserva el cifrado original."""
+        """Guarda en `path` (o en la ruta actual). Conserva el cifrado original.
+
+        Un documento firmado se guarda añadiendo los cambios al final, si se puede.
+        """
         target = path or self._path
         if not target:
             raise ValueError("sin ruta de destino")
+        if self.saves_incrementally:
+            try:
+                self._base = core_document.save_incremental(self._doc, self._base, target, self._password)
+            except IncrementalSaveError:
+                self._base = None  # el siguiente intento lo reescribe, ya avisado
+                raise
+            return self._saved(target)
+        self._save_full(target)
+        # Con el archivo reescrito las firmas ya no valen: no hay nada que conservar.
+        self._base = None
+        self._rewrite_needed = False
+        return self._saved(target)
+
+    def _saved(self, target: str) -> str:
+        if target != self._path:
+            self._path = str(target)
+            self.pathChanged.emit(self._path)
+        self._set_modified(False)
+        return self._path
+
+    def _save_full(self, target: str) -> None:
         options: dict = {"garbage": 3, "deflate": True}
         if self._encrypted and self._password:
             options.update(
@@ -231,8 +276,3 @@ class PdfDocument(QObject):
                 permissions=self._permissions if self._permissions != -1 else pymupdf.PDF_PERM_PRINT,
             )
         core_document.save_pdf(self._doc, target, **options)
-        if target != self._path:
-            self._path = str(target)
-            self.pathChanged.emit(self._path)
-        self._set_modified(False)
-        return self._path
