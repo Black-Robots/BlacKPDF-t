@@ -612,6 +612,8 @@ class MainWindow(QMainWindow):
                 Command(tr("Rehacer"), doc, "redo-2", tab.redo, shortcut_text("Ctrl+Y")),
                 Command(tr("Buscar en el documento"), doc, "search", tab.find, shortcut_text("Ctrl+F")),
                 Command(tr("Propiedades del documento"), doc, "info", tab.show_properties, shortcut_text("Ctrl+D")),
+                Command(tr("Etiquetas de página"), tr("Páginas"), "hash", tab.edit_page_labels,
+                        keywords="numerar numeracion romanos planos hojas"),
                 Command(tr("Girar páginas a la derecha"), tr("Páginas"), "rotate-cw", lambda: tab.rotate_pages(90)),
                 Command(tr("Girar páginas a la izquierda"), tr("Páginas"), "rotate-ccw", lambda: tab.rotate_pages(-90)),
                 Command(tr("Eliminar páginas seleccionadas"), tr("Páginas"), "trash-2", tab.delete_pages, shortcut_text("Del")),

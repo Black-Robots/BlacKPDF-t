@@ -1058,3 +1058,39 @@ def test_clean_tool(qapp, window, tmp_path):
     clean = pymupdf.open(output)
     assert not clean.metadata["author"] and clean.embfile_count() == 0
     dialog.close()
+
+
+def test_page_labels_in_page_box_and_thumbnails(qapp, opened, monkeypatch):
+    from blackpdf.core.page_labels import LabelRule
+    from blackpdf.ui.dialogs import page_labels as dialog_module
+
+    _, tab, _ = opened
+    dialog = dialog_module.PageLabelsDialog([], tab.document.page_count, None)
+    assert len(dialog.rows) == 1 and dialog.preview.text() == "1, 2, 3, 4"
+    dialog.rows[0]["style"].setCurrentIndex(dialog.rows[0]["style"].findData("r"))
+    dialog.add_rule(LabelRule(2, "D", "A-", 101))
+    assert dialog.preview.text() == "i, ii, A-101, A-102"
+    dialog.rows[1]["start"].setValue(1)
+    assert not dialog.ok.isEnabled(), "dos reglas en la misma página"
+
+    class Accepting(dialog_module.PageLabelsDialog):
+        def exec(self):
+            return dialog_module.PageLabelsDialog.DialogCode.Accepted
+
+        def rules(self):
+            return [LabelRule(0, "r"), LabelRule(2, "D", "A-", 101)]
+
+    monkeypatch.setattr(dialog_module, "PageLabelsDialog", Accepting)
+    tab.edit_page_labels()
+    pump(qapp, 0.2)
+    assert tab.document.labels == ["i", "ii", "A-101", "A-102"]
+    assert tab.thumb_model.data(tab.thumb_model.index(3)) == "A-102"
+    tab.page_edit.setText("a-102")
+    tab._jump_to_page()
+    pump(qapp, 0.6)
+    assert tab.viewer.current_page == 3
+    assert tab.page_edit.text() == "A-102" and tab.page_total.text() == "(4 de 4)"
+    tab.undo()
+    pump(qapp, 0.2)
+    assert tab.document.labels is None and tab.page_edit.text() == "4"
+    tab.document._modified = False

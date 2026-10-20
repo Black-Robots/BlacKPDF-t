@@ -351,6 +351,7 @@ class DocumentTab(QWidget):
         menu.addAction(icons.icon("text-select"), self.tr("Seleccionar texto de la página"), QKeySequence("Ctrl+A"),
                        lambda: self.viewer.select_page_text())
         menu.addSeparator()
+        menu.addAction(icons.icon("hash"), self.tr("Etiquetas de página..."), lambda: self.edit_page_labels())
         menu.addAction(icons.icon("info"), self.tr("Propiedades del documento"), QKeySequence("Ctrl+D"), self.show_properties)
 
     def set_tools_menu(self, entries: list[tuple[str, str, str]]) -> None:
@@ -833,7 +834,6 @@ class DocumentTab(QWidget):
         )
 
     def _on_document_changed(self, pages) -> None:
-        self.page_total.setText(self.tr("de {0}").format(self.document.page_count))
         self._on_page(self.viewer.current_page)
         self._update_sidebar_header()
 
@@ -845,17 +845,28 @@ class DocumentTab(QWidget):
         self.fit_page_button.setChecked(mode == "page")
 
     def _on_page(self, page: int) -> None:
-        self.page_edit.setText(str(page + 1))
-        self.page_total.setText(self.tr("de {0}").format(self.document.page_count))
+        labels = self.document.labels
+        if labels:
+            # Con etiquetas («A-101»), la página física va entre paréntesis.
+            text = self.document.page_label(page)
+            self.page_edit.setFixedWidth(min(140, max(52, self.page_edit.fontMetrics().horizontalAdvance(
+                max(labels, key=len)) + 24)))
+            self.page_edit.setText(text)
+            self.page_total.setText(self.tr("({0} de {1})").format(page + 1, self.document.page_count))
+        else:
+            self.page_edit.setFixedWidth(52)
+            self.page_edit.setText(str(page + 1))
+            self.page_total.setText(self.tr("de {0}").format(self.document.page_count))
         self.thumbnails.set_current_page(page)
 
     def _jump_to_page(self) -> None:
-        try:
-            number = int(self.page_edit.text().strip())
-        except ValueError:
+        from ..core.page_labels import find_page
+
+        index = find_page(self.document.labels, self.page_edit.text(), self.document.page_count)
+        if index is None:
             self._on_page(self.viewer.current_page)
             return
-        self.viewer.jump_to_page(number - 1)
+        self.viewer.jump_to_page(index)
         self.viewer.setFocus()
 
     def _zoom_from_text(self) -> None:
@@ -1157,6 +1168,9 @@ class DocumentTab(QWidget):
         menu.addAction(icons.icon("file-plus-2"), self.tr("Insertar página en blanco detrás"), lambda: self.insert_blank(True))
         menu.addAction(icons.icon("file-plus-2"), self.tr("Insertar página en blanco delante"), lambda: self.insert_blank(False))
         menu.addAction(icons.icon("file-input"), self.tr("Insertar desde archivo..."), lambda: self.insert_from_file(True))
+        if count == 1 and self.document.doc.is_pdf:
+            menu.addAction(icons.icon("hash"), self.tr("Numerar desde esta página..."),
+                           lambda: self.edit_page_labels(self.target_pages()[0]))
         menu.addSeparator()
         menu.addAction(icons.icon("file-output"), self.tr("Extraer páginas..."), self.extract_pages)
         menu.addAction(icons.icon("image"), self.tr("Exportar como imagen..."),
@@ -1457,6 +1471,19 @@ class DocumentTab(QWidget):
         QTimer.singleShot(0, lambda: self.viewer.go_to_page(index))
         Toast.show_message(self.window(), self.tr("Modelo 3D insertado. Haz clic en él para verlo en 3D."),
                            self.tr("Deshacer"), self.undo, kind="success", duration=6000)
+
+    def edit_page_labels(self, start_at: int | None = None) -> None:
+        """Etiquetas de página: «i, ii, iii», «A-101»... (se puede deshacer)."""
+        from ..core import page_labels
+        from .dialogs.page_labels import PageLabelsDialog
+
+        if not self.document.doc.is_pdf:
+            return
+        dialog = PageLabelsDialog(page_labels.read_rules(self.document.doc), self.document.page_count, self, start_at)
+        if dialog.exec() != PageLabelsDialog.DialogCode.Accepted:
+            return
+        rules = dialog.rules()
+        self._edit(self.tr("Etiquetas de página"), lambda doc: page_labels.set_rules(doc, rules) or True)
 
     def show_properties(self) -> None:
         from ..core import metadata

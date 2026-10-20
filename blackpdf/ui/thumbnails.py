@@ -57,7 +57,7 @@ class ThumbnailModel(QAbstractListModel):
             return None
         row = index.row()
         if role == Qt.ItemDataRole.DisplayRole:
-            return str(row + 1)
+            return self.document.page_label(row)
         if role == Qt.ItemDataRole.DecorationRole:
             image = self.renderer.thumbnail(row, self.night)
             if image is None:

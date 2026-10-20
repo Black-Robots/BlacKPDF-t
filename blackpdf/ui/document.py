@@ -9,6 +9,7 @@ import pymupdf
 from PySide6.QtCore import QObject, QSizeF, Signal
 
 from ..core import document as core_document
+from ..core import page_labels as core_page_labels
 from ..core.history import History
 
 
@@ -37,6 +38,7 @@ class PdfDocument(QObject):
         self._history = History()
         self._modified = False
         self._sizes: list[QSizeF] = []
+        self._labels: list[str] | None | bool = False
         self._untitled_name = ""
         self._source_suffix = ".pdf"
         self._recompute_sizes()
@@ -128,7 +130,22 @@ class PdfDocument(QObject):
         return self._doc.tobytes()
 
     # ---------- edición ----------
+    @property
+    def labels(self) -> list[str] | None:
+        """Etiquetas de página («A-101»...) o None si el documento no tiene."""
+        if self._labels is False:
+            try:
+                self._labels = core_page_labels.page_labels(self._doc) if self._doc.is_pdf else None
+            except Exception:
+                self._labels = None
+        return self._labels
+
+    def page_label(self, index: int) -> str:
+        labels = self.labels
+        return labels[index] if labels and 0 <= index < len(labels) else str(index + 1)
+
     def _recompute_sizes(self, pages: Iterable[int] | None = None) -> None:
+        self._labels = False
         if pages is None or len(self._sizes) != self._doc.page_count:
             self._sizes = []
             for page in self._doc:
