@@ -628,6 +628,8 @@ class MainWindow(QMainWindow):
                 Command(tr("Organizar páginas"), tr("Páginas"), "layout-grid", tab.toggle_organize, shortcut_text("Ctrl+G")),
                 Command(tr("Vista dividida"), tr("Vista"), "columns-2", tab.toggle_split, shortcut_text("Ctrl+\\")),
                 Command(tr("Comentarios"), tr("Comentarios"), "message-square", tab.show_comments),
+                Command(tr("Capas"), tr("Vista"), "layers", tab.show_layers,
+                        keywords="capa layer ocg contenido opcional plano"),
                 Command(tr("Archivos adjuntos"), tr("Documento"), "paperclip", tab.show_attachments,
                         keywords="adjunto incrustado embedded attachment step"),
                 Command(tr("Adjuntar archivo al PDF"), tr("Documento"), "paperclip",

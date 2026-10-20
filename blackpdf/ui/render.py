@@ -80,6 +80,7 @@ class PageRenderer(QObject):
         self._timer.timeout.connect(self._work)
         model.aboutToReplace.connect(self._drop_lists)
         model.changed.connect(self.invalidate)
+        model.layersChanged.connect(self.invalidate)
 
     # ---------- caché ----------
     def _drop_lists(self) -> None:

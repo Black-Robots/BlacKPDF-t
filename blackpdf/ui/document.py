@@ -9,6 +9,7 @@ import pymupdf
 from PySide6.QtCore import QObject, QSizeF, Signal
 
 from ..core import document as core_document
+from ..core import layers as core_layers
 from ..core import page_labels as core_page_labels
 from ..core.errors import IncrementalSaveError
 from ..core.history import History
@@ -27,6 +28,8 @@ class PdfDocument(QObject):
     modifiedChanged = Signal(bool)
     historyChanged = Signal()
     pathChanged = Signal(str)
+    layersChanged = Signal()
+    """Se ha encendido o apagado una capa: cambia lo que se ve, no el archivo."""
 
     def __init__(self, doc: pymupdf.Document, path: str | None = None, password: str | None = None,
                  encrypted: bool = False, parent: QObject | None = None):
@@ -45,6 +48,7 @@ class PdfDocument(QObject):
         self._base: bytes | None = None
         """Contenido del archivo firmado tal como se abrió: se guarda añadiéndole los cambios."""
         self._rewrite_needed = False
+        self._layers_touched = False
         self._recompute_sizes()
 
     # ---------- creación ----------
@@ -206,7 +210,10 @@ class PdfDocument(QObject):
     def _replace(self, new_doc: pymupdf.Document) -> None:
         self.aboutToReplace.emit()
         old = self._doc
+        # Las capas encendidas o apagadas no viajan en el contenido: se vuelven a aplicar.
+        state = core_layers.current_state(old) if self._layers_touched else None
         self._doc = new_doc
+        core_layers.restore_state(new_doc, state)
         self._recompute_sizes()
         try:
             old.close()
@@ -236,6 +243,20 @@ class PdfDocument(QObject):
         self._set_modified(True)
         self.historyChanged.emit()
         self.changed.emit(None)
+
+    # ---------- capas ----------
+    def layers(self) -> list[core_layers.Layer]:
+        return core_layers.list_layers(self._doc)
+
+    def set_layer_visible(self, number: int, visible: bool) -> None:
+        core_layers.set_visible(self._doc, number, visible)
+        self._layers_touched = True
+        self.layersChanged.emit()
+
+    def set_all_layers_visible(self, visible: bool) -> None:
+        core_layers.set_all_visible(self._doc, visible)
+        self._layers_touched = True
+        self.layersChanged.emit()
 
     # ---------- guardado ----------
     def save(self, path: str | None = None) -> str:

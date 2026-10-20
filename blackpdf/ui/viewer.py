@@ -120,6 +120,7 @@ class PdfViewer(QAbstractScrollArea):
         self._refit_timer.timeout.connect(self._apply_fit)
 
         model.changed.connect(self._on_model_changed)
+        model.layersChanged.connect(self.viewport().update)
         renderer.tileReady.connect(self._on_page_rendered)
         renderer.thumbReady.connect(self._on_page_rendered)
         theme.manager().changed.connect(self._on_theme_changed)

@@ -343,6 +343,10 @@ class SegmentedControl(QFrame):
         if key in self._buttons:
             self._buttons[key].setEnabled(enabled)
 
+    def set_option_visible(self, key: str, visible: bool) -> None:
+        if key in self._buttons:
+            self._buttons[key].setVisible(visible)
+
 
 class ColorSwatch(QToolButton):
     def __init__(self, color: str, parent: QWidget | None = None, size: int = 22):

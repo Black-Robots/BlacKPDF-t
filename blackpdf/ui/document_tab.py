@@ -36,6 +36,7 @@ from .errors import show_crash, show_error
 from .interaction import STYLED_TOOLS, PlaceRectTool, RedactTool, SignatureTool, create_tool
 from .keys import shortcut_text
 from .attachments import AttachmentsPanel
+from .layers import LayersPanel
 from .comments import CommentsPanel
 from .outline import OutlinePanel
 from .printing import print_document
@@ -373,10 +374,10 @@ class DocumentTab(QWidget):
         layout.setContentsMargins(10, 10, 10, 8)
         layout.setSpacing(10)
         self.sidebar_switch = SegmentedControl(
-            [("pages", ""), ("outline", ""), ("attachments", "")],
+            [("pages", ""), ("outline", ""), ("layers", ""), ("attachments", "")],
             frame,
-            icons_map={"pages": "layout-grid", "outline": "list-tree", "attachments": "paperclip"},
-            tooltips={"pages": self.tr("Páginas"), "outline": self.tr("Índice"),
+            icons_map={"pages": "layout-grid", "outline": "list-tree", "layers": "layers", "attachments": "paperclip"},
+            tooltips={"pages": self.tr("Páginas"), "outline": self.tr("Índice"), "layers": self.tr("Capas"),
                       "attachments": self.tr("Archivos adjuntos")},
         )
         layout.addWidget(self.sidebar_switch)
@@ -404,8 +405,12 @@ class DocumentTab(QWidget):
         self.attachments.insert3dRequested.connect(lambda path: self.insert_model_3d(path, already_attached=True))
         self.attachments.locate.connect(self._show_comment)
         self.attachments.countChanged.connect(lambda _: self._update_sidebar_header())
+        self.layers_panel = LayersPanel(self.document, frame)
+        self.layers_panel.countChanged.connect(self._layers_count_changed)
+        self.sidebar_switch.set_option_visible("layers", self.layers_panel.count() > 0)
         self.sidebar_stack.addWidget(self.thumbnails)
         self.sidebar_stack.addWidget(self.outline)
+        self.sidebar_stack.addWidget(self.layers_panel)
         self.sidebar_stack.addWidget(self.attachments)
         layout.addWidget(self.sidebar_stack, 1)
         self.add_pdf_button = Button(self.tr("Añadir PDF"), "", "file-plus", frame)
@@ -425,12 +430,13 @@ class DocumentTab(QWidget):
 
     def _update_sidebar_header(self) -> None:
         key = self.sidebar_switch.value()
-        titles = {"pages": self.tr("Páginas"), "outline": self.tr("Índice"), "attachments": self.tr("Adjuntos")}
+        titles = {"pages": self.tr("Páginas"), "outline": self.tr("Índice"), "layers": self.tr("Capas"),
+                  "attachments": self.tr("Adjuntos")}
         self.sidebar_title.setText(titles.get(key, "").upper())
         if key == "pages":
             self.sidebar_count.setText(str(self.document.page_count))
-        elif key == "attachments":
-            count = self.attachments.count()
+        elif key in ("attachments", "layers"):
+            count = (self.attachments if key == "attachments" else self.layers_panel).count()
             self.sidebar_count.setText(str(count) if count else "")
         else:
             self.sidebar_count.setText("")
@@ -471,6 +477,26 @@ class DocumentTab(QWidget):
             self._animate_sidebar(0, self._sidebar_width)
         self.sidebar_switch.set_value("attachments")
 
+    def _layers_count_changed(self, count: int) -> None:
+        """La pestaña de capas solo aparece en los PDF que las tienen."""
+        self.sidebar_switch.set_option_visible("layers", count > 0)
+        if not count and self.sidebar_switch.value() == "layers":
+            self.sidebar_switch.set_value("pages")
+        self._update_sidebar_header()
+
+    def show_layers(self) -> None:
+        """Abre el panel lateral en la pestaña de capas."""
+        if not self.layers_panel.count():
+            Toast.show_message(self.window(), self.tr("Este documento no tiene capas."), duration=2200)
+            return
+        if self._organizing:
+            self.set_organize_mode(False)
+        if self.splitter.sizes()[0] < 20:
+            settings().sidebar_visible = True
+            self.sidebar_button.setChecked(True)
+            self._animate_sidebar(0, self._sidebar_width)
+        self.sidebar_switch.set_value("layers")
+
     def _announce_attachments(self) -> None:
         """Los adjuntos pasan desapercibidos: se avisa al abrir un PDF que los lleve."""
         count = self.attachments.count()
@@ -510,7 +536,8 @@ class DocumentTab(QWidget):
 
     def _sidebar_view_changed(self, key: str) -> None:
         pages = key == "pages"
-        widget = {"pages": self.thumbnails, "outline": self.outline, "attachments": self.attachments}[key]
+        widget = {"pages": self.thumbnails, "outline": self.outline, "layers": self.layers_panel,
+                  "attachments": self.attachments}[key]
         self.sidebar_stack.setCurrentWidget(widget)
         self.add_pdf_button.setVisible(pages)
         self.sidebar_hint.setVisible(pages)

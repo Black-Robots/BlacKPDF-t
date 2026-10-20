@@ -1111,3 +1111,49 @@ def test_page_labels_in_page_box_and_thumbnails(qapp, opened, monkeypatch):
     pump(qapp, 0.2)
     assert tab.document.labels is None and tab.page_edit.text() == "4"
     tab.document._modified = False
+
+
+def test_layers_panel_toggles_what_is_seen(qapp, window, tmp_path):
+    from blackpdf.ui.layers import LayerRow
+
+    doc = pymupdf.open()
+    page = doc.new_page(width=300, height=200)
+    walls = doc.add_ocg("Muros", on=True)
+    furniture = doc.add_ocg("Mobiliario", on=True)
+    page.draw_rect(pymupdf.Rect(20, 20, 120, 120), color=(1, 0, 0), fill=(1, 0, 0), oc=walls)
+    page.draw_rect(pymupdf.Rect(160, 20, 260, 120), color=(0, 0, 1), fill=(0, 0, 1), oc=furniture)
+    path = tmp_path / "plano.pdf"
+    doc.save(path)
+    original = path.read_bytes()
+    window.open_files([str(path)])
+    pump(qapp, 0.4)
+    tab = window.current_tab()
+    assert tab.sidebar_switch._buttons["layers"].isVisibleTo(tab), "el PDF tiene capas: aparece su pestaña"
+    tab.show_layers()
+    pump(qapp, 0.1)
+    assert tab.sidebar_switch.value() == "layers" and tab.sidebar_count.text() == "2"
+    rows = [w for w in tab.layers_panel.findChildren(LayerRow)]
+    assert [row.layer.name for row in rows] == ["Muros", "Mobiliario"]
+    rows[1].eye.click()
+    pump(qapp, 0.1)
+    assert tab.document.doc[0].get_pixmap().pixel(200, 60) == (255, 255, 255), "el mobiliario ya no se dibuja"
+    assert not tab.document.is_modified, "ocultar una capa no modifica el archivo"
+    assert tab.layers_panel.save_default.isEnabled()
+
+    # Al deshacer otra edición, la capa sigue oculta.
+    tab.document.edit("Nota", lambda d: d[0].add_text_annot((10, 180), "Nota"), pages=[0])
+    tab.undo()
+    assert not {layer.name: layer.visible for layer in tab.document.layers()}["Mobiliario"]
+
+    tab.layers_panel.save_default.click()
+    assert tab.document.is_modified and not tab.layers_panel.save_default.isEnabled()
+    assert tab.save() and path.read_bytes() != original
+    with pymupdf.open(path) as saved:
+        assert saved[0].get_pixmap().pixel(200, 60) == (255, 255, 255), "el PDF se abre ya sin el mobiliario"
+
+
+def test_layers_tab_hidden_without_layers(qapp, opened):
+    _window, tab, _path = opened
+    assert not tab.sidebar_switch._buttons["layers"].isVisibleTo(tab)
+    tab.show_layers()
+    assert tab.sidebar_switch.value() != "layers"

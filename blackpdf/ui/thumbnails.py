@@ -47,6 +47,7 @@ class ThumbnailModel(QAbstractListModel):
         self.night = False
         self._uid = id(self)
         document.changed.connect(self._on_changed)
+        document.layersChanged.connect(self._redraw_all)
         renderer.thumbReady.connect(self._on_thumb)
 
     def rowCount(self, parent=QModelIndex()) -> int:
@@ -117,6 +118,10 @@ class ThumbnailModel(QAbstractListModel):
         for page in pages:
             index = self.index(page)
             self.dataChanged.emit(index, index)
+
+    def _redraw_all(self) -> None:
+        if self.rowCount():
+            self.dataChanged.emit(self.index(0), self.index(self.rowCount() - 1), [Qt.ItemDataRole.DecorationRole])
 
     def _on_thumb(self, page: int) -> None:
         if page < self.rowCount():
