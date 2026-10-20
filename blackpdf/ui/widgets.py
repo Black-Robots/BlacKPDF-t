@@ -240,13 +240,30 @@ class SplitButton(QFrame):
         self.button.setProperty("split", "main")
         self.button.clicked.connect(self.clicked)
         layout.addWidget(self.button)
-        self.arrow = IconButton("chevron-down", menu_tooltip, self, size=size, icon_size=12)
+        self.arrow = IconButton("chevron-down", menu_tooltip, self, size=size, icon_size=16)
+        # Más gruesa que los demás iconos para que pese lo mismo que el icono de al lado.
+        self.arrow.setIcon(icons.icon("chevron-down", stroke="2.75"))
         self.arrow.setProperty("split", "arrow")
-        self.arrow.setFixedWidth(16)
+        self.arrow.setFixedWidth(20)
         self.arrow.clicked.connect(self.show_menu)
         layout.addWidget(self.arrow)
         self.menu = QMenu(self)
         self.menu.setToolTipsVisible(True)
+
+    def enterEvent(self, event) -> None:
+        super().enterEvent(event)
+        self._set_hovered(True)
+
+    def leaveEvent(self, event) -> None:
+        super().leaveEvent(event)
+        self._set_hovered(False)
+
+    def _set_hovered(self, hovered: bool) -> None:
+        """Con el ratón encima se marca el contorno y la separación: se ve que son dos botones."""
+        self.setProperty("hovered", hovered)
+        for widget in (self, self.button, self.arrow):
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
 
     def show_menu(self) -> None:
         """Despliega el menú alineado con el botón entero, no solo con la flecha."""

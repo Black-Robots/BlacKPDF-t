@@ -366,6 +366,9 @@ QToolButton[variant="segment"]:checked {{
 QToolButton::menu-indicator {{ image: none; width: 0; }}
 QToolButton[split="main"] {{ border-top-right-radius: 0; border-bottom-right-radius: 0; }}
 QToolButton[split="arrow"] {{ border-top-left-radius: 0; border-bottom-left-radius: 0; padding: 5px 2px; }}
+QFrame#SplitButton {{ border: 1px solid transparent; border-radius: {r}px; }}
+QFrame#SplitButton[hovered="true"] {{ border-color: {p.border_strong}; }}
+QFrame#SplitButton[hovered="true"] QToolButton[split="arrow"] {{ border-left: 1px solid {p.border_strong}; }}
 QFrame[role="segmented"] {{
     background: {p.surface_alt};
     border: 1px solid {p.border};

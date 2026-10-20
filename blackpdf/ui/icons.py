@@ -29,19 +29,19 @@ ROLE_WARNING = "warning"
 
 
 @lru_cache(maxsize=256)
-def _svg_source(name: str) -> str:
+def _svg_source(name: str, stroke: str = STROKE_WIDTH) -> str:
     path = ICONS_DIR / f"{name}.svg"
     if not path.exists():
         path = ICONS_DIR / "file-text.svg"
     text = path.read_text(encoding="utf-8")
     if text.startswith("<!--"):
         text = text[text.index("-->") + 3 :]
-    return text.replace('stroke-width="2"', f'stroke-width="{STROKE_WIDTH}"')
+    return text.replace('stroke-width="2"', f'stroke-width="{stroke}"')
 
 
 @lru_cache(maxsize=1024)
-def _renderer(name: str, color: str) -> QSvgRenderer:
-    svg = _svg_source(name).replace("currentColor", color)
+def _renderer(name: str, color: str, stroke: str = STROKE_WIDTH) -> QSvgRenderer:
+    svg = _svg_source(name, stroke).replace("currentColor", color)
     return QSvgRenderer(QByteArray(svg.encode("utf-8")))
 
 
@@ -67,11 +67,12 @@ def role_color(role: str, mode: QIcon.Mode = QIcon.Mode.Normal, state: QIcon.Sta
 
 
 class LucideIconEngine(QIconEngine):
-    def __init__(self, name: str, role: str = ROLE_DEFAULT, color: QColor | None = None):
+    def __init__(self, name: str, role: str = ROLE_DEFAULT, color: QColor | None = None, stroke: str = STROKE_WIDTH):
         super().__init__()
         self._name = name
         self._role = role
         self._color = QColor(color) if color is not None else None
+        self._stroke = stroke
 
     def _color_for(self, mode, state) -> str:
         if self._color is not None and mode != QIcon.Mode.Disabled:
@@ -79,7 +80,7 @@ class LucideIconEngine(QIconEngine):
         return role_color(self._role, mode, state).name(QColor.NameFormat.HexArgb)
 
     def paint(self, painter: QPainter, rect: QRect, mode, state) -> None:
-        renderer = _renderer(self._name, _css_color(self._color_for(mode, state)))
+        renderer = _renderer(self._name, _css_color(self._color_for(mode, state)), self._stroke)
         side = min(rect.width(), rect.height())
         target = QRectF(rect.x() + (rect.width() - side) / 2, rect.y() + (rect.height() - side) / 2, side, side)
         renderer.render(painter, target)
@@ -105,7 +106,7 @@ class LucideIconEngine(QIconEngine):
         return size
 
     def clone(self) -> "LucideIconEngine":
-        return LucideIconEngine(self._name, self._role, self._color)
+        return LucideIconEngine(self._name, self._role, self._color, self._stroke)
 
     def key(self) -> str:
         return "lucide"
@@ -119,8 +120,9 @@ def _css_color(argb_hex: str) -> str:
     return f"rgba({color.red()},{color.green()},{color.blue()},{color.alphaF():.3f})"
 
 
-def icon(name: str, role: str = ROLE_DEFAULT, color: QColor | None = None) -> QIcon:
-    return QIcon(LucideIconEngine(name, role, color))
+def icon(name: str, role: str = ROLE_DEFAULT, color: QColor | None = None, stroke: str = STROKE_WIDTH) -> QIcon:
+    """`stroke` engorda el trazo (en unidades del SVG de 24): útil en iconos pequeños."""
+    return QIcon(LucideIconEngine(name, role, color, stroke))
 
 
 def pixmap(name: str, size: int, role: str = ROLE_DEFAULT, dpr: float = 1.0, color: QColor | None = None) -> QPixmap:
