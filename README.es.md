@@ -8,11 +8,11 @@ Disponible para **Windows 10/11** y **Linux**, en español, inglés, portugués 
 
 **[Descargar la última versión](https://github.com/TheBlackRobotsFoundation/BlackPDF/releases/latest)** · [Página web](https://blackrobots.org/blackpdf) · [Informar de un fallo](https://github.com/TheBlackRobotsFoundation/BlackPDF/issues)
 
-![BlackPDF con un documento y sus comentarios](docs/screenshots/document.webp)
+![BlackPDF con un documento y sus comentarios](docs/screenshots/es/document.webp)
 
 <p align="center">
-  <img src="docs/screenshots/home.webp" width="49%" alt="Pantalla de inicio con todas las herramientas">
-  <img src="docs/screenshots/viewer3d.webp" width="49%" alt="Visor 3D">
+  <img src="docs/screenshots/es/home.webp" width="49%" alt="Pantalla de inicio con todas las herramientas">
+  <img src="docs/screenshots/es/viewer3d.webp" width="49%" alt="Visor 3D">
 </p>
 
 ## Funciones

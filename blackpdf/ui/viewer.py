@@ -335,11 +335,17 @@ class PdfViewer(QAbstractScrollArea):
             return
         anchor = QPointF(self.viewport().width() / 2, 0)
         hit = self.hit_test(anchor, clamp=True)
+        # Altura en pantalla de ese punto: al principio del documento es el margen de arriba (con la
+        # barra de anotación encima) y se conserva, para que la página no quede tapada por la barra.
+        before = 0.0
+        if hit is not None:
+            old = self._rects[hit.page]
+            before = max(0.0, old.top() + hit.point.y() * self.scale - self.verticalScrollBar().value())
         self._zoom = zoom
         self._relayout()
         if hit is not None:
             rect = self._rects[hit.page]
-            self.verticalScrollBar().setValue(int(round(rect.top() + hit.point.y() * self.scale)))
+            self.verticalScrollBar().setValue(int(round(rect.top() + hit.point.y() * self.scale - before)))
         self.renderer.clear_tiles()
         self.zoomChanged.emit(self._zoom)
         self._tool_viewport_changed()

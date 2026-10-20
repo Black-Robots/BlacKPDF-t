@@ -830,3 +830,21 @@ def test_update_checks_are_monthly_and_can_be_muted(qapp, tmp_path):
         assert not muted.mute_box.isVisibleTo(muted), "con los avisos quitados no se ofrece la casilla"
     finally:
         settings().check_updates, settings().last_update_check = previous
+
+
+def test_first_page_stays_below_annotation_bar_when_panels_change(qapp, opened):
+    """Al abrir los comentarios el zoom se ajusta, pero el principio de la página no queda bajo la barra."""
+    _, tab, _ = opened
+    if not tab.annotation_bar.isVisible():
+        tab.toggle_annotation_bar()
+    tab.set_comments_visible(False)
+    tab.viewer.set_fit_mode("auto")
+    pump(qapp, 0.4)
+    tab.viewer.verticalScrollBar().setValue(0)
+    pump(qapp, 0.05)
+    viewer = tab.viewer
+    for visible in (True, False, True):
+        tab.set_comments_visible(visible)
+        pump(qapp, 0.4)
+        top = viewer._rects[0].top() - viewer.verticalScrollBar().value()
+        assert top >= viewer._top_inset, f"la página empieza en {top}, bajo la barra ({viewer._top_inset})"
