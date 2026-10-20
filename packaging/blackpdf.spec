@@ -31,6 +31,14 @@ if not NATIVE.is_file():
     raise SystemExit(f"Falta {NATIVE}: compílala con «python native/prc/build.py»")
 binaries = [(str(NATIVE), "blackpdf/native")]
 
+# STEP e IGES: gmsh (con OpenCASCADE). Su módulo busca la biblioteca junto a él, en _internal.
+try:
+    import gmsh
+except Exception as exc:
+    raise SystemExit(f"Falta gmsh («pip install gmsh»): {exc}")
+binaries.append((gmsh.libpath, "."))
+hiddenimports.append("gmsh")
+
 excludes = [
     "tkinter", "unittest", "pydoc_data", "test", "PIL", "numpy",
     "PySide6.QtQml", "PySide6.QtQuick", "PySide6.QtQuickWidgets", "PySide6.QtPdf",

@@ -25,8 +25,8 @@
         </message>
         <message>
             <location filename="../blackpdf/ui/dialogs/about.py" line="57" />
-            <source>Tipografía Inter (SIL OFL)  ·  Iconos Lucide (ISC)  ·  Datos de Tesseract (Apache 2.0)  ·  pyHanko (MIT)  ·  nanoPRC (AGPL-3.0)</source>
-            <translation>Police Inter (SIL OFL)  ·  Icônes Lucide (ISC)  ·  Données Tesseract (Apache 2.0)  ·  pyHanko (MIT)  ·  nanoPRC (AGPL-3.0)</translation>
+            <source>Tipografía Inter (SIL OFL)  ·  Iconos Lucide (ISC)  ·  Datos de Tesseract (Apache 2.0)  ·  pyHanko (MIT)  ·  nanoPRC (AGPL-3.0)  ·  gmsh (GPL-2.0+) y Open CASCADE (LGPL-2.1)</source>
+            <translation>Police Inter (SIL OFL)  ·  Icônes Lucide (ISC)  ·  Données Tesseract (Apache 2.0)  ·  pyHanko (MIT)  ·  nanoPRC (AGPL-3.0)  ·  gmsh (GPL-2.0+) et Open CASCADE (LGPL-2.1)</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/dialogs/about.py" line="61" />
@@ -4548,7 +4548,7 @@ Enregistrer quand même ? Avec « Enregistrer sous », l'original conserve ses s
     <context>
         <name>Tools</name>
         <message>
-            <location filename="../blackpdf/selftest.py" line="89" />
+            <location filename="../blackpdf/selftest.py" line="111" />
             <location filename="../blackpdf/ui/tools.py" line="37" />
             <source>Unir PDF</source>
             <translation>Fusionner des PDF</translation>

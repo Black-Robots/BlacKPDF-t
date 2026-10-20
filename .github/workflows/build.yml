@@ -76,7 +76,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libxkbcommon-x11-0 libxcb-cursor0 libfontconfig1 libdbus-1-3 dpkg-dev
           python -m venv .venv
-          .venv/bin/python -m pip install PySide6-Essentials pymupdf pyhanko pyinstaller
+          .venv/bin/python -m pip install PySide6-Essentials pymupdf pyhanko gmsh pyinstaller
       - name: Compilar AppImage y .deb
         env:
           QT_QPA_PLATFORM: offscreen

@@ -55,7 +55,7 @@ class AboutDialog(QDialog):
             f"Python {sys.version.split()[0]}  ·  Qt {qVersion()} / PySide6 {pyside_version}  ·  "
             f"PyMuPDF {pymupdf.VersionBind} (MuPDF {pymupdf.VersionFitz})<br>"
             + self.tr("Tipografía Inter (SIL OFL)  ·  Iconos Lucide (ISC)  ·  Datos de Tesseract (Apache 2.0)  ·  "
-                      "pyHanko (MIT)  ·  nanoPRC (AGPL-3.0)"),
+                      "pyHanko (MIT)  ·  nanoPRC (AGPL-3.0)  ·  gmsh (GPL-2.0+) y Open CASCADE (LGPL-2.1)"),
             "caption", wrap=True)
         layout.addWidget(credits)
         layout.addWidget(SectionLabel(self.tr("Licencia")))

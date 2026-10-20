@@ -15,7 +15,7 @@ if (-not (Test-Path ".venv-win")) {
 }
 $Py = ".venv-win\Scripts\python.exe"
 & $Py -m pip install --disable-pip-version-check -q --upgrade pip
-& $Py -m pip install --disable-pip-version-check -q PySide6-Essentials pymupdf pyhanko pyinstaller
+& $Py -m pip install --disable-pip-version-check -q PySide6-Essentials pymupdf pyhanko gmsh pyinstaller
 
 Write-Host "==> Biblioteca nativa PRC"
 & $Py native\prc\build.py

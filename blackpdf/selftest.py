@@ -74,6 +74,28 @@ def _prc_check(resources: Path) -> bool | None:
     return scene.triangle_count == 24 and [part.name for part in scene.parts] == ["Base", "Columna"]
 
 
+def _cad_check(resources: Path) -> bool | None:
+    """Lee un STEP con gmsh, lo convierte a PRC y lo mete en un PDF (todo el camino de «Modelo 3D en PDF»).
+
+    None si gmsh no está instalado (posible en desarrollo); en la aplicación empaquetada tiene que estar.
+    """
+    import pymupdf
+
+    from .core import model3d
+    from .core.model3d import insert, meshes
+
+    if not meshes.cad_available():
+        return False if getattr(sys, "frozen", False) else None
+    step = str(resources / "model3d" / "placa.step")
+    parts = meshes.read_parts(step)
+    prepared = insert.prepare(step, aspect=4 / 3)
+    doc = pymupdf.open()
+    doc.new_page()
+    insert.insert_model(doc, 0, pymupdf.Rect(72, 72, 472, 372), prepared)
+    found = model3d.find_models(pymupdf.open("pdf", doc.tobytes()))
+    return len(parts) == 1 and len(parts[0].triangles) > 20 and len(found) == 1 and prepared.format == "PRC"
+
+
 def _translations_check() -> bool:
     """Las traducciones compiladas viajan con la aplicación y se pueden leer."""
     from PySide6.QtCore import QTranslator
@@ -177,6 +199,11 @@ def run(target: str | None = None) -> int:
                 lines.append("SKIP modelos PRC nativos (biblioteca sin compilar)")
             else:
                 check("modelos PRC nativos", prc_ok)
+            cad_ok = _cad_check(resources)
+            if cad_ok is None:
+                lines.append("SKIP CAD STEP (gmsh no instalado)")
+            else:
+                check("CAD STEP y piezas 3D en PDF", cad_ok)
     except Exception as exc:  # cualquier fallo debe quedar en el informe
         check("ejecución", False, repr(exc))
     if os.environ.get("BLACKPDF_SELFTEST_SKIP_GUI"):
