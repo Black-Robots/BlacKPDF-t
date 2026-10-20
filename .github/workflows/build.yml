@@ -44,7 +44,17 @@ jobs:
           Invoke-WebRequest https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe -OutFile innosetup.exe
           Start-Process .\innosetup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/CURRENTUSER' -Wait
       - name: Compilar instalador
-        run: powershell -ExecutionPolicy Bypass -File packaging\windows\build_windows.ps1
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File packaging\windows\build_windows.ps1 *>&1 | Tee-Object -FilePath build-windows.log
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            # Las últimas líneas también como aviso: se pueden leer sin iniciar sesión en GitHub.
+            $tail = (Get-Content build-windows.log -Tail 60) -join "`n"
+            $tail = $tail.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::error title=Compilar instalador::$tail"
+            exit $code
+          }
       - uses: actions/upload-artifact@v5
         with:
           name: BlackPDF-Windows
