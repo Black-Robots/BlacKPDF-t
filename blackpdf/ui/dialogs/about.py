@@ -9,7 +9,7 @@ from PySide6 import __version__ as pyside_version
 from PySide6.QtCore import QT_TRANSLATE_NOOP, Qt, qVersion
 from PySide6.QtWidgets import QDialog, QGridLayout, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
-from ... import HOMEPAGE, REPOSITORY, __version__
+from ... import AUTHOR, HOMEPAGE, REPOSITORY, __version__
 from .. import icons
 from ..keys import shortcut_text
 from ..widgets import Button, SectionLabel, label
@@ -30,6 +30,9 @@ class AboutDialog(QDialog):
         name = label("BlackPDF", "hero")
         name.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(name)
+        author = label(f"By {AUTHOR}", "body")
+        author.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(author)
         version = label(self.tr("Versión {0}").format(__version__), "muted")
         version.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(version)

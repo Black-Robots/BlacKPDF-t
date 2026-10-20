@@ -75,6 +75,11 @@ def main() -> int:
     theme.manager().apply(settings().theme)
     app.setWindowIcon(icons.app_icon())
 
+    if not settings().welcomed:
+        from .ui.dialogs.welcome import WelcomeDialog
+
+        WelcomeDialog().exec()
+
     from .ui.main_window import MainWindow
 
     window = MainWindow()

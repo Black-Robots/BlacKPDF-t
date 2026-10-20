@@ -12,7 +12,7 @@ import pymupdf
 import pytest
 from PySide6.QtCore import QEvent, QPoint, QPointF, QSettings, Qt
 from PySide6.QtGui import QMouseEvent
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QLabel
 
 from .conftest import build_pdf, page_labels
 
@@ -643,3 +643,32 @@ def test_closed_tab_ignores_theme_changes(qapp, opened):
     finally:
         sys.excepthook = previous
     assert not errors
+
+
+def test_welcome_dialog_applies_language_and_theme(qapp):
+    from blackpdf.ui import i18n, theme
+    from blackpdf.ui.dialogs.welcome import WelcomeDialog
+    from blackpdf.ui.settings import settings
+
+    previous = settings().language, settings().theme
+    dialog = WelcomeDialog()
+    try:
+        assert "By Diego Rayado Zumel" in [w.text() for w in dialog.findChildren(QLabel)]
+        dialog.language_box.setCurrentIndex(dialog.language_box.findData("en"))
+        pump(qapp, 0.1)
+        assert dialog.greeting.text() == "Welcome to BlackPDF", "cambia de idioma sin reiniciar"
+        dialog.theme_switch.set_value("light")
+        assert not theme.current().is_dark
+        dialog.accept()
+        assert settings().welcomed and settings().language == "en" and settings().theme == "light"
+    finally:
+        i18n.install("es")
+        theme.manager().apply("dark")
+        settings().language, settings().theme = previous
+
+
+def test_about_dialog_shows_author(qapp):
+    from blackpdf.ui.dialogs.about import AboutDialog
+
+    dialog = AboutDialog()
+    assert "By Diego Rayado Zumel" in [w.text() for w in dialog.findChildren(QLabel)]

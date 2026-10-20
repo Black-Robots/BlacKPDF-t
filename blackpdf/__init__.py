@@ -2,6 +2,7 @@
 
 __version__ = "1.0.0"
 APP_NAME = "BlackPDF"
+AUTHOR = "Diego Rayado Zumel"
 APP_ID = "blackpdf"
 ORGANIZATION = "BlackPDF"
 HOMEPAGE = "https://blackrobots.org/blackpdf"

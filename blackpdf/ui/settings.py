@@ -56,6 +56,15 @@ class Settings:
     def language(self, value: str) -> None:
         self._qs.setValue("appearance/language", value)
 
+    @property
+    def welcomed(self) -> bool:
+        """Si ya se mostró la bienvenida de la primera vez."""
+        return self._bool("app/welcomed", False)
+
+    @welcomed.setter
+    def welcomed(self, value: bool) -> None:
+        self._qs.setValue("app/welcomed", bool(value))
+
     # ---------- apariencia ----------
     @property
     def theme(self) -> str:
