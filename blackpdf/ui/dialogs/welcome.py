@@ -86,7 +86,7 @@ class WelcomeDialog(QDialog):
         self.updates_box.setChecked(self._check_updates)
         self.updates_box.toggled.connect(lambda on: setattr(self, "_check_updates", on))
         layout.addWidget(self.updates_box)
-        privacy = label(self.tr("Solo se consulta GitHub, como mucho una vez al día. No se envía ningún dato tuyo."),
+        privacy = label(self.tr("Solo se consulta GitHub, como mucho una vez al mes. No se envía ningún dato tuyo."),
                         "caption", wrap=True)
         privacy.setContentsMargins(26, 0, 0, 0)
         layout.addWidget(privacy)

@@ -1,7 +1,8 @@
 """Versiones nuevas de BlackPDF: consultar GitHub, descargar y comprobar la descarga.
 
 Es lo único de BlackPDF que se conecta a internet, y solo si el usuario lo permite
-o lo pide: se consulta la API pública de GitHub sin enviar ningún dato propio.
+(como mucho una vez al mes) o lo pide: se consulta la API pública de GitHub sin enviar
+ningún dato propio.
 Cada descarga se compara con la suma SHA-256 publicada en la misma versión.
 """
 

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QObject, QStandardPaths, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QMessageBox, QProgressBar, QTextBrowser, QVBoxLayout
+from PySide6.QtWidgets import QCheckBox, QDialog, QHBoxLayout, QMessageBox, QProgressBar, QTextBrowser, QVBoxLayout
 
 from .. import __version__
 from ..core import errors as core_errors
@@ -18,8 +18,8 @@ from .errors import show_error
 from .settings import settings
 from .widgets import Button, label
 
-CHECK_INTERVAL = 20 * 3600
-"""Como mucho una comprobación automática al día."""
+CHECK_INTERVAL = 30 * 24 * 3600
+"""Como mucho una comprobación automática al mes."""
 
 
 def check_due() -> bool:
@@ -96,6 +96,11 @@ class UpdateDialog(QDialog):
         self.status = label("", "caption", wrap=True)
         self.status.hide()
         layout.addWidget(self.status)
+        # Quien no quiera estos avisos los quita aquí mismo (se vuelven a activar en el menú).
+        self.mute_box = QCheckBox(self.tr("No volver a avisarme de versiones nuevas"), self)
+        self.mute_box.setToolTip(self.tr("Se puede volver a activar en Menú > Avisar de versiones nuevas."))
+        self.mute_box.setVisible(settings().check_updates)
+        layout.addWidget(self.mute_box)
 
         row = QHBoxLayout()
         row.setSpacing(8)
@@ -209,6 +214,11 @@ class UpdateDialog(QDialog):
             return
         self.accept()
         self.installRequested.emit(self.kind, path)
+
+    def done(self, result: int) -> None:
+        if self.mute_box.isChecked():
+            settings().check_updates = False
+        super().done(result)
 
     def reject(self) -> None:
         if self._task is not None:

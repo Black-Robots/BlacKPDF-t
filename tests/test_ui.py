@@ -805,3 +805,28 @@ def test_main_window_update_notices(qapp, window, monkeypatch, tmp_path):
     window._fill_app_menu()
     texts = [a.text() for a in window.app_menu.actions()]
     assert "Buscar actualizaciones..." in texts and "Avisar de versiones nuevas" in texts
+
+
+def test_update_checks_are_monthly_and_can_be_muted(qapp, tmp_path):
+    import time as clock
+
+    from blackpdf.core import updates as core
+    from blackpdf.ui.settings import settings
+    from blackpdf.ui.updates import UpdateDialog, check_due
+
+    previous = settings().check_updates, settings().last_update_check
+    try:
+        settings().check_updates = True
+        settings().last_update_check = clock.time() - 20 * 24 * 3600
+        assert not check_due(), "hace 20 días: todavía no toca"
+        settings().last_update_check = clock.time() - 31 * 24 * 3600
+        assert check_due(), "hace más de un mes: toca comprobar"
+        dialog = UpdateDialog(_fake_release(tmp_path), kind=core.KIND_WINDOWS)
+        assert dialog.mute_box.isVisibleTo(dialog) and not dialog.mute_box.isChecked()
+        dialog.mute_box.setChecked(True)
+        dialog.later_button.click()
+        assert not settings().check_updates and not check_due(), "el usuario ha quitado los avisos"
+        muted = UpdateDialog(_fake_release(tmp_path), kind=core.KIND_WINDOWS)
+        assert not muted.mute_box.isVisibleTo(muted), "con los avisos quitados no se ofrece la casilla"
+    finally:
+        settings().check_updates, settings().last_update_check = previous

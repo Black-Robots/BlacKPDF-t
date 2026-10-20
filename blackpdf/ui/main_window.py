@@ -123,7 +123,7 @@ class MainWindow(QMainWindow):
         self._update_checker.failed.connect(self._update_failed)
         self._manual_update_check = False
         if check_due():
-            # Unos segundos después de arrancar, para no retrasar la apertura.
+            # Como mucho una vez al mes, unos segundos después de arrancar para no retrasar la apertura.
             QTimer.singleShot(4000, self._update_checker.check)
 
     # ======================================================================

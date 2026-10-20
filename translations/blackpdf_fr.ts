@@ -4461,8 +4461,8 @@ Enregistrer quand même ? Avec « Enregistrer sous », l'original conserve ses s
         <name>UpdateDialog</name>
         <message>
             <location filename="../blackpdf/ui/updates.py" line="79" />
-            <location filename="../blackpdf/ui/updates.py" line="196" />
-            <location filename="../blackpdf/ui/updates.py" line="204" />
+            <location filename="../blackpdf/ui/updates.py" line="202" />
+            <location filename="../blackpdf/ui/updates.py" line="210" />
             <source>Actualizar BlackPDF</source>
             <translation>Mettre à jour BlackPDF</translation>
         </message>
@@ -4482,49 +4482,59 @@ Enregistrer quand même ? Avec « Enregistrer sous », l'original conserve ses s
             <translation>Cette version n'a pas de notes.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/updates.py" line="102" />
+            <location filename="../blackpdf/ui/updates.py" line="100" />
+            <source>No volver a avisarme de versiones nuevas</source>
+            <translation>Ne plus me prévenir des nouvelles versions</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/updates.py" line="101" />
+            <source>Se puede volver a activar en Menú &gt; Avisar de versiones nuevas.</source>
+            <translation>Vous pouvez le réactiver dans Menu &gt; Signaler les nouvelles versions.</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/updates.py" line="107" />
             <source>Omitir esta versión</source>
             <translation>Ignorer cette version</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/updates.py" line="106" />
-            <location filename="../blackpdf/ui/updates.py" line="174" />
+            <location filename="../blackpdf/ui/updates.py" line="111" />
+            <location filename="../blackpdf/ui/updates.py" line="180" />
             <source>Más tarde</source>
             <translation>Plus tard</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/updates.py" line="110" />
-            <location filename="../blackpdf/ui/updates.py" line="111" />
+            <location filename="../blackpdf/ui/updates.py" line="115" />
+            <location filename="../blackpdf/ui/updates.py" line="116" />
             <source>Actualizar ahora</source>
             <translation>Mettre à jour maintenant</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/updates.py" line="112" />
+            <location filename="../blackpdf/ui/updates.py" line="117" />
             <source>Descargar e instalar</source>
             <translation>Télécharger et installer</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/updates.py" line="113" />
+            <location filename="../blackpdf/ui/updates.py" line="118" />
             <source>Ir a la descarga</source>
             <translation>Aller au téléchargement</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/updates.py" line="150" />
+            <location filename="../blackpdf/ui/updates.py" line="156" />
             <source>Cancelar</source>
             <translation>Annuler</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/updates.py" line="153" />
+            <location filename="../blackpdf/ui/updates.py" line="159" />
             <source>Descargando y comprobando la versión {0}...</source>
             <translation>Téléchargement et vérification de la version {0}...</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/updates.py" line="196" />
+            <location filename="../blackpdf/ui/updates.py" line="202" />
             <source>La versión nueva se ha descargado en «{0}». Ábrela desde ahí; ya puedes borrar la anterior.</source>
             <translation>La nouvelle version a été téléchargée dans « {0} ». Ouvrez-la depuis cet emplacement ; vous pouvez supprimer l'ancienne.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/updates.py" line="204" />
+            <location filename="../blackpdf/ui/updates.py" line="210" />
             <source>Se ha abierto el instalador del sistema con la versión nueva. Cuando termine, vuelve a abrir BlackPDF.</source>
             <translation>Le programme d'installation du système s'est ouvert avec la nouvelle version. Une fois terminé, rouvrez BlackPDF.</translation>
         </message>
@@ -4686,8 +4696,8 @@ Enregistrer quand même ? Avec « Enregistrer sous », l'original conserve ses s
         </message>
         <message>
             <location filename="../blackpdf/ui/dialogs/welcome.py" line="89" />
-            <source>Solo se consulta GitHub, como mucho una vez al día. No se envía ningún dato tuyo.</source>
-            <translation>Seul GitHub est consulté, au plus une fois par jour. Aucune de vos données n'est envoyée.</translation>
+            <source>Solo se consulta GitHub, como mucho una vez al mes. No se envía ningún dato tuyo.</source>
+            <translation>Seul GitHub est consulté, au plus une fois par mois. Aucune de vos données n'est envoyée.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/dialogs/welcome.py" line="95" />

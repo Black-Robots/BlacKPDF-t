@@ -68,7 +68,7 @@ class Settings:
     # ---------- actualizaciones ----------
     @property
     def check_updates(self) -> bool:
-        """Si se comprueba sola (como mucho una vez al día) si hay una versión nueva."""
+        """Si se comprueba sola (como mucho una vez al mes) si hay una versión nueva."""
         return self._bool("updates/check", True)
 
     @check_updates.setter

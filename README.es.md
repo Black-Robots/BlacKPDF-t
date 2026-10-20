@@ -69,7 +69,7 @@ Paleta de comandos con Ctrl+K y atajos de teclado estándar (lista completa en M
 | Linux (cualquier distribución con glibc 2.35+) | `BlackPDF-<versión>-x86_64.AppImage` | `chmod +x BlackPDF-*.AppImage` y ejecutarlo. |
 | Debian, Ubuntu, Mint... | `blackpdf_<versión>_amd64.deb` | `sudo apt install ./blackpdf_*_amd64.deb`. Aparece en el menú de aplicaciones y en «Abrir con». |
 
-**Actualizaciones.** Comprobar si hay versiones nuevas es lo único que BlackPDF hace por internet, y lo decides al abrirlo por primera vez (Menú > Avisar de versiones nuevas). Consulta GitHub como mucho una vez al día y no envía ningún dato tuyo. Cada descarga se compara con las sumas SHA-256 publicadas. La instalación de Windows y el AppImage se actualizan solos y vuelven a abrir tus documentos; con el `.deb` se abre el instalador del sistema. También puedes comprobarlo cuando quieras en Menú > Buscar actualizaciones.
+**Actualizaciones.** Comprobar si hay versiones nuevas es lo único que BlackPDF hace por internet, y lo decides al abrirlo por primera vez (Menú > Avisar de versiones nuevas). Consulta GitHub como mucho una vez al mes y no envía ningún dato tuyo; los avisos se pueden quitar desde el propio aviso. Cada descarga se compara con las sumas SHA-256 publicadas. La instalación de Windows y el AppImage se actualizan solos y vuelven a abrir tus documentos; con el `.deb` se abre el instalador del sistema. También puedes comprobarlo cuando quieras en Menú > Buscar actualizaciones.
 
 ## Desarrollo
 
