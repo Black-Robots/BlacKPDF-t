@@ -34,8 +34,8 @@ rm -rf "$APPDIR"
 mkdir -p "$APPDIR/usr/lib"
 cp -a "$DIST" "$APPDIR/usr/lib/blackpdf"
 install -Dm644 packaging/linux/blackpdf.desktop "$APPDIR/usr/share/applications/blackpdf.desktop"
-install -Dm644 packaging/linux/io.github.blackpdf.BlackPDF.metainfo.xml \
-    "$APPDIR/usr/share/metainfo/io.github.blackpdf.BlackPDF.metainfo.xml"
+install -Dm644 packaging/linux/org.blackrobots.BlackPDF.metainfo.xml \
+    "$APPDIR/usr/share/metainfo/org.blackrobots.BlackPDF.metainfo.xml"
 install_icons "$APPDIR/usr/share"
 cp packaging/linux/blackpdf.desktop "$APPDIR/blackpdf.desktop"
 cp blackpdf/resources/app/blackpdf-256.png "$APPDIR/blackpdf.png"
@@ -61,8 +61,8 @@ mkdir -p "$PKG/DEBIAN" "$PKG/opt" "$PKG/usr/bin"
 cp -a "$DIST" "$PKG/opt/blackpdf"
 ln -sf /opt/blackpdf/BlackPDF "$PKG/usr/bin/blackpdf"
 install -Dm644 packaging/linux/blackpdf.desktop "$PKG/usr/share/applications/blackpdf.desktop"
-install -Dm644 packaging/linux/io.github.blackpdf.BlackPDF.metainfo.xml \
-    "$PKG/usr/share/metainfo/io.github.blackpdf.BlackPDF.metainfo.xml"
+install -Dm644 packaging/linux/org.blackrobots.BlackPDF.metainfo.xml \
+    "$PKG/usr/share/metainfo/org.blackrobots.BlackPDF.metainfo.xml"
 install_icons "$PKG/usr/share"
 install -Dm644 LICENSE "$PKG/usr/share/doc/blackpdf/copyright"
 SIZE="$(du -sk "$PKG" | cut -f1)"
@@ -74,8 +74,8 @@ Priority: optional
 Architecture: amd64
 Installed-Size: $SIZE
 Depends: libc6 (>= 2.35), libgl1, libegl1, libfontconfig1, libxkbcommon0
-Maintainer: BlackPDF <noreply@blackpdf.invalid>
-Homepage: https://github.com/blackpdf/blackpdf
+Maintainer: The Black Robots Foundation <noreply@blackpdf.invalid>
+Homepage: https://blackrobots.org/blackpdf/
 Description: Visor y editor de PDF libre y sin conexión
  BlackPDF permite ver, organizar, unir, dividir, comprimir, convertir,
  anotar, firmar, proteger y reconocer texto en documentos PDF sin

@@ -1,99 +1,118 @@
 # BlackPDF
 
-Visor y editor de PDF de escritorio, libre y gratuito. Reúne lo que ofrecen los servicios web de PDF, pero funciona sin conexión: los documentos nunca salen del equipo.
+**English** · [Español](README.es.md)
 
-Disponible para **Windows 10/11** y **Linux**.
+A free and open PDF viewer and editor for the desktop. It does what online PDF services do, but it works offline: your documents never leave your computer.
 
-## Funciones
+Available for **Windows 10/11** and **Linux**, in English, Spanish, Portuguese and French (it follows the system language; change it in Menu > Language).
 
-**Visor**
-- Pestañas para varios documentos, archivos recientes y vuelta a la última página leída.
-- Scroll continuo con render por teselas (solo se dibuja lo visible), zoom con Ctrl+rueda, ajuste al ancho o a la página.
-- Modo noche que conserva los colores, pantalla completa, miniaturas, índice y búsqueda con resaltado.
-- Historial de navegación (Alt+Izquierda o botón Atrás del ratón) y enlaces internos y externos.
-- Vista dividida (Ctrl+\\): el mismo documento en dos puntos, otro PDF abierto o cualquier PDF del disco, con desplazamiento sincronizado opcional para comparar versiones.
-- Abre también imágenes, XPS y EPUB convirtiéndolos a PDF.
+**[Download the latest version](https://github.com/TheBlackRobotsFoundation/BlackPDF/releases/latest)** · [Website](https://blackrobots.org/blackpdf/) · [Report a bug](https://github.com/TheBlackRobotsFoundation/BlackPDF/issues)
 
-**Organizar**
-- Arrastrar miniaturas para reordenar, en el panel lateral o en el modo Organizar a pantalla completa (Ctrl+G).
-- Girar, eliminar, duplicar, insertar páginas en blanco o de otros PDF (también soltándolos sobre las miniaturas).
-- Selección múltiple con Ctrl y Mayús. Deshacer y rehacer (hasta 30 pasos).
+## Features
 
-**Herramientas**
-- Unir, dividir (por rangos, cada N páginas o una por archivo), alternar páginas de dos PDF, extraer, rotar.
-- Comprimir (tres niveles), PDF a imagen (PNG/JPG) e imagen a PDF.
-- Marca de agua de texto o imagen y números de página, con vista previa en vivo.
-- Proteger con AES-256 y desbloquear, recortar márgenes (automático o manual), cambiar el tamaño de página.
-- Rellenar formularios y aplanar.
-- Reconocimiento de texto (OCR) en español e inglés incluido, sin instalar nada más.
+**Viewer**
+- Tabs for several documents, recent files and reopening at the last page read.
+- Continuous scrolling with tiled rendering (only what is visible is drawn), Ctrl+wheel zoom, fit to width or page.
+- Night mode that keeps colors, full screen, thumbnails, outline and search with highlighting.
+- Navigation history (Alt+Left or the mouse Back button) and internal and external links.
+- Split view (Ctrl+\\): the same document at two places, another open PDF or any PDF on disk, with optional synchronized scrolling to compare versions.
+- Also opens images, XPS and EPUB by converting them to PDF.
 
-**Comentarios**
-- Panel de comentarios por página con autor y fecha, cita del texto resaltado y respuestas en hilo.
-- Comentar una página, una anotación o un resaltado («Resaltar y comentar»); editar y eliminar con deshacer.
-- Compatibles con Acrobat y otros lectores (notas PDF estándar con respuestas /IRT).
+**Organize**
+- Drag thumbnails to reorder pages, in the side panel or in full-screen Organize mode (Ctrl+G).
+- Rotate, delete, duplicate, insert blank pages or pages from other PDFs (also by dropping files onto the thumbnails).
+- Multiple selection with Ctrl and Shift. Undo and redo (up to 30 steps).
 
-**Anotar y firmar**
-- Lápiz, resaltador, subrayado, tachado, rectángulo, elipse, flecha, línea, cuadro de texto y notas.
-- Firma: se dibuja una vez, se guarda y se estampa donde se quiera.
-- Goma para borrar anotaciones y Censurar, que elimina de forma definitiva el contenido de una zona o todas las apariciones de un texto.
-- Todo se guarda como anotaciones PDF estándar, visibles en cualquier lector.
+**Tools**
+- Merge, split (by ranges, every N pages or one per file), alternate the pages of two PDFs, extract, rotate.
+- Compress (three levels), PDF to image (PNG/JPG) and image to PDF.
+- Text or image watermarks and page numbers, with a live preview.
+- Protect with AES-256 and unlock, crop margins (automatic or manual), change the page size.
+- Fill in and flatten forms.
+- Built-in text recognition (OCR) in English, Spanish, Portuguese and French, with nothing else to install.
 
-**Firma digital con certificado**
-- Firma PAdES con un certificado personal o de empresa (archivo .pfx / .p12, por ejemplo de la FNMT): sello visible con nombre, fecha, motivo y lugar, y opcionalmente la firma manuscrita guardada.
-- La firma se añade como revisión incremental, sin reescribir el documento: los lectores muestran que no se ha modificado después de firmar.
-- Sello de tiempo opcional de un servidor TSA y verificación de las firmas de cualquier PDF (quién firmó, cuándo y si el documento sigue intacto).
+**Comments**
+- Comments panel per page with author and date, quote of the highlighted text and threaded replies.
+- Comment on a page, an annotation or a highlight ("Highlight and comment"); edit and delete with undo.
+- Compatible with Acrobat and other readers (standard PDF notes with /IRT replies).
 
-**Modelos 3D**
-- Visor 3D para los PDF con modelos U3D y PRC (Acrobat, Tetra4D, exportaciones CAD, LaTeX/media9) y para archivos `.u3d` y `.prc` sueltos.
-- Vistas guardadas en el PDF, giro, desplazamiento y zoom al cursor, vistas estándar, modos sólido, contorno, alámbrico y transparente, iluminación, corte por plano, panel de piezas para ocultar o aislar, y captura a imagen.
-- Lector U3D propio en Python. El PRC usa nanoPRC (incluida teselación comprimida) con un lector propio de respaldo.
+**Annotate and sign**
+- Pen, highlighter, underline, strikethrough, rectangle, ellipse, arrow, line, text box and notes.
+- Signature: draw it once, save it and stamp it wherever you want.
+- Eraser for annotations and Redact, which permanently removes the content of an area or every occurrence of a text.
+- Everything is saved as standard PDF annotations, visible in any reader.
 
-Paleta de comandos con Ctrl+K y atajos de teclado estándar (lista completa en Menú > Atajos de teclado).
+**Digital signature with a certificate**
+- PAdES signatures with a personal, national eID or company certificate (.pfx / .p12 file): visible stamp with name, date, reason and location, optionally with your saved handwritten signature.
+- The signature is added as an incremental revision, without rewriting the document, so readers show that it has not been modified after signing.
+- Optional timestamp from a TSA server, and verification of the signatures in any PDF (who signed, when and whether the document is still intact).
 
-## Instalación
+**3D models**
+- 3D viewer for PDFs with U3D and PRC models (Acrobat, Tetra4D, CAD exports, LaTeX/media9) and for standalone `.u3d` and `.prc` files.
+- Views saved in the PDF, rotate, pan and zoom to the cursor, standard views, solid, outline, wireframe and transparent modes, lighting, section plane, parts panel to hide or isolate parts, and export to an image.
+- Own U3D reader in Python. PRC uses nanoPRC (including compressed tessellation) plus an own reader for exact geometry (B-rep, NURBS and Bézier surfaces from Asymptote).
 
-| Sistema | Archivo | Cómo |
+Command palette with Ctrl+K and standard keyboard shortcuts (full list in Menu > Keyboard shortcuts).
+
+## Installation
+
+| System | File | How |
 |---|---|---|
-| Windows 10 (1903+) / 11 | `BlackPDF-<versión>-Setup.exe` | Ejecutar el instalador. No pide permisos de administrador. Añade BlackPDF a «Abrir con» de los PDF y, si se marca la opción, abre la configuración para elegirlo como lector predeterminado. |
-| Linux (cualquier distribución con glibc 2.35+) | `BlackPDF-<versión>-x86_64.AppImage` | `chmod +x BlackPDF-*.AppImage` y ejecutarlo. |
-| Debian, Ubuntu, Mint... | `blackpdf_<versión>_amd64.deb` | `sudo apt install ./blackpdf_*_amd64.deb`. Aparece en el menú de aplicaciones y en «Abrir con». |
+| Windows 10 (1903+) / 11 | `BlackPDF-<version>-Setup.exe` | Run the installer. It does not need administrator rights. It adds BlackPDF to "Open with" for PDF files and, if you tick the option, opens the settings to make it the default reader. |
+| Linux (any distribution with glibc 2.35+) | `BlackPDF-<version>-x86_64.AppImage` | `chmod +x BlackPDF-*.AppImage` and run it. |
+| Debian, Ubuntu, Mint... | `blackpdf_<version>_amd64.deb` | `sudo apt install ./blackpdf_*_amd64.deb`. It appears in the applications menu and in "Open with". |
 
-## Desarrollo
+The Windows installer is not code-signed yet, so Windows SmartScreen may show a warning the first time ("More info" > "Run anyway").
 
-Requisitos: Python 3.12 o superior (se recomienda la versión estable más reciente), y CMake 3.24+ con un compilador de C para la biblioteca nativa de modelos PRC.
+## Development
+
+Requirements: Python 3.12 or later (the latest stable release is recommended), and CMake 3.24+ with a C compiler for the native PRC library.
 
 ```bash
-uv venv --python 3.15 .venv            # o: python3 -m venv .venv
+uv venv --python 3.15 .venv            # or: python3 -m venv .venv
 uv pip install --python .venv/bin/python -e ".[dev]"
-.venv/bin/python native/prc/build.py    # biblioteca PRC (opcional en desarrollo)
-.venv/bin/python -m blackpdf            # arrancar la aplicación
+.venv/bin/python native/prc/build.py    # native PRC library (optional for development)
+.venv/bin/python -m blackpdf            # run the application
 .venv/bin/python -m pytest             # tests
-.venv/bin/python -m blackpdf --self-test   # comprobación rápida de una instalación
+.venv/bin/python -m blackpdf --self-test   # quick check of an installation
 ```
 
-Estructura:
+Layout:
 
 ```
-blackpdf/core/      operaciones PDF puras con PyMuPDF (sin Qt), cada una con su test
-blackpdf/ui/        ventanas, visor, miniaturas, diálogos y tema
-blackpdf/procworker.py  ejecución de herramientas en un subproceso
-blackpdf/app.py     punto de entrada
-tests/              tests del núcleo y pruebas de humo de la interfaz
-native/prc/         capa en C sobre nanoPRC para leer modelos PRC (se compila con build.py)
-packaging/          PyInstaller, AppImage, .deb e instalador de Windows (Inno Setup)
+blackpdf/core/      pure PDF operations with PyMuPDF (no Qt), each with its test
+blackpdf/ui/        windows, viewer, thumbnails, dialogs and theme
+blackpdf/procworker.py  runs tools in a subprocess
+blackpdf/app.py     entry point
+tests/              core tests and user interface smoke tests
+translations/       Qt Linguist translation files (en, pt, fr)
+native/prc/         C layer over nanoPRC to read PRC models (built with build.py)
+packaging/          PyInstaller, AppImage, .deb and Windows installer (Inno Setup)
 ```
 
-PyMuPDF no admite varios hilos, así que las operaciones largas se ejecutan en un subproceso supervisado desde el `QThreadPool`: la interfaz nunca se bloquea y cancelar es inmediato.
+PyMuPDF is not thread-safe, so long operations run in a subprocess supervised from the `QThreadPool`: the interface never freezes and cancelling is immediate. The source code and comments are in Spanish.
 
-### Empaquetado
+### Translations
 
-- Linux: `packaging/linux/build_linux.sh` genera el AppImage y el `.deb` en `packaging/out/`.
-- Windows nativo: `powershell -ExecutionPolicy Bypass -File packaging\windows\build_windows.ps1` (requiere Inno Setup 6).
-- Windows desde Linux: `packaging/windows/build_windows_wine.sh` (requiere Wine, Xvfb y mingw-w64 para la DLL de PRC).
-- GitHub Actions (`.github/workflows/build.yml`) ejecuta los tests y, al publicar una etiqueta `v*`, compila los tres paquetes y crea la versión.
+The texts in the code are in Spanish. Translations live in `translations/blackpdf_<language>.ts` (Qt Linguist format):
 
-## Licencia
+```bash
+.venv/bin/python scripts/i18n.py update   # adds new texts to the .ts files
+.venv/bin/pyside6-linguist translations/blackpdf_fr.ts   # translate (or use a text editor)
+.venv/bin/python scripts/i18n.py build    # compiles the .qm files used by the application
+```
 
-BlackPDF es software libre bajo la [GNU Affero General Public License v3.0](LICENSE), la misma licencia que PyMuPDF y MuPDF.
+The tests fail if any text is left untranslated or if a translation loses a placeholder such as `{0}`. New languages are welcome: add the code to `LANGUAGES` in `scripts/i18n.py` and `blackpdf/ui/i18n.py`.
 
-Componentes de terceros: PyMuPDF y MuPDF (AGPL-3.0), Qt y PySide6 (LGPL-3.0), pyHanko (MIT), nanoPRC de CascadiaVoxel LLC (AGPL-3.0) y zlib (licencia zlib) en la biblioteca nativa de PRC, tipografía Inter (SIL Open Font License), iconos Lucide (ISC) y datos de idioma de Tesseract (Apache 2.0). La tabla de valores frecuentes de los números PRC procede de Asymptote (LGPL-3.0) y el modelo `cubo.u3d` de la implementación de referencia de U3D (Apache 2.0).
+### Packaging
+
+- Linux: `packaging/linux/build_linux.sh` builds the AppImage and the `.deb` in `packaging/out/`.
+- Native Windows: `powershell -ExecutionPolicy Bypass -File packaging\windows\build_windows.ps1` (requires Inno Setup 6).
+- Windows from Linux: `packaging/windows/build_windows_wine.sh` (requires Wine, Xvfb and mingw-w64 for the PRC DLL).
+- GitHub Actions (`.github/workflows/build.yml`) runs the tests and, when a `v*` tag is pushed, builds the three packages and creates the release.
+
+## License
+
+BlackPDF is free software under the [GNU Affero General Public License v3.0](LICENSE), the same license as PyMuPDF and MuPDF. It is developed by [The Black Robots Foundation](https://blackrobots.org).
+
+Third-party components: PyMuPDF and MuPDF (AGPL-3.0), Qt and PySide6 (LGPL-3.0), pyHanko (MIT), nanoPRC by CascadiaVoxel LLC (AGPL-3.0) and zlib (zlib license) in the native PRC library, Inter typeface (SIL Open Font License), Lucide icons (ISC) and Tesseract language data (Apache 2.0). The table of frequent values for PRC numbers comes from Asymptote (LGPL-3.0) and the `cubo.u3d` model from the U3D reference implementation (Apache 2.0).

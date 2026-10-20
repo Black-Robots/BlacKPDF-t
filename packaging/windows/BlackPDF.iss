@@ -13,7 +13,9 @@
 
 #define MyAppName "BlackPDF"
 #define MyAppExe "BlackPDF.exe"
-#define MyAppPublisher "BlackPDF"
+#define MyAppPublisher "The Black Robots Foundation"
+#define MyAppURL "https://blackrobots.org/blackpdf/"
+#define MyRepoURL "https://github.com/TheBlackRobotsFoundation/BlackPDF"
 #define MyProgId "BlackPDF.Document"
 
 [Setup]
@@ -22,7 +24,10 @@ AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-AppCopyright=Software libre bajo licencia AGPL-3.0
+AppPublisherURL={#MyAppURL}
+AppSupportURL={#MyRepoURL}/issues
+AppUpdatesURL={#MyRepoURL}/releases
+AppCopyright=Free software under the AGPL-3.0 license
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
@@ -47,23 +52,43 @@ CloseApplications=yes
 RestartApplications=no
 VersionInfoVersion={#MyAppVersion}
 VersionInfoProductName={#MyAppName}
-VersionInfoDescription=Instalador de {#MyAppName}
+VersionInfoDescription={#MyAppName} Setup
+VersionInfoCompany={#MyAppPublisher}
 
 [Languages]
-Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
+; El instalador elige el idioma de Windows; la aplicación hace lo mismo al arrancar.
 Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
+Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
+Name: "portuguese"; MessagesFile: "compiler:Languages\Portuguese.isl"
+Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 
 [CustomMessages]
-spanish.AssocTask=Mostrar BlackPDF en «Abrir con» para los archivos PDF
 english.AssocTask=Show BlackPDF in "Open with" for PDF files
-spanish.DefaultTask=Abrir la configuración para elegir BlackPDF como lector de PDF predeterminado
+spanish.AssocTask=Mostrar BlackPDF en «Abrir con» para los archivos PDF
+brazilianportuguese.AssocTask=Mostrar o BlackPDF em "Abrir com" para arquivos PDF
+portuguese.AssocTask=Mostrar o BlackPDF em "Abrir com" para ficheiros PDF
+french.AssocTask=Afficher BlackPDF dans « Ouvrir avec » pour les fichiers PDF
 english.DefaultTask=Open settings to choose BlackPDF as the default PDF reader
-spanish.DocName=Documento PDF
+spanish.DefaultTask=Abrir la configuración para elegir BlackPDF como lector de PDF predeterminado
+brazilianportuguese.DefaultTask=Abrir as configurações para escolher o BlackPDF como leitor de PDF padrão
+portuguese.DefaultTask=Abrir as definições para escolher o BlackPDF como leitor de PDF predefinido
+french.DefaultTask=Ouvrir les paramètres pour choisir BlackPDF comme lecteur PDF par défaut
 english.DocName=PDF document
-spanish.AppDescription=Visor y editor de PDF libre y sin conexión
+spanish.DocName=Documento PDF
+brazilianportuguese.DocName=Documento PDF
+portuguese.DocName=Documento PDF
+french.DocName=Document PDF
 english.AppDescription=Free offline PDF viewer and editor
-spanish.LaunchApp=Abrir BlackPDF
+spanish.AppDescription=Visor y editor de PDF libre y sin conexión
+brazilianportuguese.AppDescription=Visualizador e editor de PDF livre e sem conexão
+portuguese.AppDescription=Visualizador e editor de PDF livre e sem ligação à Internet
+french.AppDescription=Visionneuse et éditeur PDF libre et hors ligne
 english.LaunchApp=Launch BlackPDF
+spanish.LaunchApp=Abrir BlackPDF
+brazilianportuguese.LaunchApp=Abrir o BlackPDF
+portuguese.LaunchApp=Abrir o BlackPDF
+french.LaunchApp=Lancer BlackPDF
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"

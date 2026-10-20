@@ -25,21 +25,36 @@
         </message>
         <message>
             <location filename="../blackpdf/ui/dialogs/about.py" line="46" />
-            <source>Tipografía Inter (SIL OFL)  ·  Iconos Lucide (ISC)  ·  Datos de Tesseract (Apache 2.0)</source>
-            <translation>Fonte Inter (SIL OFL)  ·  Ícones Lucide (ISC)  ·  Dados do Tesseract (Apache 2.0)</translation>
+            <source>Tipografía Inter (SIL OFL)  ·  Iconos Lucide (ISC)  ·  Datos de Tesseract (Apache 2.0)  ·  pyHanko (MIT)  ·  nanoPRC (AGPL-3.0)</source>
+            <translation>Fonte Inter (SIL OFL)  ·  Ícones Lucide (ISC)  ·  Dados do Tesseract (Apache 2.0)  ·  pyHanko (MIT)  ·  nanoPRC (AGPL-3.0)</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="49" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="50" />
             <source>Licencia</source>
             <translation>Licença</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="50" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="51" />
             <source>BlackPDF es software libre: puedes usarlo, estudiarlo, compartirlo y modificarlo según los términos de la Licencia Pública General Affero de GNU, versión 3 (AGPL-3.0).</source>
             <translation>O BlackPDF é software livre: você pode usá-lo, estudá-lo, compartilhá-lo e modificá-lo nos termos da Licença Pública Geral Affero GNU, versão 3 (AGPL-3.0).</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="55" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="56" />
+            <source>Página web</source>
+            <translation>Site</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/about.py" line="57" />
+            <source>Código fuente</source>
+            <translation>Código-fonte</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/about.py" line="58" />
+            <source>Informar de un fallo</source>
+            <translation>Relatar um problema</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/dialogs/about.py" line="66" />
             <source>Cerrar</source>
             <translation>Fechar</translation>
         </message>
@@ -3373,228 +3388,228 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
     <context>
         <name>ShortcutsDialog</name>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="68" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="79" />
             <source>Archivo</source>
             <translation>Arquivo</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="69" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="80" />
             <source>Abrir</source>
             <translation>Abrir</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="69" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="80" />
             <source>Guardar</source>
             <translation>Salvar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="69" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="80" />
             <source>Guardar como</source>
             <translation>Salvar como</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="70" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="81" />
             <source>Imprimir</source>
             <translation>Imprimir</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="70" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="81" />
             <source>Cerrar pestaña</source>
             <translation>Fechar aba</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="70" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="81" />
             <source>Pestaña siguiente</source>
             <translation>Próxima aba</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="71" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="82" />
             <source>Paleta de comandos</source>
             <translation>Paleta de comandos</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="73" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="84" />
             <source>Edición</source>
             <translation>Edição</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="74" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="85" />
             <source>Deshacer</source>
             <translation>Desfazer</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="74" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="85" />
             <source>Rehacer</source>
             <translation>Refazer</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="74" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="85" />
             <source>Copiar texto</source>
             <translation>Copiar texto</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="75" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="86" />
             <source>Seleccionar texto de la página</source>
             <translation>Selecionar texto da página</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="75" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="86" />
             <source>Eliminar páginas seleccionadas</source>
             <translation>Excluir páginas selecionadas</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="76" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="87" />
             <source>Girar a la derecha</source>
             <translation>Girar para a direita</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="76" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="87" />
             <source>Girar a la izquierda</source>
             <translation>Girar para a esquerda</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="78" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="89" />
             <source>Vista</source>
             <translation>Exibir</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="79" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="90" />
             <source>Acercar</source>
             <translation>Aumentar zoom</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="79" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="90" />
             <source>Alejar</source>
             <translation>Diminuir zoom</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="79" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="90" />
             <source>Tamaño real</source>
             <translation>Tamanho real</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="80" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="91" />
             <source>Ajustar al ancho</source>
             <translation>Ajustar à largura</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="80" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="91" />
             <source>Página completa</source>
             <translation>Página inteira</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="81" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="92" />
             <source>Ctrl+rueda</source>
             <translation>Ctrl+roda</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="81" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="92" />
             <source>Zoom con el ratón</source>
             <translation>Zoom com o mouse</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="81" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="92" />
             <source>Buscar</source>
             <translation>Pesquisar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="81" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="92" />
             <source>Modo noche</source>
             <translation>Modo noturno</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="82" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="93" />
             <source>Panel lateral</source>
             <translation>Painel lateral</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="82" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="93" />
             <source>Pantalla completa</source>
             <translation>Tela cheia</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="83" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="94" />
             <source>Flechas</source>
             <translation>Setas</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="83" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="94" />
             <source>Página anterior / siguiente</source>
             <translation>Página anterior / próxima</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="85" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="96" />
             <source>Anotar</source>
             <translation>Anotar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="86" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="97" />
             <source>Seleccionar texto</source>
             <translation>Selecionar texto</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="86" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="97" />
             <source>Mano</source>
             <translation>Mão</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="86" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="97" />
             <source>Lápiz</source>
             <translation>Lápis</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="86" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="97" />
             <source>Resaltar</source>
             <translation>Destacar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="87" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="98" />
             <source>Subrayar</source>
             <translation>Sublinhar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="87" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="98" />
             <source>Tachar</source>
             <translation>Riscar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="87" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="98" />
             <source>Cuadro de texto</source>
             <translation>Caixa de texto</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="87" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="98" />
             <source>Nota</source>
             <translation>Nota</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="88" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="99" />
             <source>Firma</source>
             <translation>Assinatura</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="88" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="99" />
             <source>Goma</source>
             <translation>Borracha</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="88" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="99" />
             <source>Mostrar u ocultar la barra de anotación</source>
             <translation>Mostrar ou ocultar a barra de anotação</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="89" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="100" />
             <source>Volver a seleccionar</source>
             <translation>Voltar a selecionar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="99" />
             <location filename="../blackpdf/ui/dialogs/about.py" line="110" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="121" />
             <source>Atajos de teclado</source>
             <translation>Atalhos de teclado</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/dialogs/about.py" line="134" />
+            <location filename="../blackpdf/ui/dialogs/about.py" line="145" />
             <source>Cerrar</source>
             <translation>Fechar</translation>
         </message>
@@ -4117,6 +4132,12 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
     <context>
         <name>Tools</name>
         <message>
+            <location filename="../blackpdf/selftest.py" line="89" />
+            <location filename="../blackpdf/ui/tools.py" line="37" />
+            <source>Unir PDF</source>
+            <translation>Juntar PDF</translation>
+        </message>
+        <message>
             <location filename="../blackpdf/ui/tools.py" line="27" />
             <source>Organizar</source>
             <translation>Organizar</translation>
@@ -4140,11 +4161,6 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
             <location filename="../blackpdf/ui/tools.py" line="31" />
             <source>Seguridad</source>
             <translation>Segurança</translation>
-        </message>
-        <message>
-            <location filename="../blackpdf/ui/tools.py" line="37" />
-            <source>Unir PDF</source>
-            <translation>Juntar PDF</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/tools.py" line="37" />

@@ -64,7 +64,7 @@ tests/           → tests de core con PDFs generados en el propio test.
 
 ## Reglas
 1. Toda función de `core` lleva test en `tests/`.
-2. Textos de UI en español con `self.tr()`.
+2. Textos de UI en español con `self.tr()` (o `QT_TRANSLATE_NOOP` en listas de módulo). Traducciones en `translations/*.ts` (en, pt, fr): tras cambiar textos, `python scripts/i18n.py update`, traducir y `python scripts/i18n.py build`; los tests fallan si falta alguna.
 3. Errores al usuario con mensajes claros, nunca trazas.
 4. Antes de dar una tarea por terminada: `pytest` en verde y la app arranca (`python -m blackpdf --self-test`).
 5. Cambios pequeños y enfocados.

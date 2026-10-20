@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.blackrobots.BlackPDF</id>
+  <launchable type="desktop-id">blackpdf.desktop</launchable>
+  <name>BlackPDF</name>
+  <summary>Free and open PDF viewer and editor that works offline</summary>
+  <summary xml:lang="es">Visor y editor de PDF libre y sin conexión</summary>
+  <summary xml:lang="pt_BR">Visualizador e editor de PDF livre e sem conexão</summary>
+  <summary xml:lang="pt">Visualizador e editor de PDF livre e sem ligação à Internet</summary>
+  <summary xml:lang="fr">Visionneuse et éditeur PDF libre et hors ligne</summary>
+  <developer id="org.blackrobots">
+    <name>The Black Robots Foundation</name>
+  </developer>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>AGPL-3.0-only</project_license>
+  <url type="homepage">https://blackrobots.org/blackpdf/</url>
+  <url type="bugtracker">https://github.com/TheBlackRobotsFoundation/BlackPDF/issues</url>
+  <url type="vcs-browser">https://github.com/TheBlackRobotsFoundation/BlackPDF</url>
+  <description>
+    <p>BlackPDF brings together everything you need to work with PDF files offline: view, organize pages,
+    merge, split, compress, convert, annotate, comment, sign with a digital certificate, protect, recognize
+    text and view 3D models. Your documents never leave your computer.</p>
+    <p xml:lang="es">BlackPDF reúne todo lo necesario para trabajar con PDF sin conexión: ver, organizar páginas,
+    unir, dividir, comprimir, convertir, anotar, comentar, firmar con certificado digital, proteger, reconocer
+    texto y ver modelos 3D. Tus documentos nunca salen de tu equipo.</p>
+    <p xml:lang="pt_BR">O BlackPDF reúne tudo o que é preciso para trabalhar com PDF sem conexão: visualizar,
+    organizar páginas, juntar, dividir, comprimir, converter, anotar, comentar, assinar com certificado digital,
+    proteger, reconhecer texto e ver modelos 3D. Seus documentos nunca saem do seu computador.</p>
+    <p xml:lang="pt">O BlackPDF reúne tudo o que é preciso para trabalhar com PDF sem ligação à Internet:
+    visualizar, organizar páginas, juntar, dividir, comprimir, converter, anotar, comentar, assinar com
+    certificado digital, proteger, reconhecer texto e ver modelos 3D. Os seus documentos nunca saem do computador.</p>
+    <p xml:lang="fr">BlackPDF réunit tout ce qu'il faut pour travailler avec des PDF hors ligne : afficher,
+    organiser les pages, fusionner, diviser, compresser, convertir, annoter, commenter, signer avec un certificat
+    numérique, protéger, reconnaître le texte et afficher des modèles 3D. Vos documents ne quittent jamais votre ordinateur.</p>
+  </description>
+  <categories>
+    <category>Office</category>
+    <category>Viewer</category>
+  </categories>
+  <provides>
+    <mediatype>application/pdf</mediatype>
+  </provides>
+  <releases>
+    <release version="1.0.0" date="2026-10-20"/>
+  </releases>
+  <content_rating type="oars-1.1"/>
+</component>

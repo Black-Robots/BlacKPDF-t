@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "blackpdf"
 version = "1.0.0"
-description = "Visor y editor de PDF de escritorio, libre, gratuito y sin conexión."
+description = "Free and open desktop PDF viewer and editor that works offline."
 readme = "README.md"
 license = "AGPL-3.0-only"
 license-files = ["LICENSE"]
-authors = [{ name = "BlackPDF" }]
+authors = [{ name = "The Black Robots Foundation" }]
 requires-python = ">=3.12"
 dependencies = [
     "PySide6-Essentials>=6.10",
@@ -23,7 +23,15 @@ classifiers = [
     "Environment :: X11 Applications :: Qt",
     "Topic :: Office/Business",
     "Natural Language :: Spanish",
+    "Natural Language :: English",
+    "Natural Language :: Portuguese (Brazilian)",
+    "Natural Language :: French",
 ]
+
+[project.urls]
+Homepage = "https://blackrobots.org/blackpdf/"
+Source = "https://github.com/TheBlackRobotsFoundation/BlackPDF"
+Issues = "https://github.com/TheBlackRobotsFoundation/BlackPDF/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "pyinstaller>=6.10", "pillow>=11", "cryptography>=48"]

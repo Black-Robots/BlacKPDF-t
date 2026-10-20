@@ -9,7 +9,7 @@ from PySide6 import __version__ as pyside_version
 from PySide6.QtCore import QT_TRANSLATE_NOOP, Qt, qVersion
 from PySide6.QtWidgets import QDialog, QGridLayout, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
-from ... import __version__
+from ... import HOMEPAGE, REPOSITORY, __version__
 from .. import icons
 from ..keys import shortcut_text
 from ..widgets import Button, SectionLabel, label
@@ -43,13 +43,24 @@ class AboutDialog(QDialog):
         credits = label(
             f"Python {sys.version.split()[0]}  ·  Qt {qVersion()} / PySide6 {pyside_version}  ·  "
             f"PyMuPDF {pymupdf.VersionBind} (MuPDF {pymupdf.VersionFitz})<br>"
-            + self.tr("Tipografía Inter (SIL OFL)  ·  Iconos Lucide (ISC)  ·  Datos de Tesseract (Apache 2.0)"),
+            + self.tr("Tipografía Inter (SIL OFL)  ·  Iconos Lucide (ISC)  ·  Datos de Tesseract (Apache 2.0)  ·  "
+                      "pyHanko (MIT)  ·  nanoPRC (AGPL-3.0)"),
             "caption", wrap=True)
         layout.addWidget(credits)
         layout.addWidget(SectionLabel(self.tr("Licencia")))
         layout.addWidget(label(self.tr(
             "BlackPDF es software libre: puedes usarlo, estudiarlo, compartirlo y modificarlo según los "
             "términos de la Licencia Pública General Affero de GNU, versión 3 (AGPL-3.0)."), "caption", wrap=True))
+        links = label(" &nbsp;·&nbsp; ".join(
+            f'<a href="{url}">{text}</a>' for url, text in (
+                (HOMEPAGE, self.tr("Página web")),
+                (REPOSITORY, self.tr("Código fuente")),
+                (REPOSITORY + "/issues", self.tr("Informar de un fallo")),
+            )), "caption")
+        links.setOpenExternalLinks(True)
+        links.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addSpacing(4)
+        layout.addWidget(links)
         row = QHBoxLayout()
         row.addStretch(1)
         close = Button(self.tr("Cerrar"), "primary")

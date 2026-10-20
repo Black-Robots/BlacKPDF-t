@@ -74,6 +74,23 @@ def _prc_check(resources: Path) -> bool | None:
     return scene.triangle_count == 24 and [part.name for part in scene.parts] == ["Base", "Columna"]
 
 
+def _translations_check() -> bool:
+    """Las traducciones compiladas viajan con la aplicación y se pueden leer."""
+    from PySide6.QtCore import QTranslator
+
+    from .ui.i18n import LANGUAGES, SOURCE_LANGUAGE, TRANSLATIONS
+
+    for code, _ in LANGUAGES:
+        if code == SOURCE_LANGUAGE:
+            continue
+        translator = QTranslator()
+        if not translator.load(str(TRANSLATIONS / f"blackpdf_{code}.qm")):
+            return False
+        if translator.translate("Tools", "Unir PDF") in ("", "Unir PDF"):
+            return False
+    return True
+
+
 def _gui_check() -> bool:
     """Crea la ventana principal sin pantalla, abre un PDF y renderiza una página."""
     import time
@@ -150,6 +167,7 @@ def run(target: str | None = None) -> int:
             result = run_blocking("blackpdf.core.compress:compress_pdf", str(source), str(output), "medium")
             check("subproceso de trabajo", output.exists() and result.compressed_size > 0)
             check("firma digital", _signature_check(Path(folder), source))
+            check("traducciones", _translations_check())
             check("modelos 3D", _model3d_check(resources))
             prc_ok = _prc_check(resources)
             if prc_ok is None:
