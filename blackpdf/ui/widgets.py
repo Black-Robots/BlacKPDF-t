@@ -233,6 +233,8 @@ class SplitButton(QFrame):
     def __init__(self, icon_name: str, tooltip: str, menu_tooltip: str, parent: QWidget | None = None, size: int = 32):
         super().__init__(parent)
         self.setObjectName("SplitButton")
+        # Del tamaño de sus dos botones: sin esto se estira a todo el alto de la barra.
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
