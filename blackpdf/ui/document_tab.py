@@ -33,7 +33,7 @@ from .dialogs.common import PropertiesDialog, ask_password, confirm_discard
 from .dialogs.signature import SignatureDialog
 from .document import PdfDocument
 from .errors import show_crash, show_error
-from .interaction import STYLED_TOOLS, PlaceRectTool, RedactTool, SignatureTool, create_tool
+from .interaction import STYLED_TOOLS, PlaceRectTool, RedactTool, SignatureTool, StampTool, create_tool
 from .keys import shortcut_text
 from .attachments import AttachmentsPanel
 from .layers import LayersPanel
@@ -194,6 +194,7 @@ class DocumentTab(QWidget):
         self.annotation_bar = AnnotationBar(self.area)
         self.annotation_bar.toolSelected.connect(self.set_tool)
         self.annotation_bar.styleChanged.connect(self._style_changed)
+        self.annotation_bar.stampChanged.connect(self._stamp_changed)
         self.area.annotation_bar = self.annotation_bar
         self.annotation_bar.setVisible(settings().annotation_bar_visible)
         self.annotate_button.setChecked(self.annotation_bar.isVisible())
@@ -1009,6 +1010,8 @@ class DocumentTab(QWidget):
             self.fullscreenRequested.emit()
         elif self.search_bar.isVisible():
             self.search_bar.close_bar()
+        elif getattr(self.viewer.tool, "busy", False):
+            self.viewer.tool.cancel()  # primero se descarta el polígono a medias
         elif self._tool_name not in ("select", "hand"):
             self.set_tool("select")
         else:
@@ -1028,7 +1031,7 @@ class DocumentTab(QWidget):
         tool = self._tools.get(name)
         if tool is None:
             tool = create_tool(name, self.viewer)
-            if isinstance(tool, SignatureTool):
+            if isinstance(tool, (SignatureTool, StampTool)):
                 tool.finished.connect(lambda: self.set_tool("select"))
             if isinstance(tool, RedactTool):
                 tool.finished.connect(lambda: Toast.show_message(
@@ -1036,10 +1039,22 @@ class DocumentTab(QWidget):
             self._tools[name] = tool
         if isinstance(tool, SignatureTool) and strokes:
             tool.set_strokes(strokes)
+        if isinstance(tool, StampTool):
+            self.annotation_bar.set_stamp(tool.choice)
+        if name == "polygon" and not settings().hint_seen("polygon"):
+            Toast.show_message(self.window(), self.tr(
+                "Haz clic en cada vértice. Para cerrar el polígono, doble clic, Intro o clic en el primer vértice."),
+                duration=5000)
         self._tool_name = name
         self.viewer.set_tool(tool)
         self.annotation_bar.set_active(name)
         self.area.layout_overlays()
+
+    def _stamp_changed(self, choice) -> None:
+        choice.save()
+        tool = self._tools.get("stamp")
+        if isinstance(tool, StampTool):
+            tool.set_choice(choice)
 
     def _style_changed(self, name: str, style) -> None:
         tool = self._tools.get(name)

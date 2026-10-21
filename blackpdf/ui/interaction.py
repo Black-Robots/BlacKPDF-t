@@ -17,6 +17,7 @@ from PySide6.QtGui import (
     QCursor,
     QFont,
     QFontMetricsF,
+    QImage,
     QKeyEvent,
     QMouseEvent,
     QPainter,
@@ -31,6 +32,7 @@ from ..core import text as core_text
 from ..core.errors import BlackPdfError
 from . import icons, theme
 from .settings import settings
+from .stamps import StampChoice, stamp_image
 from .viewer import PageHit, PdfViewer, to_rect
 
 DRAG_THRESHOLD = 3
@@ -69,6 +71,7 @@ DEFAULT_STYLES = {
     "ellipse": ToolStyle("#E5484D", 2.0),
     "line": ToolStyle("#E5484D", 2.0),
     "arrow": ToolStyle("#E5484D", 2.0),
+    "polygon": ToolStyle("#E5484D", 2.0),
     "text": ToolStyle("#111114", 0, 1.0, 14.0),
     "note": ToolStyle("#FFC53D", 0),
     "signature": ToolStyle("#1B2A6B", 1.6),
@@ -584,6 +587,124 @@ class ShapeTool(AnnotationTool):
         painter.drawPath(path)
 
 
+class PolygonTool(AnnotationTool):
+    """Polígono vértice a vértice: clic en cada uno; doble clic, Intro o clic en el primero para cerrar."""
+
+    name = "polygon"
+    CLOSE_DISTANCE = 8.0
+    """Píxeles alrededor del primer vértice en los que un clic cierra la figura."""
+
+    def __init__(self, viewer):
+        super().__init__(viewer)
+        self._page = -1
+        self._points: list[QPointF] = []
+        self._cursor: QPointF | None = None
+
+    @property
+    def busy(self) -> bool:
+        return bool(self._points)
+
+    def cursor(self):
+        return QCursor(Qt.CursorShape.CrossCursor)
+
+    def _near_first(self, point: QPointF) -> bool:
+        if len(self._points) < 3:
+            return False
+        distance = math.hypot(point.x() - self._points[0].x(), point.y() - self._points[0].y())
+        return distance * self.viewer.scale <= self.CLOSE_DISTANCE
+
+    def press(self, event):
+        hit = self.viewer.hit_test(event.position(), clamp=bool(self._points))
+        if hit is None or (self._points and hit.page != self._page):
+            return
+        if self._near_first(hit.point):
+            self.finish()
+            return
+        self._page = hit.page
+        point = hit.point
+        if self._points and event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+            point = self._constrain(point)
+        self._points.append(point)
+        self.update()
+
+    def _constrain(self, point: QPointF) -> QPointF:
+        last = self._points[-1]
+        dx, dy = point.x() - last.x(), point.y() - last.y()
+        angle = round(math.atan2(dy, dx) / (math.pi / 4)) * (math.pi / 4)
+        length = math.hypot(dx, dy)
+        return QPointF(last.x() + length * math.cos(angle), last.y() + length * math.sin(angle))
+
+    def hover(self, event):
+        super().hover(event)
+        if not self._points:
+            return
+        hit = self.viewer.hit_test(event.position(), clamp=True)
+        if hit is not None and hit.page == self._page:
+            point = hit.point
+            if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+                point = self._constrain(point)
+            self._cursor = point
+            self.update()
+
+    def move(self, event):
+        self.hover(event)
+
+    def double_click(self, event):
+        self.finish()
+
+    def key_press(self, event) -> bool:
+        if not self._points:
+            return False
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            self.finish()
+            return True
+        if event.key() == Qt.Key.Key_Backspace:
+            self._points.pop()
+            self.update()
+            return True
+        return False
+
+    def finish(self) -> None:
+        page, points = self._page, [(p.x(), p.y()) for p in self._points]
+        self.cancel()
+        if len(points) < 3:
+            return
+        style = self.style
+        self.apply(self.tr("Polígono"), page, lambda pg: core_annots.add_polygon(
+            pg, points, style.rgb(), style.width, None, style.opacity))
+
+    def cancel(self):
+        self._page = -1
+        self._points = []
+        self._cursor = None
+        self.update()
+
+    def paint_page(self, painter, page):
+        if page != self._page or not self._points:
+            return
+        color = self.style.qcolor()
+        pen = QPen(color, max(self.style.width, 0.5))
+        pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        path = QPainterPath(self._points[0])
+        for point in self._points[1:]:
+            path.lineTo(point)
+        if self._cursor is not None:
+            path.lineTo(self._cursor)
+        painter.drawPath(path)
+        if len(self._points) >= 2 and self._cursor is not None:
+            guide = QPen(color, 1.0 / max(self.viewer.scale, 0.1), Qt.PenStyle.DashLine)
+            painter.setPen(guide)
+            painter.drawLine(self._cursor, self._points[0])
+        radius = 3.5 / max(self.viewer.scale, 0.1)
+        painter.setPen(QPen(theme.color("accent"), 1.2 / max(self.viewer.scale, 0.1)))
+        for index, point in enumerate(self._points):
+            closing = index == 0 and self._cursor is not None and self._near_first(self._cursor)
+            painter.setBrush(theme.color("accent") if closing else QColor("#FFFFFF"))
+            painter.drawEllipse(point, radius * (1.6 if closing else 1.0), radius * (1.6 if closing else 1.0))
+
+
 class TextTool(AnnotationTool):
     """Cuadro de texto editable sobre la página; se confirma al salir del campo."""
 
@@ -848,6 +969,108 @@ class SignatureTool(AnnotationTool):
             painter.drawPath(path)
 
 
+class StampTool(AnnotationTool):
+    """Sello: clic para ponerlo a su tamaño o arrastrar para darle otro."""
+
+    name = "stamp"
+    SCALE = 0.85
+    """Tamaño al poner el sello con un clic, respecto a su tamaño natural."""
+
+    def __init__(self, viewer):
+        super().__init__(viewer)
+        self.choice = StampChoice.load()
+        self._hover: PageHit | None = None
+        self._drag_page = -1
+        self._start = QPointF()
+        self._end = QPointF()
+        self._ghost: tuple[tuple, QImage] | None = None
+
+    def set_choice(self, choice) -> None:
+        self.choice = choice
+        self._ghost = None
+        self.update()
+
+    def cursor(self):
+        return QCursor(Qt.CursorShape.CrossCursor)
+
+    def _natural(self, subtitle: str) -> tuple[float, float]:
+        width, height = core_annots.stamp_size(self.choice.label, subtitle)
+        return width * self.SCALE, height * self.SCALE
+
+    def _ghost_rect(self, center: QPointF, subtitle: str) -> QRectF:
+        width, height = self._natural(subtitle)
+        return QRectF(center.x() - width / 2, center.y() - height / 2, width, height)
+
+    def hover(self, event):
+        super().hover(event)
+        self._hover = self.viewer.hit_test(event.position())
+        self.update()
+
+    def press(self, event):
+        hit = self.viewer.hit_test(event.position())
+        if hit is None:
+            return
+        self._drag_page = hit.page
+        self._start = self._end = hit.point
+
+    def move(self, event):
+        if self._drag_page < 0:
+            return
+        hit = self.viewer.hit_test(event.position(), clamp=True)
+        if hit is not None and hit.page == self._drag_page:
+            self._end = hit.point
+            self.update()
+
+    def release(self, event):
+        if self._drag_page < 0:
+            return
+        page = self._drag_page
+        self._drag_page = -1
+        subtitle = self.choice.subtitle()
+        area = QRectF(self._start, self._end).normalized()
+        if area.width() * self.viewer.scale < 12 or area.height() * self.viewer.scale < 12:
+            area = self._ghost_rect(self._start, subtitle)
+        rect = pymupdf.Rect(area.left(), area.top(), area.right(), area.bottom())
+        choice = self.choice
+        if self.apply(self.tr("Sello"), page, lambda pg: core_annots.add_stamp(
+                pg, rect, choice.label, choice.rgb(), subtitle, choice.kind)):
+            self.finished.emit()
+
+    def cancel(self):
+        self._drag_page = -1
+        self._hover = None
+        self.update()
+
+    def _ghost_image(self, subtitle: str, height: float) -> QImage:
+        dpr = self.viewer.devicePixelRatioF()
+        key = (self.choice.label, self.choice.color, subtitle, round(height * self.viewer.scale), dpr)
+        if self._ghost is None or self._ghost[0] != key:
+            self._ghost = (key, stamp_image(self.choice, height * self.viewer.scale, dpr, subtitle))
+        return self._ghost[1]
+
+    def paint_page(self, painter, page):
+        subtitle = self.choice.subtitle()
+        if self._drag_page == page:
+            drag = QRectF(self._start, self._end).normalized()
+            if drag.width() * self.viewer.scale < 12:
+                rect = self._ghost_rect(self._start, subtitle)
+            else:
+                width, height = self._natural(subtitle)
+                scale = min(drag.width() / width, max(drag.height(), 1) / height)
+                rect = QRectF(0, 0, width * scale, height * scale)
+                rect.moveCenter(drag.center())
+                painter.setPen(QPen(theme.color("accent"), 0.8 / max(self.viewer.scale, 0.1), Qt.PenStyle.DashLine))
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.drawRect(drag)
+        elif self._hover is not None and self._hover.page == page and self._drag_page < 0:
+            rect = self._ghost_rect(self._hover.point, subtitle)
+        else:
+            return
+        painter.setOpacity(0.75)
+        painter.drawImage(rect, self._ghost_image(subtitle, rect.height()))
+        painter.setOpacity(1.0)
+
+
 class EraserTool(AnnotationTool):
     """Borra la anotación bajo el cursor (resaltada al pasar por encima)."""
 
@@ -1040,15 +1263,18 @@ TOOL_CLASSES = {
     "ellipse": lambda v: ShapeTool(v, "ellipse"),
     "line": lambda v: ShapeTool(v, "line"),
     "arrow": lambda v: ShapeTool(v, "arrow"),
+    "polygon": PolygonTool,
     "text": TextTool,
     "note": NoteTool,
     "signature": SignatureTool,
+    "stamp": StampTool,
     "eraser": EraserTool,
     "redact": RedactTool,
 }
 
-STYLED_TOOLS = ("pen", "highlight", "underline", "strikeout", "rect", "ellipse", "line", "arrow", "text", "note", "signature")
-WIDTH_TOOLS = ("pen", "rect", "ellipse", "line", "arrow", "signature")
+STYLED_TOOLS = ("pen", "highlight", "underline", "strikeout", "rect", "ellipse", "line", "arrow", "polygon", "text",
+                "note", "signature")
+WIDTH_TOOLS = ("pen", "rect", "ellipse", "line", "arrow", "polygon", "signature")
 
 
 def create_tool(name: str, viewer: PdfViewer) -> ViewerTool:

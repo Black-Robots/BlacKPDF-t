@@ -12,6 +12,7 @@ from .. import APP_NAME, ORGANIZATION
 
 MAX_RECENTS = 12
 MAX_SIGNATURES = 3
+MAX_CUSTOM_STAMPS = 6
 
 
 class Settings:
@@ -245,6 +246,28 @@ class Settings:
 
     def set_signatures(self, items: list) -> None:
         self._set_json("annotate/signatures", items[:MAX_SIGNATURES])
+
+    def hint_seen(self, name: str) -> bool:
+        """Si ya se mostró una ayuda de uso; la primera vez la marca como vista."""
+        key = f"hints/{name}"
+        if self._qs.value(key, False, type=bool):
+            return True
+        self._qs.setValue(key, True)
+        return False
+
+    def stamp_choice(self) -> dict:
+        value = self._json("annotate/stamp", {})
+        return value if isinstance(value, dict) else {}
+
+    def set_stamp_choice(self, value: dict) -> None:
+        self._set_json("annotate/stamp", value)
+
+    def custom_stamps(self) -> list[dict]:
+        items = self._json("annotate/customStamps", [])
+        return [s for s in items if isinstance(s, dict) and str(s.get("text", "")).strip()][:MAX_CUSTOM_STAMPS]
+
+    def set_custom_stamps(self, items: list[dict]) -> None:
+        self._set_json("annotate/customStamps", items[:MAX_CUSTOM_STAMPS])
 
     @property
     def custom_colors(self) -> list[str]:

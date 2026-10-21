@@ -1,4 +1,4 @@
-"""Anotaciones PDF estándar: lápiz, marcado de texto, formas, texto, notas y firma.
+"""Anotaciones PDF estándar: lápiz, marcado de texto, formas, polígonos, sellos, texto, notas y firma.
 
 Todas las funciones reciben coordenadas *visibles* (las de `page.rect`, tal
 como se ve la página ya girada) y las convierten al espacio sin rotar que
@@ -8,6 +8,7 @@ usa PDF. Así la interfaz no tiene que saber nada de la rotación.
 from __future__ import annotations
 
 import math
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -229,6 +230,155 @@ def add_signature(
     off_y = rect.y0 + (rect.height - h_unit * scale) / 2
     placed = [[(off_x + x * scale, off_y + y * scale) for x, y in s] for s in unit]
     return add_ink(page, placed, color=color, width=width)
+
+
+def add_polygon(
+    page: pymupdf.Page,
+    points: Sequence[PointLike],
+    color: Color = (0.898, 0.282, 0.302),
+    width: float = 2.0,
+    fill: Color | None = None,
+    opacity: float = 1.0,
+) -> pymupdf.Annot:
+    """Polígono cerrado con los vértices dados (al menos tres)."""
+    vertices = [_to_page(page, p) for p in points]
+    # Los vértices repetidos (doble clic al terminar) sobran.
+    unique = [v for i, v in enumerate(vertices) if i == 0 or abs(v - vertices[i - 1]) >= 0.5]
+    if len(unique) > 2 and abs(unique[0] - unique[-1]) < 0.5:
+        unique.pop()
+    area = sum(a.x * b.y - b.x * a.y for a, b in zip(unique, unique[1:] + unique[:1])) / 2
+    if len(unique) < 3 or abs(area) < 1:
+        raise InvalidOptionError("hacen falta tres puntos que no estén en línea", option="points")
+    annot = page.add_polygon_annot([(v.x, v.y) for v in unique])
+    annot.set_colors(stroke=color, fill=fill)
+    annot.set_border(width=max(0.25, width))
+    return _finish(annot, opacity)
+
+
+# ---------- sellos ----------
+STAMP_FONT_SIZE = 20.0
+"""Tamaño del texto principal de un sello a su tamaño natural."""
+
+def _pdf_text(text: str) -> bytes:
+    """Cadena PDF en WinAnsi (las fuentes estándar): lo que no se puede escribir sale como «?»."""
+    raw = text.encode("cp1252", "replace")
+    out = bytearray(b"(")
+    for byte in raw:
+        if byte in b"()\\":
+            out += b"\\" + bytes([byte])
+        elif 32 <= byte < 127:
+            out.append(byte)
+        else:
+            out += b"\\%03o" % byte
+    return bytes(out + b")")
+
+
+def _round_rect(x0: float, y0: float, x1: float, y1: float, radius: float) -> str:
+    r = max(0.0, min(radius, (x1 - x0) / 2, (y1 - y0) / 2))
+    k = r * 0.5523
+    return (f"{x0 + r:.2f} {y0:.2f} m {x1 - r:.2f} {y0:.2f} l "
+            f"{x1 - r + k:.2f} {y0:.2f} {x1:.2f} {y0 + r - k:.2f} {x1:.2f} {y0 + r:.2f} c "
+            f"{x1:.2f} {y1 - r:.2f} l {x1:.2f} {y1 - r + k:.2f} {x1 - r + k:.2f} {y1:.2f} {x1 - r:.2f} {y1:.2f} c "
+            f"{x0 + r:.2f} {y1:.2f} l {x0 + r - k:.2f} {y1:.2f} {x0:.2f} {y1 - r + k:.2f} {x0:.2f} {y1 - r:.2f} c "
+            f"{x0:.2f} {y0 + r:.2f} l {x0:.2f} {y0 + r - k:.2f} {x0 + r - k:.2f} {y0:.2f} {x0 + r:.2f} {y0:.2f} c h")
+
+
+def _text_width(text: str, fontname: str, size: float) -> float:
+    # Letra a letra: con la cadena entera, PyMuPDF mide mal las letras con tilde.
+    return sum(pymupdf.get_text_length(char, fontname=fontname, fontsize=size) for char in text)
+
+
+def _stamp_layout(text: str, subtitle: str) -> dict:
+    fs = STAMP_FONT_SIZE
+    spacing = fs * 0.06
+    main = _text_width(text, "hebo", fs) + spacing * max(len(text) - 1, 0)
+    small = fs * 0.42
+    sub = _text_width(subtitle, "helv", small) if subtitle else 0.0
+    width = max(main, sub) + 2 * fs * 0.85
+    height = fs * (2.75 if subtitle else 2.0)
+    return {"fs": fs, "spacing": spacing, "main": main, "small": small, "sub": sub, "width": width, "height": height}
+
+
+def stamp_size(text: str, subtitle: str = "") -> tuple[float, float]:
+    """Tamaño natural (en puntos) de un sello."""
+    layout = _stamp_layout(text.strip().upper(), subtitle.strip())
+    return layout["width"], layout["height"]
+
+
+def _stamp_appearance(text: str, subtitle: str, color: Color) -> tuple[bytes, float, float]:
+    layout = _stamp_layout(text, subtitle)
+    fs, width, height = layout["fs"], layout["width"], layout["height"]
+    line = fs * 0.11
+    rgb = " ".join(f"{c:.3f}" for c in color)
+    inner = line * 2.3
+    ops = [
+        "q", f"{rgb} RG", f"{rgb} rg", f"{line:.2f} w",
+        _round_rect(line / 2, line / 2, width - line / 2, height - line / 2, fs * 0.38), "S",
+        f"{line * 0.32:.2f} w",
+        _round_rect(inner, inner, width - inner, height - inner, fs * 0.26), "S",
+    ]
+    baseline = fs * 1.37 if subtitle else fs * 0.64
+    stream = ("\n".join(ops) + "\n").encode()
+    stream += (f"BT /F1 {fs:.2f} Tf {layout['spacing']:.2f} Tc {(width - layout['main']) / 2:.2f} {baseline:.2f} Td "
+               ).encode() + _pdf_text(text) + b" Tj ET\n"
+    if subtitle:
+        stream += (f"BT /F2 {layout['small']:.2f} Tf 0 Tc {(width - layout['sub']) / 2:.2f} {fs * 0.72:.2f} Td "
+                   ).encode() + _pdf_text(subtitle) + b" Tj ET\n"
+    return stream + b"Q\n", width, height
+
+
+def _font_object(doc: pymupdf.Document, base_font: str) -> int:
+    xref = doc.get_new_xref()
+    doc.update_object(xref, f"<</Type/Font/Subtype/Type1/BaseFont/{base_font}/Encoding/WinAnsiEncoding>>")
+    return xref
+
+
+def add_stamp(
+    page: pymupdf.Page,
+    rect: pymupdf.Rect,
+    text: str,
+    color: Color = (0.094, 0.475, 0.306),
+    subtitle: str = "",
+    kind: str = "",
+) -> pymupdf.Annot:
+    """Sello de goma («APROBADO», «BORRADOR»...) con fecha o nombre opcional debajo.
+
+    Se dibuja con su propia apariencia (así sale en el idioma de quien lo pone) y se
+    ajusta, sin deformarse, centrado en ``rect`` (coordenadas visibles). ``kind`` es
+    el tipo de sello («approved», «draft»...) y queda en el nombre de la anotación.
+    """
+    text = " ".join(text.split()).upper()
+    subtitle = " ".join(subtitle.split())
+    if not text:
+        raise InvalidOptionError("sello sin texto", option="text")
+    stream, width, height = _stamp_appearance(text, subtitle, color)
+    area = pymupdf.Rect(rect).normalize()
+    if area.width < 1 or area.height < 1:
+        raise InvalidOptionError("sello demasiado pequeño", option="size")
+    scale = min(area.width / width, area.height / height)
+    w, h = width * scale, height * scale
+    cx, cy = (area.x0 + area.x1) / 2, (area.y0 + area.y1) / 2
+    visual = pymupdf.Rect(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+    annot = page.add_stamp_annot(_rect_to_page(page, visual), stamp=0)
+    doc = page.parent
+    # Con un nombre propio MuPDF nunca redibuja el sello con los suyos (en inglés); con
+    # «Approved», «Draft»... lo haría al cambiar el comentario o el color.
+    doc.xref_set_key(annot.xref, "Name", "/BlackPDF." + (re.sub(r"[^A-Za-z0-9]", "", kind) or "Custom"))
+    annot.set_rect(_rect_to_page(page, visual))  # MuPDF lo había ajustado a la proporción de su sello
+    annot.set_colors(stroke=color)
+    annot.set_info(content=text + (f"\n{subtitle}" if subtitle else ""))
+    _finish(annot)
+    # Después de update(): si no, MuPDF vuelve a dibujar su sello en inglés encima.
+    annot._setAP(stream)
+    ap = int(doc.xref_get_key(annot.xref, "AP/N")[1].split()[0])
+    # La caja del dibujo va en el sentido en que se ve la página: la matriz la endereza.
+    doc.xref_set_key(ap, "BBox", f"[0 0 {width:.2f} {height:.2f}]")
+    angle = math.radians(page.rotation)
+    cos, sin = round(math.cos(angle), 6), round(math.sin(angle), 6)
+    doc.xref_set_key(ap, "Matrix", f"[{cos} {sin} {-sin} {cos} 0 0]")
+    doc.xref_set_key(ap, "Resources", f"<</Font<</F1 {_font_object(doc, 'Helvetica-Bold')} 0 R"
+                                      f"/F2 {_font_object(doc, 'Helvetica')} 0 R>>>>")
+    return annot
 
 
 @dataclass(frozen=True)

@@ -7,13 +7,14 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMenu, QSlider, QTool
 
 from . import formatting, icons, theme
 from .interaction import PRESET_COLORS, STYLED_TOOLS, WIDTH_TOOLS, ToolStyle, load_style
+from .stamps import StampChoice, StampPopup
 from .widgets import SHADOW_TOP, ColorButton, FloatingPanel, IconButton, separator
 
 TOOL_GROUPS = (
     (("select", "mouse-pointer-2"), ("hand", "hand")),
     (("pen", "pencil"), ("highlight", "highlighter"), ("underline", "underline"), ("strikeout", "strikethrough")),
-    (("rect", "square"), ("ellipse", "circle"), ("arrow", "move-up-right"), ("line", "minus")),
-    (("text", "type"), ("note", "sticky-note"), ("signature", "signature")),
+    (("rect", "square"), ("ellipse", "circle"), ("arrow", "move-up-right"), ("line", "minus"), ("polygon", "pentagon")),
+    (("text", "type"), ("note", "sticky-note"), ("stamp", "stamp"), ("signature", "signature")),
     (("redact", "eye-off"), ("eraser", "eraser")),
 )
 
@@ -34,6 +35,8 @@ def tool_labels() -> dict[str, str]:
         "ellipse": _tr("Elipse"),
         "arrow": _tr("Flecha"),
         "line": _tr("Línea"),
+        "polygon": _tr("Polígono: clic en cada vértice; doble clic o Intro para cerrar"),
+        "stamp": _tr("Sello: Aprobado, Borrador, Revisado... (S)"),
         "text": _tr("Cuadro de texto (X)"),
         "note": _tr("Nota (N)"),
         "signature": _tr("Firma (F)"),
@@ -42,11 +45,11 @@ def tool_labels() -> dict[str, str]:
     }
 
 
-COMPACT_HIDDEN = ("underline", "strikeout", "ellipse", "line", "arrow", "note")
+COMPACT_HIDDEN = ("underline", "strikeout", "ellipse", "line", "arrow", "polygon", "note")
 
 TOOL_SHORTCUTS = {
     "select": "V", "hand": "H", "pen": "P", "highlight": "R", "underline": "U",
-    "strikeout": "T", "text": "X", "note": "N", "signature": "F", "eraser": "E", "redact": "C",
+    "strikeout": "T", "text": "X", "note": "N", "stamp": "S", "signature": "F", "eraser": "E", "redact": "C",
 }
 
 
@@ -91,6 +94,7 @@ class WidthPopup(QFrame):
 class AnnotationBar(FloatingPanel):
     toolSelected = Signal(str)
     styleChanged = Signal(str, object)
+    stampChanged = Signal(object)
 
     def __init__(self, parent: QWidget):
         super().__init__(parent, inner=(6, 5, 6, 5))
@@ -130,11 +134,18 @@ class AnnotationBar(FloatingPanel):
         self.width_button = IconButton("sliders-horizontal", self.tr("Grosor"), self, size=34)
         self.width_button.clicked.connect(self._open_width)
         layout.addWidget(self.width_button)
+        self.stamp_button = IconButton("chevron-down", self.tr("Elegir sello"), self, size=34, icon_size=14, text=" ")
+        # La flechita a la derecha del nombre del sello.
+        self.stamp_button.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        self.stamp_button.clicked.connect(self._open_stamps)
+        layout.addWidget(self.stamp_button)
+        self._stamp = StampChoice.load()
         self._active = "select"
         self._style: ToolStyle | None = None
         self._slide = QPropertyAnimation(self, b"pos", self)
         self._slide.setDuration(theme.ANIMATION_MS)
         self._slide.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.set_stamp(self._stamp)
         self.set_active("select")
 
     def set_compact(self, compact: bool) -> None:
@@ -166,7 +177,8 @@ class AnnotationBar(FloatingPanel):
         styled = name in STYLED_TOOLS
         self.color_button.setVisible(styled)
         self.width_button.setVisible(name in WIDTH_TOOLS or name == "text")
-        self._style_separator.setVisible(styled)
+        self.stamp_button.setVisible(name == "stamp")
+        self._style_separator.setVisible(styled or name == "stamp")
         if styled:
             self._style = load_style(name)
             self.color_button.set_color(self._style.color)
@@ -176,6 +188,20 @@ class AnnotationBar(FloatingPanel):
     def set_style(self, style: ToolStyle) -> None:
         self._style = style
         self.color_button.set_color(style.color)
+
+    def set_stamp(self, choice: StampChoice) -> None:
+        self._stamp = choice
+        self.stamp_button.setText(choice.label)
+        self.adjustSize()
+
+    def _open_stamps(self) -> None:
+        popup = StampPopup(self._stamp, self)
+        popup.picked.connect(self._stamp_picked)
+        popup.show_below(self.stamp_button)
+
+    def _stamp_picked(self, choice: StampChoice) -> None:
+        self.set_stamp(choice)
+        self.stampChanged.emit(choice)
 
     def _color_changed(self, value: str) -> None:
         if self._style is None:

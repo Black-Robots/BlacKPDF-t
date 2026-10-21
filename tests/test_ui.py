@@ -1157,3 +1157,54 @@ def test_layers_tab_hidden_without_layers(qapp, opened):
     assert not tab.sidebar_switch._buttons["layers"].isVisibleTo(tab)
     tab.show_layers()
     assert tab.sidebar_switch.value() != "layers"
+
+
+def test_stamp_tool_places_stamp_in_interface_language(qapp, opened):
+    from blackpdf.ui.stamps import StampChoice, StampPopup, StampTile
+
+    _, tab, _ = opened
+    tab.set_tool("stamp")
+    bar = tab.annotation_bar
+    assert bar.stamp_button.isVisibleTo(bar) and not bar.color_button.isVisibleTo(bar)
+    popup = StampPopup(bar._stamp, bar)
+    tiles = popup.findChildren(StampTile)
+    assert len(tiles) >= 12 and not tiles[0]._image.isNull()
+    picked = []
+    popup.picked.connect(picked.append)
+    popup.details.setChecked(False)
+    tiles[2].click()  # «Revisado»
+    assert picked and picked[-1].kind == "reviewed" and not picked[-1].details
+    bar._stamp_picked(picked[-1])
+    assert bar.stamp_button.text() == "Revisado"
+    point = tab.viewer.page_to_viewport(0, QPointF(300, 300))
+    mouse(tab.viewer.viewport(), "move", point)
+    mouse(tab.viewer.viewport(), "press", point)
+    mouse(tab.viewer.viewport(), "release", point)
+    page = tab.document.doc[0]
+    annot = page.first_annot
+    assert annot is not None and annot.type[0] == pymupdf.PDF_ANNOT_STAMP
+    assert annot.info["content"] == "REVISADO" and b"REVISADO" in annot._getAP()
+    assert tab._tool_name == "select", "tras sellar se vuelve a seleccionar"
+    assert StampChoice.load().kind == "reviewed", "se recuerda el último sello"
+
+
+def test_polygon_tool_click_by_click(qapp, opened):
+    _, tab, _ = opened
+    tab.set_tool("polygon")
+    viewport = tab.viewer.viewport()
+    for x, y in ((100, 100), (250, 120), (220, 260)):
+        point = tab.viewer.page_to_viewport(0, QPointF(x, y))
+        mouse(viewport, "press", point)
+        mouse(viewport, "release", point)
+    page = tab.document.doc[0]
+    assert tab.viewer.tool.busy and page.first_annot is None
+    tab._escape()
+    assert not tab.viewer.tool.busy and tab._tool_name == "polygon", "Esc descarta el polígono, no la herramienta"
+    for x, y in ((100, 100), (250, 120), (220, 260), (100, 100.5)):  # el último clic, sobre el primer vértice
+        point = tab.viewer.page_to_viewport(0, QPointF(x, y))
+        mouse(viewport, "press", point)
+        mouse(viewport, "release", point)
+    page = tab.document.doc[0]
+    annot = page.first_annot
+    assert annot is not None and annot.type[0] == pymupdf.PDF_ANNOT_POLYGON and len(annot.vertices) == 3
+    tab.set_tool("select")

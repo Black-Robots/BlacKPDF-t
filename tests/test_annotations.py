@@ -4,8 +4,10 @@ import pytest
 from blackpdf.core.annotations import (
     add_ink,
     add_note,
+    add_polygon,
     add_shape,
     add_signature,
+    add_stamp,
     add_text_box,
     add_text_markup,
     annotation_at,
@@ -13,8 +15,10 @@ from blackpdf.core.annotations import (
     list_annotations,
     normalize_strokes,
     set_note_text,
+    stamp_size,
     strokes_aspect,
     text_box_size,
+    to_visual_rect,
 )
 from blackpdf.core.errors import InvalidOptionError
 from blackpdf.core.text import line_rects, page_words, select_words
@@ -162,3 +166,44 @@ def test_redaction_on_rotated_page_uses_visual_coordinates():
     assert "SECRETO" in page.get_text()
     redact_areas(page, [pymupdf.Rect(10, 10, 200, 60)])
     assert "SECRETO" not in page.get_text()
+
+
+@pytest.mark.parametrize("rotation", [0, 90, 180, 270])
+def test_stamp_is_upright_and_keeps_its_shape(rotation):
+    doc, page = _page(rotation=rotation, width=400, height=500)
+    width, height = stamp_size("Aprobado", "Ana · 21/10/2026")
+    assert width > 2 * height
+    area = pymupdf.Rect(20, 20, 380, 140)  # más alto de la cuenta: el sello no se deforma
+    annot = add_stamp(page, area, "Aprobado", (0.1, 0.5, 0.3), "Ana · 21/10/2026", "approved")
+    visual = to_visual_rect(page, annot.rect)
+    assert abs(visual.width / visual.height - width / height) < 0.02
+    assert abs((visual.x0 + visual.x1) / 2 - 200) < 1 and abs((visual.y0 + visual.y1) / 2 - 80) < 1
+    x0, y0, x1, y1 = dark_bbox(page, threshold=230)
+    assert (x1 - x0) > 2 * (y1 - y0), "se ve derecho, como la página"
+    assert annot.info["content"] == "APROBADO\nAna · 21/10/2026"
+
+
+def test_stamp_text_is_in_the_reader_language_and_survives_edits():
+    from blackpdf.core.comments import set_comment
+
+    doc, page = _page()
+    add_stamp(page, pymupdf.Rect(20, 20, 280, 80), "Revisión", (0.8, 0.3, 0.0))
+    reopened = pymupdf.open(stream=doc.tobytes(), filetype="pdf")
+    page = reopened[0]
+    annot = page.first_annot
+    assert b"(REVISI\\323N) Tj" in annot._getAP(), "en WinAnsi, con su tilde"
+    set_comment(page, annot.xref, "Pendiente de la firma del cliente")
+    assert b"REVISI" in page.first_annot._getAP(), "MuPDF no lo vuelve a dibujar en inglés"
+    with pytest.raises(InvalidOptionError):
+        add_stamp(page, pymupdf.Rect(0, 0, 100, 40), "   ")
+
+
+def test_polygon():
+    doc, page = _page(rotation=90)
+    annot = add_polygon(page, [(20, 20), (120, 30), (120, 30), (80, 120), (20, 20)], (1, 0, 0), 2, fill=(1, 1, 0))
+    assert annot.type[0] == pymupdf.PDF_ANNOT_POLYGON and len(annot.vertices) == 3
+    assert annot.colors["fill"] == [1.0, 1.0, 0.0]
+    with pytest.raises(InvalidOptionError):
+        add_polygon(page, [(10, 10), (50, 50), (90, 90)])
+    with pytest.raises(InvalidOptionError):
+        add_polygon(page, [(10, 10), (50, 50)])
