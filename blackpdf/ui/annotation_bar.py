@@ -27,7 +27,7 @@ def _tr(text: str) -> str:
 
 def tool_labels() -> dict[str, str]:
     return {
-        "select": _tr("Seleccionar texto (V)"),
+        "select": _tr("Seleccionar texto (V o Esc)"),
         "hand": _tr("Mano (H)"),
         "pen": _tr("Lápiz (P)"),
         "highlight": _tr("Resaltar (R)"),

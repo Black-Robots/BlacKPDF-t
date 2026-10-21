@@ -1310,3 +1310,19 @@ def test_attachments_badge_and_initial_panel(qapp, window, tmp_path):
     pump(qapp, 0.8)
     tab = window.current_tab()
     assert tab.sidebar_switch.value() == "outline" and tab.sidebar_switch.badge("attachments") == ""
+
+
+def test_clicking_the_active_tool_again_goes_back_to_select(qapp, opened):
+    _, tab, _ = opened
+    bar = tab.annotation_bar
+    bar._buttons["highlight"].click()
+    assert tab._tool_name == "highlight" and bar._buttons["highlight"].isChecked()
+    bar._buttons["highlight"].click()
+    assert tab._tool_name == "select" and bar._buttons["select"].isChecked()
+    assert not bar._buttons["highlight"].isChecked()
+    tab.toggle_tool("pen")
+    tab.toggle_tool("rect")
+    assert tab._tool_name == "rect", "cambiar de herramienta sigue siendo un solo clic"
+    tab.toggle_tool("rect")
+    tab.toggle_tool("select")
+    assert tab._tool_name == "select", "pulsar Seleccionar con Seleccionar activo no hace nada raro"

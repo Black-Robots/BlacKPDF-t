@@ -192,7 +192,7 @@ class DocumentTab(QWidget):
         self.area.search_bar = self.search_bar
 
         self.annotation_bar = AnnotationBar(self.area)
-        self.annotation_bar.toolSelected.connect(self.set_tool)
+        self.annotation_bar.toolSelected.connect(self.toggle_tool)
         self.annotation_bar.styleChanged.connect(self._style_changed)
         self.annotation_bar.stampChanged.connect(self._stamp_changed)
         self.annotation_bar.measureModeChanged.connect(self._measure_mode_changed)
@@ -756,7 +756,7 @@ class DocumentTab(QWidget):
         context = Qt.ShortcutContext.WidgetWithChildrenShortcut
         for name, key in TOOL_SHORTCUTS.items():
             shortcut = QShortcut(QKeySequence(key), self, context=context)
-            shortcut.activated.connect(lambda n=name: self.set_tool(n))
+            shortcut.activated.connect(lambda n=name: self.toggle_tool(n))
         for view in (self.thumbnails, self.organizer):
             delete = QShortcut(QKeySequence(QKeySequence.StandardKey.Delete), view, context=Qt.ShortcutContext.WidgetShortcut)
             delete.activated.connect(self.delete_pages)
@@ -1046,6 +1046,13 @@ class DocumentTab(QWidget):
             self.set_tool("select")
         else:
             self.viewer.clear_selection()
+
+    def toggle_tool(self, name: str) -> None:
+        """Elegir una herramienta; volver a pulsar la que ya está activa (o su tecla) la suelta."""
+        if name == self._tool_name and name not in ("select", "hand"):
+            self.set_tool("select")
+        else:
+            self.set_tool(name)
 
     def set_tool(self, name: str) -> None:
         if name == "signature":
