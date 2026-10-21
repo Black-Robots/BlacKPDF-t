@@ -259,7 +259,7 @@ def add_polygon(
 STAMP_FONT_SIZE = 20.0
 """Tamaño del texto principal de un sello a su tamaño natural."""
 
-def _pdf_text(text: str) -> bytes:
+def pdf_string(text: str) -> bytes:
     """Cadena PDF en WinAnsi (las fuentes estándar): lo que no se puede escribir sale como «?»."""
     raw = text.encode("cp1252", "replace")
     out = bytearray(b"(")
@@ -273,7 +273,7 @@ def _pdf_text(text: str) -> bytes:
     return bytes(out + b")")
 
 
-def _round_rect(x0: float, y0: float, x1: float, y1: float, radius: float) -> str:
+def round_rect_path(x0: float, y0: float, x1: float, y1: float, radius: float) -> str:
     r = max(0.0, min(radius, (x1 - x0) / 2, (y1 - y0) / 2))
     k = r * 0.5523
     return (f"{x0 + r:.2f} {y0:.2f} m {x1 - r:.2f} {y0:.2f} l "
@@ -283,7 +283,7 @@ def _round_rect(x0: float, y0: float, x1: float, y1: float, radius: float) -> st
             f"{x0:.2f} {y0 + r:.2f} l {x0:.2f} {y0 + r - k:.2f} {x0 + r - k:.2f} {y0:.2f} {x0 + r:.2f} {y0:.2f} c h")
 
 
-def _text_width(text: str, fontname: str, size: float) -> float:
+def text_width(text: str, fontname: str, size: float) -> float:
     # Letra a letra: con la cadena entera, PyMuPDF mide mal las letras con tilde.
     return sum(pymupdf.get_text_length(char, fontname=fontname, fontsize=size) for char in text)
 
@@ -291,9 +291,9 @@ def _text_width(text: str, fontname: str, size: float) -> float:
 def _stamp_layout(text: str, subtitle: str) -> dict:
     fs = STAMP_FONT_SIZE
     spacing = fs * 0.06
-    main = _text_width(text, "hebo", fs) + spacing * max(len(text) - 1, 0)
+    main = text_width(text, "hebo", fs) + spacing * max(len(text) - 1, 0)
     small = fs * 0.42
-    sub = _text_width(subtitle, "helv", small) if subtitle else 0.0
+    sub = text_width(subtitle, "helv", small) if subtitle else 0.0
     width = max(main, sub) + 2 * fs * 0.85
     height = fs * (2.75 if subtitle else 2.0)
     return {"fs": fs, "spacing": spacing, "main": main, "small": small, "sub": sub, "width": width, "height": height}
@@ -313,21 +313,21 @@ def _stamp_appearance(text: str, subtitle: str, color: Color) -> tuple[bytes, fl
     inner = line * 2.3
     ops = [
         "q", f"{rgb} RG", f"{rgb} rg", f"{line:.2f} w",
-        _round_rect(line / 2, line / 2, width - line / 2, height - line / 2, fs * 0.38), "S",
+        round_rect_path(line / 2, line / 2, width - line / 2, height - line / 2, fs * 0.38), "S",
         f"{line * 0.32:.2f} w",
-        _round_rect(inner, inner, width - inner, height - inner, fs * 0.26), "S",
+        round_rect_path(inner, inner, width - inner, height - inner, fs * 0.26), "S",
     ]
     baseline = fs * 1.37 if subtitle else fs * 0.64
     stream = ("\n".join(ops) + "\n").encode()
     stream += (f"BT /F1 {fs:.2f} Tf {layout['spacing']:.2f} Tc {(width - layout['main']) / 2:.2f} {baseline:.2f} Td "
-               ).encode() + _pdf_text(text) + b" Tj ET\n"
+               ).encode() + pdf_string(text) + b" Tj ET\n"
     if subtitle:
         stream += (f"BT /F2 {layout['small']:.2f} Tf 0 Tc {(width - layout['sub']) / 2:.2f} {fs * 0.72:.2f} Td "
-                   ).encode() + _pdf_text(subtitle) + b" Tj ET\n"
+                   ).encode() + pdf_string(subtitle) + b" Tj ET\n"
     return stream + b"Q\n", width, height
 
 
-def _font_object(doc: pymupdf.Document, base_font: str) -> int:
+def font_object(doc: pymupdf.Document, base_font: str) -> int:
     xref = doc.get_new_xref()
     doc.update_object(xref, f"<</Type/Font/Subtype/Type1/BaseFont/{base_font}/Encoding/WinAnsiEncoding>>")
     return xref
@@ -376,8 +376,8 @@ def add_stamp(
     angle = math.radians(page.rotation)
     cos, sin = round(math.cos(angle), 6), round(math.sin(angle), 6)
     doc.xref_set_key(ap, "Matrix", f"[{cos} {sin} {-sin} {cos} 0 0]")
-    doc.xref_set_key(ap, "Resources", f"<</Font<</F1 {_font_object(doc, 'Helvetica-Bold')} 0 R"
-                                      f"/F2 {_font_object(doc, 'Helvetica')} 0 R>>>>")
+    doc.xref_set_key(ap, "Resources", f"<</Font<</F1 {font_object(doc, 'Helvetica-Bold')} 0 R"
+                                      f"/F2 {font_object(doc, 'Helvetica')} 0 R>>>>")
     return annot
 
 

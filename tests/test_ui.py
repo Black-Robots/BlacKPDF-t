@@ -12,7 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import pymupdf
 import pytest
 from PySide6.QtCore import QEvent, QPoint, QPointF, QSettings, Qt
-from PySide6.QtGui import QMouseEvent
+from PySide6.QtGui import QKeyEvent, QMouseEvent
 from PySide6.QtWidgets import QApplication, QLabel
 
 from .conftest import build_pdf, page_labels
@@ -1230,3 +1230,55 @@ def test_tables_tool(qapp, window, tmp_path):
     assert (tmp_path / "presupuesto_tablas.xlsx").is_file()
     assert dialog.open_button.isVisibleTo(dialog) and "1 tabla" in dialog.result_panel.detail.text()
     dialog.close()
+
+
+def test_measure_tool_with_scale_snapping_and_calibration(qapp, opened, monkeypatch):
+    from blackpdf.core import measure as core_measure
+    from blackpdf.ui import measure as ui_measure
+
+    _, tab, _ = opened
+    page = tab.document.doc[0]
+    tab.document.edit("Línea", lambda d: d[0].draw_line((100, 260), (400, 260)) and None, pages=[0])
+    tab.set_tool("measure")
+    bar = tab.annotation_bar
+    assert bar.measure_button.isVisibleTo(bar) and bar.scale_button.text() == "1:1 · mm"
+    tab._set_measure_scale(core_measure.Scale.from_ratio(100, "m"))
+    assert bar.scale_button.text() == "1:100 · m"
+    viewport = tab.viewer.viewport()
+    # Cerca de los extremos de la línea dibujada: el cursor se ajusta a ellos.
+    for x, y in ((101.5, 261), (398.5, 259)):
+        point = tab.viewer.page_to_viewport(0, QPointF(x, y))
+        mouse(viewport, "move", point)
+        mouse(viewport, "press", point)
+        mouse(viewport, "release", point)
+    page = tab.document.doc[0]
+    annot = page.first_annot
+    assert annot is not None and core_measure.is_measurement(annot)
+    expected = ui_measure.format_measure(300 * core_measure.PT_MM * 100 / 1000, "m")
+    assert core_measure.measurement_label(annot) == expected and expected.endswith(" m")
+    assert abs(core_measure.measure("distance", annot.vertices, core_measure.Scale.from_ratio(100, "m")) - 10.583) < 0.01
+
+    # Calibrar: una línea de 300 pt que en realidad mide 6 m.
+    monkeypatch.setattr(ui_measure.CalibrateDialog, "exec", lambda self: (self.value.setValue(6.0), 1)[1])
+    tab._measure_mode_changed("calibrate")
+    for x in (100, 400):
+        point = tab.viewer.page_to_viewport(0, QPointF(x, 200))
+        mouse(viewport, "move", point)
+        mouse(viewport, "press", point)
+        mouse(viewport, "release", point)
+    scale = tab.document.measure_scale
+    assert scale.unit == "m" and abs(scale.length(300) - 6.0) < 1e-6
+    assert tab.viewer.tool.mode == "distance" and bar.measure_button.text() == "Distancia"
+
+    # Área: clic en cada vértice y doble clic (aquí, Intro) para terminar.
+    tab._measure_mode_changed("area")
+    for x, y in ((100, 100), (200, 100), (200, 200), (100, 200)):
+        point = tab.viewer.page_to_viewport(0, QPointF(x, y))
+        mouse(viewport, "move", point)
+        mouse(viewport, "press", point)
+        mouse(viewport, "release", point)
+    tab.viewer.keyPressEvent(QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Return, Qt.KeyboardModifier.NoModifier))
+    page = tab.document.doc[0]
+    labels = [core_measure.measurement_label(a) for a in page.annots() if core_measure.is_measurement(a)]
+    assert ui_measure.format_measure(4.0, "m", area=True) in labels, "100 × 100 pt a 2 cm por punto"
+    tab.set_tool("select")

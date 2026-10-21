@@ -28,10 +28,12 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import QInputDialog, QPlainTextEdit
 
 from ..core import annotations as core_annots
+from ..core import measure as core_measure
 from ..core import text as core_text
 from ..core.errors import BlackPdfError
 from . import icons, theme
 from .settings import settings
+from .measure import format_measure
 from .stamps import StampChoice, stamp_image
 from .viewer import PageHit, PdfViewer, to_rect
 
@@ -72,6 +74,7 @@ DEFAULT_STYLES = {
     "line": ToolStyle("#E5484D", 2.0),
     "arrow": ToolStyle("#E5484D", 2.0),
     "polygon": ToolStyle("#E5484D", 2.0),
+    "measure": ToolStyle("#0D74CE", 1.2),
     "text": ToolStyle("#111114", 0, 1.0, 14.0),
     "note": ToolStyle("#FFC53D", 0),
     "signature": ToolStyle("#1B2A6B", 1.6),
@@ -1071,6 +1074,259 @@ class StampTool(AnnotationTool):
         painter.setOpacity(1.0)
 
 
+class MeasureTool(AnnotationTool):
+    """Medir a escala: distancia (dos clics o arrastrar), perímetro y área (clic en cada vértice).
+
+    El cursor se ajusta a los extremos de lo dibujado (Alt lo desactiva) y Mayús fija
+    ángulos de 45°. En el modo «calibrate» se traza una línea de medida conocida.
+    """
+
+    name = "measure"
+    calibrated = Signal(float)
+    """Longitud en puntos de la línea trazada para calibrar."""
+    SNAP_PIXELS = 9.0
+    CELL = 12.0
+
+    def __init__(self, viewer):
+        super().__init__(viewer)
+        self.mode = "distance"
+        self.scale_for = lambda page, point: core_measure.Scale()
+        self._page = -1
+        """Página de la medida en curso."""
+        self._hover_page = -1
+        self._points: list[QPointF] = []
+        self._cursor: QPointF | None = None
+        self._snapped: QPointF | None = None
+        self._dragging = False
+        self._press_pos = QPointF()
+        self._grids: dict[int, dict[tuple[int, int], list[tuple[float, float]]]] = {}
+        viewer.model.changed.connect(lambda _pages: self._grids.clear())
+        viewer.model.aboutToReplace.connect(self._grids.clear)
+
+    @property
+    def busy(self) -> bool:
+        return bool(self._points)
+
+    def set_mode(self, mode: str) -> None:
+        self.cancel()
+        self.mode = mode
+
+    def cursor(self):
+        return QCursor(Qt.CursorShape.CrossCursor)
+
+    # ---------- ajuste ----------
+    def _grid(self, page: int) -> dict:
+        grid = self._grids.get(page)
+        if grid is None:
+            grid = {}
+            for x, y in core_measure.snap_targets(self.model.doc[page]):
+                grid.setdefault((int(x // self.CELL), int(y // self.CELL)), []).append((x, y))
+            self._grids[page] = grid
+        return grid
+
+    def _snap(self, page: int, point: QPointF, event) -> QPointF:
+        self._snapped = None
+        if event.modifiers() & Qt.KeyboardModifier.AltModifier:
+            return point
+        reach = self.SNAP_PIXELS / max(self.viewer.scale, 0.01)
+        grid = self._grid(page)
+        cx, cy = int(point.x() // self.CELL), int(point.y() // self.CELL)
+        span = int(reach // self.CELL) + 1
+        best, best_distance = None, reach
+        for gx in range(cx - span, cx + span + 1):
+            for gy in range(cy - span, cy + span + 1):
+                for x, y in grid.get((gx, gy), ()):
+                    distance = math.hypot(x - point.x(), y - point.y())
+                    if distance <= best_distance:
+                        best, best_distance = (x, y), distance
+        if best is None:
+            return point
+        self._snapped = QPointF(*best)
+        return self._snapped
+
+    def _locate(self, event, clamp: bool) -> QPointF | None:
+        hit = self.viewer.hit_test(event.position(), clamp=clamp)
+        if hit is None or (self._points and hit.page != self._page):
+            return None
+        self._hover_page = hit.page
+        point = self._snap(hit.page, hit.point, event)
+        if self._points and self._snapped is None and event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+            point = self._constrain(point)
+        return point
+
+    def _constrain(self, point: QPointF) -> QPointF:
+        last = self._points[-1]
+        dx, dy = point.x() - last.x(), point.y() - last.y()
+        angle = round(math.atan2(dy, dx) / (math.pi / 4)) * (math.pi / 4)
+        length = math.hypot(dx, dy)
+        return QPointF(last.x() + length * math.cos(angle), last.y() + length * math.sin(angle))
+
+    # ---------- ratón y teclado ----------
+    def _two_points(self) -> bool:
+        return self.mode in ("distance", "calibrate")
+
+    def press(self, event):
+        if not self._points:
+            hit = self.viewer.hit_test(event.position())
+            if hit is None:
+                return
+            self._page = hit.page
+        point = self._locate(event, clamp=True)
+        if point is None:
+            return
+        if self.mode == "area" and len(self._points) >= 3 and self._near_first(point):
+            self.finish()
+            return
+        self._points.append(point)
+        self._dragging = len(self._points) == 1
+        self._press_pos = QPointF(event.position())
+        if self._two_points() and len(self._points) == 2:
+            self.finish()
+            return
+        self.update()
+
+    def _near_first(self, point: QPointF) -> bool:
+        first = self._points[0]
+        return math.hypot(point.x() - first.x(), point.y() - first.y()) * self.viewer.scale <= self.SNAP_PIXELS
+
+    def hover(self, event):
+        super().hover(event)
+        self._cursor = self._locate(event, clamp=bool(self._points))
+        if self._cursor is None:
+            self._snapped = None
+        self.update()
+
+    def move(self, event):
+        self.hover(event)
+
+    def release(self, event):
+        moved = (QPointF(event.position()) - self._press_pos).manhattanLength()
+        if self._dragging and self._two_points() and moved > DRAG_THRESHOLD * 3 and self._cursor is not None:
+            self._points.append(self._cursor)
+            self.finish()
+        self._dragging = False
+
+    def double_click(self, event):
+        if not self._two_points():
+            self.finish()
+
+    def key_press(self, event) -> bool:
+        if not self._points:
+            return False
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            self.finish()
+            return True
+        if event.key() == Qt.Key.Key_Backspace:
+            self._points.pop()
+            self.update()
+            return True
+        return False
+
+    # ---------- resultado ----------
+    def _clean(self, points: list[QPointF]) -> list[tuple[float, float]]:
+        result: list[tuple[float, float]] = []
+        for p in points:
+            if not result or math.hypot(p.x() - result[-1][0], p.y() - result[-1][1]) >= 0.5:
+                result.append((p.x(), p.y()))
+        return result
+
+    def _scale(self) -> core_measure.Scale:
+        first = self._points[0]
+        return self.scale_for(self._page, (first.x(), first.y()))
+
+    def _value_text(self, points: list[tuple[float, float]]) -> str:
+        scale = self._scale()
+        kind = "distance" if self.mode == "calibrate" else self.mode
+        value = core_measure.measure(kind, points, scale)
+        return format_measure(value, scale.unit, area=kind == "area")
+
+    def finish(self) -> None:
+        page, points, mode = self._page, self._clean(self._points), self.mode
+        scale = self._scale() if self._points else None
+        self.cancel()
+        needed = 3 if mode == "area" else 2
+        if len(points) < needed or scale is None:
+            return
+        if mode == "calibrate":
+            self.calibrated.emit(core_measure.path_length(points[:2]))
+            return
+        kind = mode
+        label = format_measure(core_measure.measure(kind, points, scale), scale.unit, area=kind == "area")
+        style = self.style
+        names = {"distance": self.tr("Medir distancia"), "perimeter": self.tr("Medir perímetro"),
+                 "area": self.tr("Medir área")}
+        self.apply(names[kind], page, lambda pg: core_measure.add_measurement(
+            pg, kind, points, scale, label, style.rgb(), style.width))
+
+    def cancel(self):
+        self._page = -1
+        self._points = []
+        self._dragging = False
+        self.update()
+
+    def deactivate(self) -> None:
+        super().deactivate()
+        self._cursor = None
+        self._snapped = None
+
+    # ---------- dibujo ----------
+    def paint_page(self, painter, page):
+        scale = max(self.viewer.scale, 0.01)
+        if self._snapped is not None and page == self._hover_page:
+            side = 9 / scale
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.setPen(QPen(theme.color("accent"), 1.6 / scale))
+            painter.drawRect(QRectF(self._snapped.x() - side / 2, self._snapped.y() - side / 2, side, side))
+        if page != self._page:
+            return
+        color = self.style.qcolor()
+        points = list(self._points) + ([self._cursor] if self._points and self._cursor is not None else [])
+        if points:
+            pen = QPen(color, max(self.style.width, 1.0 / scale))
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            painter.setPen(pen)
+            if self.mode == "area" and len(points) >= 3:
+                fill = QColor(color)
+                fill.setAlphaF(0.12)
+                painter.setBrush(fill)
+                path = QPainterPath(points[0])
+                for point in points[1:]:
+                    path.lineTo(point)
+                path.closeSubpath()
+                painter.drawPath(path)
+            else:
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                path = QPainterPath(points[0])
+                for point in points[1:]:
+                    path.lineTo(point)
+                painter.drawPath(path)
+            painter.setPen(QPen(color, 1.2 / scale))
+            painter.setBrush(QColor("#FFFFFF"))
+            for point in self._points:
+                painter.drawEllipse(point, 3 / scale, 3 / scale)
+        if len(points) >= 2 and self._cursor is not None:
+            self._paint_readout(painter, self._value_text(self._clean(points)))
+
+    def _paint_readout(self, painter: QPainter, text: str) -> None:
+        """La cifra junto al cursor, a tamaño de pantalla (no crece con el zoom)."""
+        anchor = painter.transform().map(self._cursor)
+        painter.save()
+        painter.resetTransform()
+        font = QFont(painter.font())
+        font.setPointSizeF(9.5)
+        font.setWeight(QFont.Weight.DemiBold)
+        painter.setFont(font)
+        metrics = QFontMetricsF(font)
+        box = metrics.boundingRect(text).adjusted(-8, -4, 8, 4)
+        box.moveTopLeft(QPointF(anchor.x() + 14, anchor.y() + 14))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(theme.color("surface"))
+        painter.drawRoundedRect(box, 6, 6)
+        painter.setPen(theme.color("text"))
+        painter.drawText(box, Qt.AlignmentFlag.AlignCenter, text)
+        painter.restore()
+
+
 class EraserTool(AnnotationTool):
     """Borra la anotación bajo el cursor (resaltada al pasar por encima)."""
 
@@ -1268,12 +1524,13 @@ TOOL_CLASSES = {
     "note": NoteTool,
     "signature": SignatureTool,
     "stamp": StampTool,
+    "measure": MeasureTool,
     "eraser": EraserTool,
     "redact": RedactTool,
 }
 
 STYLED_TOOLS = ("pen", "highlight", "underline", "strikeout", "rect", "ellipse", "line", "arrow", "polygon", "text",
-                "note", "signature")
+                "note", "signature", "measure")
 WIDTH_TOOLS = ("pen", "rect", "ellipse", "line", "arrow", "polygon", "signature")
 
 

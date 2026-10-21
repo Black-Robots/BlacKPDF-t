@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMenu, QSlider, QTool
 
 from . import formatting, icons, theme
 from .interaction import PRESET_COLORS, STYLED_TOOLS, WIDTH_TOOLS, ToolStyle, load_style
+from .measure import mode_names
 from .stamps import StampChoice, StampPopup
 from .widgets import SHADOW_TOP, ColorButton, FloatingPanel, IconButton, separator
 
@@ -15,6 +16,7 @@ TOOL_GROUPS = (
     (("pen", "pencil"), ("highlight", "highlighter"), ("underline", "underline"), ("strikeout", "strikethrough")),
     (("rect", "square"), ("ellipse", "circle"), ("arrow", "move-up-right"), ("line", "minus"), ("polygon", "pentagon")),
     (("text", "type"), ("note", "sticky-note"), ("stamp", "stamp"), ("signature", "signature")),
+    (("measure", "ruler"),),
     (("redact", "eye-off"), ("eraser", "eraser")),
 )
 
@@ -37,6 +39,7 @@ def tool_labels() -> dict[str, str]:
         "line": _tr("Línea"),
         "polygon": _tr("Polígono: clic en cada vértice; doble clic o Intro para cerrar"),
         "stamp": _tr("Sello: Aprobado, Borrador, Revisado... (S)"),
+        "measure": _tr("Medir distancias, perímetros y áreas a escala (M)"),
         "text": _tr("Cuadro de texto (X)"),
         "note": _tr("Nota (N)"),
         "signature": _tr("Firma (F)"),
@@ -49,7 +52,7 @@ COMPACT_HIDDEN = ("underline", "strikeout", "ellipse", "line", "arrow", "polygon
 
 TOOL_SHORTCUTS = {
     "select": "V", "hand": "H", "pen": "P", "highlight": "R", "underline": "U",
-    "strikeout": "T", "text": "X", "note": "N", "stamp": "S", "signature": "F", "eraser": "E", "redact": "C",
+    "strikeout": "T", "text": "X", "note": "N", "stamp": "S", "signature": "F", "measure": "M", "eraser": "E", "redact": "C",
 }
 
 
@@ -95,6 +98,8 @@ class AnnotationBar(FloatingPanel):
     toolSelected = Signal(str)
     styleChanged = Signal(str, object)
     stampChanged = Signal(object)
+    measureModeChanged = Signal(str)
+    scaleRequested = Signal()
 
     def __init__(self, parent: QWidget):
         super().__init__(parent, inner=(6, 5, 6, 5))
@@ -140,6 +145,22 @@ class AnnotationBar(FloatingPanel):
         self.stamp_button.clicked.connect(self._open_stamps)
         layout.addWidget(self.stamp_button)
         self._stamp = StampChoice.load()
+        self.measure_button = IconButton("chevron-down", self.tr("Qué medir"), self, size=34, icon_size=14, text=" ")
+        self.measure_button.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        self.measure_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.measure_menu = QMenu(self.measure_button)
+        for key, icon_name in (("distance", "ruler"), ("perimeter", "spline"), ("area", "pentagon")):
+            action = self.measure_menu.addAction(icons.icon(icon_name), mode_names()[key])
+            action.triggered.connect(lambda _=False, k=key: self.measureModeChanged.emit(k))
+        self.measure_menu.addSeparator()
+        calibrate = self.measure_menu.addAction(icons.icon("ruler"), self.tr("Calibrar con una medida conocida..."))
+        calibrate.triggered.connect(lambda: self.measureModeChanged.emit("calibrate"))
+        self.measure_button.setMenu(self.measure_menu)
+        layout.addWidget(self.measure_button)
+        self.scale_button = IconButton("chevron-down", self.tr("Escala"), self, size=34, icon_size=14, text=" ")
+        self.scale_button.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        self.scale_button.clicked.connect(self.scaleRequested)
+        layout.addWidget(self.scale_button)
         self._active = "select"
         self._style: ToolStyle | None = None
         self._slide = QPropertyAnimation(self, b"pos", self)
@@ -178,6 +199,8 @@ class AnnotationBar(FloatingPanel):
         self.color_button.setVisible(styled)
         self.width_button.setVisible(name in WIDTH_TOOLS or name == "text")
         self.stamp_button.setVisible(name == "stamp")
+        self.measure_button.setVisible(name == "measure")
+        self.scale_button.setVisible(name == "measure")
         self._style_separator.setVisible(styled or name == "stamp")
         if styled:
             self._style = load_style(name)
@@ -192,6 +215,12 @@ class AnnotationBar(FloatingPanel):
     def set_stamp(self, choice: StampChoice) -> None:
         self._stamp = choice
         self.stamp_button.setText(choice.label)
+        self.adjustSize()
+
+    def set_measure(self, mode: str, scale: str) -> None:
+        names = dict(mode_names(), calibrate=self.tr("Calibrar"))
+        self.measure_button.setText(names.get(mode, mode))
+        self.scale_button.setText(scale)
         self.adjustSize()
 
     def _open_stamps(self) -> None:

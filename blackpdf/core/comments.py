@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 
 import pymupdf
 
+from . import measure
 from .document import format_pdf_date
 from .errors import InvalidOptionError
 
@@ -133,6 +134,8 @@ def _stamp(annot: pymupdf.Annot, author: str | None = None, content: str | None 
         info["content"] = content
     annot.set_info(**info)
     annot.update()
+    if measure.is_measurement(annot):
+        measure.redraw(annot.parent, annot)  # update() dibuja la figura sin su cifra
 
 
 def set_comment(page: pymupdf.Page, xref: int, text: str, author: str | None = None) -> None:

@@ -33,7 +33,7 @@ from .dialogs.common import PropertiesDialog, ask_password, confirm_discard
 from .dialogs.signature import SignatureDialog
 from .document import PdfDocument
 from .errors import show_crash, show_error
-from .interaction import STYLED_TOOLS, PlaceRectTool, RedactTool, SignatureTool, StampTool, create_tool
+from .interaction import STYLED_TOOLS, MeasureTool, PlaceRectTool, RedactTool, SignatureTool, StampTool, create_tool
 from .keys import shortcut_text
 from .attachments import AttachmentsPanel
 from .layers import LayersPanel
@@ -195,6 +195,8 @@ class DocumentTab(QWidget):
         self.annotation_bar.toolSelected.connect(self.set_tool)
         self.annotation_bar.styleChanged.connect(self._style_changed)
         self.annotation_bar.stampChanged.connect(self._stamp_changed)
+        self.annotation_bar.measureModeChanged.connect(self._measure_mode_changed)
+        self.annotation_bar.scaleRequested.connect(self._open_scale_popup)
         self.area.annotation_bar = self.annotation_bar
         self.annotation_bar.setVisible(settings().annotation_bar_visible)
         self.annotate_button.setChecked(self.annotation_bar.isVisible())
@@ -208,6 +210,9 @@ class DocumentTab(QWidget):
 
         self.viewer.zoomChanged.connect(self._on_zoom)
         self.viewer.currentPageChanged.connect(self._on_page)
+        # Cada página de un juego de planos puede tener su escala.
+        self.viewer.currentPageChanged.connect(
+            lambda _page: self._update_measure_bar() if self._tool_name == "measure" else None)
         self.viewer.fitModeChanged.connect(self._on_fit_mode)
         self.viewer.contextMenuRequested.connect(self._viewer_menu)
         self.viewer.modelRequested.connect(self.open_model)
@@ -1033,6 +1038,9 @@ class DocumentTab(QWidget):
             tool = create_tool(name, self.viewer)
             if isinstance(tool, (SignatureTool, StampTool)):
                 tool.finished.connect(lambda: self.set_tool("select"))
+            if isinstance(tool, MeasureTool):
+                tool.scale_for = self._measure_scale
+                tool.calibrated.connect(self._calibrate_measure)
             if isinstance(tool, RedactTool):
                 tool.finished.connect(lambda: Toast.show_message(
                     self.window(), self.tr("Contenido censurado de forma definitiva"), self.tr("Deshacer"), self.undo))
@@ -1041,6 +1049,8 @@ class DocumentTab(QWidget):
             tool.set_strokes(strokes)
         if isinstance(tool, StampTool):
             self.annotation_bar.set_stamp(tool.choice)
+        if isinstance(tool, MeasureTool):
+            self._update_measure_bar()
         if name == "polygon" and not settings().hint_seen("polygon"):
             Toast.show_message(self.window(), self.tr(
                 "Haz clic en cada vértice. Para cerrar el polígono, doble clic, Intro o clic en el primer vértice."),
@@ -1049,6 +1059,71 @@ class DocumentTab(QWidget):
         self.viewer.set_tool(tool)
         self.annotation_bar.set_active(name)
         self.area.layout_overlays()
+
+    # ---------- medir ----------
+    def _measure_scale(self, page: int, point=None):
+        from ..core import measure as core_measure
+
+        if self.document.measure_scale is not None:
+            return self.document.measure_scale
+        if 0 <= page < self.document.page_count:
+            try:
+                found = core_measure.page_scale(self.document.doc[page], point)
+            except Exception:
+                found = None
+            if found is not None:
+                return found
+        return core_measure.Scale()
+
+    def _update_measure_bar(self) -> None:
+        from .measure import scale_text
+
+        tool = self._tools.get("measure")
+        mode = tool.mode if isinstance(tool, MeasureTool) else "distance"
+        self.annotation_bar.set_measure(mode, scale_text(self._measure_scale(self.viewer.current_page)))
+
+    def _measure_mode_changed(self, mode: str) -> None:
+        tool = self._tools.get("measure")
+        if not isinstance(tool, MeasureTool):
+            return
+        tool.set_mode(mode)
+        self._update_measure_bar()
+        if mode == "calibrate":
+            Toast.show_message(self.window(), self.tr(
+                "Traza una línea sobre algo cuya medida conozcas, por ejemplo una cota del plano."), duration=4500)
+        elif mode != "distance" and not settings().hint_seen("measure_" + mode):
+            Toast.show_message(self.window(), self.tr(
+                "Haz clic en cada vértice. Para terminar, doble clic o Intro."), duration=4000)
+
+    def _open_scale_popup(self) -> None:
+        from ..core import measure as core_measure
+        from .measure import ScalePopup
+
+        page = self.viewer.current_page
+        try:
+            from_document = core_measure.page_scale(self.document.doc[page])
+        except Exception:
+            from_document = None
+        popup = ScalePopup(self._measure_scale(page), from_document, self.annotation_bar)
+        popup.picked.connect(self._set_measure_scale)
+        popup.calibrateRequested.connect(lambda: self._measure_mode_changed("calibrate"))
+        popup.show_below(self.annotation_bar.scale_button)
+
+    def _set_measure_scale(self, scale) -> None:
+        self.document.measure_scale = scale
+        self._update_measure_bar()
+
+    def _calibrate_measure(self, length_pt: float) -> None:
+        from .measure import CalibrateDialog, scale_text
+
+        dialog = CalibrateDialog(length_pt, self._measure_scale(self.viewer.current_page).unit, self)
+        accepted = dialog.exec() == CalibrateDialog.DialogCode.Accepted
+        if accepted:
+            self.document.measure_scale = dialog.scale()
+        self._measure_mode_changed("distance")
+        if accepted:
+            Toast.show_message(self.window(), self.tr("Escala calibrada: {0}").format(
+                scale_text(self.document.measure_scale)), kind="success")
 
     def _stamp_changed(self, choice) -> None:
         choice.save()

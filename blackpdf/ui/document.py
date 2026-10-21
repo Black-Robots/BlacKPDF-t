@@ -49,6 +49,8 @@ class PdfDocument(QObject):
         """Contenido del archivo firmado tal como se abrió: se guarda añadiéndole los cambios."""
         self._rewrite_needed = False
         self._layers_touched = False
+        self.measure_scale = None
+        """Escala elegida o calibrada para medir en esta sesión (None: la del PDF, o tamaño real)."""
         self._recompute_sizes()
 
     # ---------- creación ----------
