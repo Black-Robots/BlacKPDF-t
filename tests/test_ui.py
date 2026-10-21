@@ -1208,3 +1208,25 @@ def test_polygon_tool_click_by_click(qapp, opened):
     annot = page.first_annot
     assert annot is not None and annot.type[0] == pymupdf.PDF_ANNOT_POLYGON and len(annot.vertices) == 3
     tab.set_tool("select")
+
+
+def test_tables_tool(qapp, window, tmp_path):
+    from tests.test_tables import _pdf
+
+    from blackpdf.ui import tools
+
+    path = tmp_path / "presupuesto.pdf"
+    path.write_bytes(_pdf())
+    window.open_files([str(path)])
+    pump(qapp, 0.6)
+    tab = window.current_tab()
+    dialog = tools.dialog_class("tables")(window, window._context_for(tab), {})
+    assert dialog.output.path().endswith("presupuesto_tablas.xlsx")
+    dialog.format.set_value("csv")
+    assert dialog.output.path().endswith("presupuesto_tablas.csv"), "cambia la extensión con el formato"
+    dialog.format.set_value("xlsx")
+    dialog.run()
+    assert wait_until(qapp, lambda: dialog.pages.currentWidget() is dialog.result_panel, 60)
+    assert (tmp_path / "presupuesto_tablas.xlsx").is_file()
+    assert dialog.open_button.isVisibleTo(dialog) and "1 tabla" in dialog.result_panel.detail.text()
+    dialog.close()

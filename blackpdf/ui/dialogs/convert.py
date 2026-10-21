@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtGui import QPainter, QPen
+from PySide6.QtCore import QCoreApplication, QLocale, QSize, Qt, QUrl, Signal
+from PySide6.QtGui import QDesktopServices, QPainter, QPen
 from PySide6.QtWidgets import QCheckBox, QComboBox, QFrame, QHBoxLayout, QSlider, QVBoxLayout, QWidget
 
 from ...core.files import unique_path
@@ -237,6 +237,96 @@ class ExtractImagesDialog(_SingleSourceDialog):
         detail = self.tr("Se ha guardado 1 imagen.") if count == 1 else self.tr("Se han guardado {0} imágenes.").format(count)
         detail += " " + self.tr("Carpeta: {0}").format(Path(result[0]).parent)
         return self.tr("Imágenes extraídas"), detail, [Path(p) for p in result]
+
+
+def spreadsheet_filter(fmt: str) -> str:
+    return QCoreApplication.translate("TablesDialog", "Libro de Excel (*.xlsx)") if fmt == "xlsx" else \
+        QCoreApplication.translate("TablesDialog", "Texto CSV (*.csv)")
+
+
+class TablesDialog(_SingleSourceDialog):
+    icon_name = "sheet"
+    output_suffix = "tablas"
+
+    def title(self):
+        return self.tr("Tablas a Excel")
+
+    def description(self):
+        return self.tr("Saca las tablas del PDF a una hoja de cálculo, con los números listos para sumar.")
+
+    def action_text(self):
+        return self.tr("Exportar")
+
+    def build(self):
+        self.add_source()
+        self.ranges = PageRangeEdit(allow_empty=True)
+        self.ranges.setText(self.preset.get("pages", ""))
+        self.ranges.textChanged.connect(lambda _: self.refresh())
+        self.add_field(self.tr("Páginas"), self.ranges, self.tr("Déjalo vacío para buscar en todas."))
+        self.format = SegmentedControl([("xlsx", "Excel (.xlsx)"), ("csv", "CSV")])
+        self.format.changed.connect(self._format_changed)
+        self.add_field(self.tr("Formato"), self.format,
+                       self.tr("Excel: una hoja por tabla. CSV: un archivo por tabla, para cualquier programa."))
+        self.output = OutputPicker("save", spreadsheet_filter("xlsx"), self)
+        self.add_field(self.tr("Guardar como"), self.output)
+        self.finish_build()
+
+    def _source_changed(self):
+        if self.source.is_ready():
+            self.output.suggest(self.default_output(self.source, extension="." + self.format.value()))
+        self.on_source_changed()
+        self.refresh()
+
+    def _format_changed(self, fmt: str) -> None:
+        self.output.picker.file_filter = spreadsheet_filter(fmt)
+        current = self.output.path()
+        if current:
+            self.output.picker.set_path(str(Path(current).with_suffix("." + fmt)))
+        elif self.source.is_ready():
+            self.output.suggest(self.default_output(self.source, extension="." + fmt))
+
+    def on_source_changed(self):
+        self.ranges.set_page_count(self.source.page_count)
+
+    def is_ready(self):
+        return self.source.is_ready() and self.ranges.is_valid() and bool(self.output.path())
+
+    def job(self):
+        source = self.require_source()
+        output = self.output.path()
+        if not output:
+            raise ValidationError(self.tr("Elige dónde guardar el resultado."))
+        return "blackpdf.core.tables:export_tables", (source, output), {
+            "fmt": self.format.value(),
+            "pages": self.ranges.text(),
+            "decimal": QLocale().decimalPoint() or ",",
+            "sheet_title": self.tr("Página {0}").replace("{0}", "{page}"),
+            **self.common_kwargs(),
+        }
+
+    def describe_result(self, result):
+        if not result.tables:
+            return self.tr("Sin tablas"), self.tr(
+                "No se han encontrado tablas en esas páginas. Si el PDF es un escaneo, pasa antes "
+                "«Reconocer texto (OCR)»."), []
+        count = result.tables
+        detail = self.tr("Se ha exportado 1 tabla.") if count == 1 else self.tr("Se han exportado {0} tablas.").format(count)
+        if len(result.paths) == 1:
+            detail += " " + self.tr("Archivo: {0}").format(Path(result.paths[0]).name)
+        else:
+            detail += " " + self.tr("Carpeta: {0}").format(Path(result.paths[0]).parent)
+        return self.tr("Tablas exportadas"), detail, [Path(p) for p in result.paths]
+
+    def _on_success(self, result) -> None:
+        super()._on_success(result)
+        if len(self._outputs) == 1:
+            self.open_button.setText(self.tr("Abrir"))
+            self.open_button.setVisible(True)
+
+    def _open_result(self) -> None:
+        if self._outputs:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(self._outputs[0])))
+            self.accept()
 
 
 class ImagesToPdfDialog(ToolDialog):
