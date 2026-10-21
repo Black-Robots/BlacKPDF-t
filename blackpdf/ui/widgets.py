@@ -304,6 +304,7 @@ class SegmentedControl(QFrame):
         layout.setContentsMargins(3, 3, 3, 3)
         layout.setSpacing(2)
         self._buttons: dict[str, QToolButton] = {}
+        self._badges: dict[str, QLabel] = {}
         self._value = ""
         for key, text in options:
             button = QToolButton(self)
@@ -346,6 +347,45 @@ class SegmentedControl(QFrame):
     def set_option_visible(self, key: str, visible: bool) -> None:
         if key in self._buttons:
             self._buttons[key].setVisible(visible)
+            QTimer.singleShot(0, self._place_badges)
+
+    def set_badge(self, key: str, text: str) -> None:
+        """Número pequeño en la esquina de una opción (vacío lo quita)."""
+        badge = self._badges.get(key)
+        if not text:
+            if badge is not None:
+                badge.hide()
+            return
+        if badge is None:
+            badge = QLabel(self)
+            badge.setProperty("role", "badge")
+            badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            badge.setFixedHeight(16)
+            badge.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+            self._badges[key] = badge
+        badge.setText(text)
+        badge.setMinimumWidth(16)
+        badge.adjustSize()
+        badge.setVisible(self._buttons[key].isVisibleTo(self))
+        self._place_badges()
+
+    def badge(self, key: str) -> str:
+        badge = self._badges.get(key)
+        return badge.text() if badge is not None and not badge.isHidden() else ""
+
+    def _place_badges(self) -> None:
+        for key, badge in self._badges.items():
+            button = self._buttons[key]
+            if not badge.text() or not button.isVisibleTo(self):
+                badge.hide()
+                continue
+            badge.move(button.x() + button.width() - badge.width() - 3, button.y() + 1)
+            badge.show()
+            badge.raise_()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._place_badges()
 
 
 class ColorSwatch(QToolButton):

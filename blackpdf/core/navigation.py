@@ -16,6 +16,18 @@ class OutlineItem:
     children: list["OutlineItem"] = field(default_factory=list)
 
 
+PANELS_BY_PAGE_MODE = {"UseOutlines": "outline", "UseThumbs": "pages", "UseOC": "layers",
+                       "UseAttachments": "attachments"}
+
+
+def initial_panel(doc: pymupdf.Document) -> str | None:
+    """Panel con el que el PDF pide abrirse (/PageMode): «outline», «pages», «layers», «attachments» o None."""
+    try:
+        return PANELS_BY_PAGE_MODE.get(doc.pagemode) if doc.is_pdf else None
+    except Exception:
+        return None
+
+
 def get_outline(doc: pymupdf.Document) -> list[OutlineItem]:
     """Árbol de marcadores del documento."""
     roots: list[OutlineItem] = []

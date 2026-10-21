@@ -380,6 +380,10 @@ QFrame[role="segmented"] {{
     border: 1px solid {p.border};
     border-radius: {r}px;
 }}
+QLabel[role="badge"] {{
+    background: {p.accent}; color: {p.accent_text}; border-radius: 8px;
+    padding: 0 5px; font-size: 10px; font-weight: 700;
+}}
 
 /* ---------- Campos ---------- */
 QLineEdit, QPlainTextEdit, QTextEdit, QSpinBox, QDoubleSpinBox, QComboBox {{

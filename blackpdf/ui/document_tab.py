@@ -231,7 +231,7 @@ class DocumentTab(QWidget):
         self._on_fit_mode(self.viewer.fit_mode)
         QTimer.singleShot(0, self._initial_layout)
         QTimer.singleShot(150, self._check_signatures)
-        QTimer.singleShot(400, self._announce_attachments)
+        QTimer.singleShot(400, self._open_initial_panel)
         document.modifiedChanged.connect(self._signed_document_modified)
         document.changed.connect(lambda _pages: self._signed_document_modified(self.document.is_modified))
 
@@ -410,7 +410,13 @@ class DocumentTab(QWidget):
         self.attachments.openFiles.connect(self.openRequested)
         self.attachments.insert3dRequested.connect(lambda path: self.insert_model_3d(path, already_attached=True))
         self.attachments.locate.connect(self._show_comment)
-        self.attachments.countChanged.connect(lambda _: self._update_sidebar_header())
+        self.attachments.countChanged.connect(lambda _: self._refresh_attachments_badge())
+        # El número del clip se mantiene al día aunque el panel esté cerrado (adjuntar desde el menú...).
+        self._badge_timer = QTimer(self)
+        self._badge_timer.setSingleShot(True)
+        self._badge_timer.setInterval(250)
+        self._badge_timer.timeout.connect(self._refresh_attachments_badge)
+        self.document.changed.connect(lambda _pages: self._badge_timer.start())
         self.layers_panel = LayersPanel(self.document, frame)
         self.layers_panel.countChanged.connect(self._layers_count_changed)
         self.sidebar_switch.set_option_visible("layers", self.layers_panel.count() > 0)
@@ -431,7 +437,7 @@ class DocumentTab(QWidget):
         self.sidebar_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.sidebar_hint)
         self.sidebar_switch.changed.connect(self._sidebar_view_changed)
-        self._update_sidebar_header()
+        self._refresh_attachments_badge()
         return frame
 
     def _update_sidebar_header(self) -> None:
@@ -503,8 +509,27 @@ class DocumentTab(QWidget):
             self._animate_sidebar(0, self._sidebar_width)
         self.sidebar_switch.set_value("layers")
 
+    def _refresh_attachments_badge(self) -> None:
+        """Los adjuntos pasan desapercibidos: el clip del panel lateral lleva cuántos hay."""
+        count = self.attachments.count()
+        self.sidebar_switch.set_badge("attachments", "" if not count else "99+" if count > 99 else str(count))
+        button = self.sidebar_switch._buttons["attachments"]
+        button.setToolTip(self.tr("Archivos adjuntos ({0})").format(count) if count else self.tr("Archivos adjuntos"))
+        self._update_sidebar_header()
+
+    def _open_initial_panel(self) -> None:
+        """Panel con el que el PDF pide abrirse (/PageMode); si trae adjuntos y no pide nada, se avisa."""
+        from ..core.navigation import initial_panel
+
+        panel = initial_panel(self.document.doc)
+        if panel == "attachments" and self.attachments.count():
+            self.show_attachments()
+            return
+        if panel in ("outline", "pages") or (panel == "layers" and self.layers_panel.count()):
+            self.sidebar_switch.set_value(panel)
+        self._announce_attachments()
+
     def _announce_attachments(self) -> None:
-        """Los adjuntos pasan desapercibidos: se avisa al abrir un PDF que los lleve."""
         count = self.attachments.count()
         if not count:
             return

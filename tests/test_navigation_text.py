@@ -1,7 +1,7 @@
 import pymupdf
 
 from blackpdf.core.files import human_size, safe_filename, unique_path, with_suffix_name
-from blackpdf.core.navigation import get_outline, page_links, page_text, search_page
+from blackpdf.core.navigation import get_outline, initial_panel, page_links, page_text, search_page
 from blackpdf.core.text import FONT_CHOICES, font_for, line_rects, page_words, select_words, words_text
 
 from .conftest import build_pdf
@@ -77,3 +77,13 @@ def test_file_helpers(tmp_path):
     assert human_size(2048) == "2,0 KB"
     assert human_size(5 * 1024 * 1024) == "5,0 MB"
     assert human_size(1536, ".") == "1.5 KB"
+
+
+def test_initial_panel_follows_page_mode():
+    doc = build_pdf(1)
+    assert initial_panel(doc) is None
+    for mode, panel in (("UseAttachments", "attachments"), ("UseOutlines", "outline"), ("UseOC", "layers"),
+                        ("UseThumbs", "pages"), ("FullScreen", None)):
+        doc.set_pagemode(mode)
+        reopened = pymupdf.open(stream=doc.tobytes(), filetype="pdf")
+        assert initial_panel(reopened) == panel, mode

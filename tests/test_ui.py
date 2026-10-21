@@ -884,7 +884,8 @@ def test_attachments_panel(qapp, window, tmp_path, monkeypatch):
     window.open_files([str(path)])
     pump(qapp, 0.8)
     tab = window.current_tab()
-    assert "Este PDF lleva 3 archivos adjuntos" in toasts
+    # MuPDF guarda los PDF con adjuntos pidiendo abrirse con ellos a la vista: se abre el panel, sin aviso.
+    assert tab.sidebar_switch.value() == "attachments" and not toasts
     tab.show_attachments()
     pump(qapp, 0.5)
     panel = tab.attachments
@@ -1282,3 +1283,30 @@ def test_measure_tool_with_scale_snapping_and_calibration(qapp, opened, monkeypa
     labels = [core_measure.measurement_label(a) for a in page.annots() if core_measure.is_measurement(a)]
     assert ui_measure.format_measure(4.0, "m", area=True) in labels, "100 × 100 pt a 2 cm por punto"
     tab.set_tool("select")
+
+
+def test_attachments_badge_and_initial_panel(qapp, window, tmp_path):
+    doc = build_pdf(2)
+    doc.embfile_add("medidas.csv", b"a;b", filename="medidas.csv")
+    doc.embfile_add("pieza.step", b"ISO-10303-21;", filename="pieza.step")
+    path = tmp_path / "con_adjuntos.pdf"
+    doc.save(path)  # MuPDF lo marca para abrirse con los adjuntos a la vista (/PageMode)
+    window.open_files([str(path)])
+    pump(qapp, 0.8)
+    tab = window.current_tab()
+    assert tab.sidebar_switch.badge("attachments") == "2", "el clip dice cuántos hay"
+    assert tab.sidebar_switch.value() == "attachments", "el PDF pide abrirse con sus adjuntos a la vista"
+    tab.sidebar_switch.set_value("pages")
+    tab.document.edit("Adjuntar", lambda d: d.embfile_add("otro.txt", b"x", filename="otro.txt"))
+    assert wait_until(qapp, lambda: tab.sidebar_switch.badge("attachments") == "3", 5), \
+        "se actualiza aunque el panel esté cerrado"
+
+    outline = build_pdf(3)
+    outline.set_toc([[1, "Introducción", 1], [1, "Anexo", 3]])
+    outline.set_pagemode("UseOutlines")
+    with_outline = tmp_path / "con_indice.pdf"
+    outline.save(with_outline)
+    window.open_files([str(with_outline)])
+    pump(qapp, 0.8)
+    tab = window.current_tab()
+    assert tab.sidebar_switch.value() == "outline" and tab.sidebar_switch.badge("attachments") == ""
