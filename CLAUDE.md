@@ -64,10 +64,21 @@ tests/           → tests de core con PDFs generados en el propio test.
 
 ## Reglas
 1. Toda función de `core` lleva test en `tests/`.
-2. Textos de UI en español con `self.tr()` (o `QT_TRANSLATE_NOOP` en listas de módulo). Traducciones en `translations/*.ts` (en, pt, fr): tras cambiar textos, `python scripts/i18n.py update`, traducir y `python scripts/i18n.py build`; los tests fallan si falta alguna.
+2. Textos de UI en español con `self.tr()` (o `QT_TRANSLATE_NOOP` en listas de módulo). Traducciones en `translations/*.ts` (en, pt de Brasil, fr) con la skill `traducir`: `scripts/i18n.py update`, `pending`, `fill` y `build`; los tests fallan si falta alguna.
 3. Errores al usuario con mensajes claros, nunca trazas.
-4. Antes de dar una tarea por terminada: `pytest` en verde y la app arranca (`python -m blackpdf --self-test`).
+4. Antes de dar una tarea por terminada o hacer commit: `scripts/verificar.py` en VERDE (pruebas, autocomprobación, ruff y traducciones).
 5. Cambios pequeños y enfocados.
+
+## Flujo de trabajo con Claude Code
+Todo está en `.claude/` y `scripts/`, versionado.
+- Skills: `/nueva-funcion` (receta completa de una función), `traducir` (con glosario), `verificar`,
+  `captura` (revisión visual), `pymupdf` (trampas conocidas; se carga sola al tocar `core/`) y
+  `/publicar` (solo la lanza el usuario).
+- Subagentes: `revisor` (revisa el cambio antes del commit), `traductor` y `explorador-pymupdf`.
+- Scripts: `verificar.py`, `captura.py`, `demo_pdf.py` (PDF de prueba con de todo), `i18n.py`.
+- Ajustes: `git push`, `git tag` y `gh release` siempre piden permiso; ruff revisa cada `.py` al
+  editarlo; un `git commit` con la verificación rápida en rojo se bloquea.
+- Ejecuta Python con `env -u PYTHONPATH .venv/bin/python` (un PYTHONPATH ajeno, como el de ROS, rompe el venv).
 
 ## Orden de trabajo
 1. Esqueleto: `pyproject.toml`, venv, ventana con tema, abrir y ver un PDF.
