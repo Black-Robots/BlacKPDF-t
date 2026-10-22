@@ -227,12 +227,12 @@
         <message>
             <location filename="../blackpdf/ui/annotation_bar.py" line="41" />
             <source>Sello: Aprobado, Borrador, Revisado... (S)</source>
-            <translation>Carimbo: Aprovado, Rascunho, Revisto... (S)</translation>
+            <translation>Carimbo: Aprovado, Rascunho, Revisado... (S)</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/annotation_bar.py" line="42" />
             <source>Medir distancias, perímetros y áreas a escala (M)</source>
-            <translation>Medir distâncias, perímetros e áreas à escala (M)</translation>
+            <translation>Medir distâncias, perímetros e áreas em escala (M)</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/annotation_bar.py" line="43" />
@@ -313,7 +313,7 @@
         <message>
             <location filename="../blackpdf/ui/attachments.py" line="144" />
             <source>Mete un archivo dentro del PDF. También puedes soltar archivos aquí.</source>
-            <translation>Coloca um arquivo dentro do PDF. Você também pode soltar arquivos aqui.</translation>
+            <translation>Coloque um arquivo dentro do PDF. Você também pode soltar arquivos aqui.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/attachments.py" line="147" />
@@ -1416,7 +1416,7 @@
         <message>
             <location filename="../blackpdf/ui/document_tab.py" line="873" />
             <source>Al guardar, tus cambios se añadirán al final del documento firmado sin tocar lo firmado. Los comentarios están permitidos; cualquier otro cambio constará como hecho después de firmar.</source>
-            <translation>Ao guardar, as suas alterações serão acrescentadas ao final do documento assinado sem tocar no que foi assinado. Os comentários são permitidos; qualquer outra alteração ficará registada como feita depois da assinatura.</translation>
+            <translation>Ao salvar, suas alterações serão acrescentadas ao final do documento assinado sem mexer no que foi assinado. Os comentários são permitidos; qualquer outra alteração constará como feita depois da assinatura.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/document_tab.py" line="877" />
@@ -1461,17 +1461,17 @@
         <message>
             <location filename="../blackpdf/ui/document_tab.py" line="1104" />
             <source>Haz clic en cada vértice. Para cerrar el polígono, doble clic, Intro o clic en el primer vértice.</source>
-            <translation>Clique em cada vértice. Para fechar o polígono, faça duplo clique, prima Enter ou clique no primeiro vértice.</translation>
+            <translation>Clique em cada vértice. Para fechar o polígono, dê um duplo clique, pressione Enter ou clique no primeiro vértice.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/document_tab.py" line="1141" />
             <source>Traza una línea sobre algo cuya medida conozcas, por ejemplo una cota del plano.</source>
-            <translation>Trace uma linha sobre algo cuja medida conheça, por exemplo uma cota do desenho.</translation>
+            <translation>Trace uma linha sobre algo cuja medida você conheça, por exemplo uma cota da planta.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/document_tab.py" line="1144" />
             <source>Haz clic en cada vértice. Para terminar, doble clic o Intro.</source>
-            <translation>Clique em cada vértice. Para terminar, faça duplo clique ou prima Enter.</translation>
+            <translation>Clique em cada vértice. Para terminar, dê um duplo clique ou pressione Enter.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/document_tab.py" line="1174" />
@@ -1871,7 +1871,7 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
         <message>
             <location filename="../blackpdf/ui/errors.py" line="81" />
             <source>Este PDF no admite que se le añadan los cambios al final, así que habría que reescribirlo y sus firmas digitales dejarían de ser válidas. Vuelve a guardar si quieres hacerlo de todos modos.</source>
-            <translation>Este PDF não permite acrescentar as alterações ao final, por isso teria de ser reescrito e as suas assinaturas digitais deixariam de ser válidas. Guarde novamente se quiser fazê-lo mesmo assim.</translation>
+            <translation>Este PDF não permite acrescentar as alterações ao final, então seria preciso reescrevê-lo e suas assinaturas digitais deixariam de ser válidas. Salve novamente se quiser fazer isso mesmo assim.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/errors.py" line="86" />
@@ -2341,7 +2341,7 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
         <message>
             <location filename="../blackpdf/ui/dialogs/model3d_insert.py" line="54" />
             <source>Mete una pieza en el PDF para verla en 3D en BlackPDF y en Acrobat. Admite STEP, IGES, STL, OBJ, 3MF, glTF, PRC y U3D.</source>
-            <translation>Coloca uma peça no PDF para vê-la em 3D no BlackPDF e no Acrobat. Aceita STEP, IGES, STL, OBJ, 3MF, glTF, PRC e U3D.</translation>
+            <translation>Coloque uma peça no PDF para vê-la em 3D no BlackPDF e no Acrobat. Aceita STEP, IGES, STL, OBJ, 3MF, glTF, PRC e U3D.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/dialogs/model3d_insert.py" line="60" />
@@ -2473,7 +2473,7 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
         <message>
             <location filename="../blackpdf/ui/layers.py" line="48" />
             <source>Solo se puede ver una capa de este grupo a la vez</source>
-            <translation>Só é possível ver uma camada deste grupo de cada vez</translation>
+            <translation>Só é possível ver uma camada deste grupo por vez</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/layers.py" line="50" />
@@ -2511,12 +2511,12 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
         <message>
             <location filename="../blackpdf/ui/layers.py" line="103" />
             <source>Guarda en el PDF qué capas se ven al abrirlo, en BlackPDF y en otros visores.</source>
-            <translation>Guarda no PDF quais camadas se veem ao abri-lo, no BlackPDF e noutros visualizadores.</translation>
+            <translation>Salva no PDF quais camadas aparecem ao abri-lo, no BlackPDF e em outros visualizadores.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/layers.py" line="107" />
             <source>Ocultar una capa solo cambia lo que ves e imprimes; el archivo no se modifica.</source>
-            <translation>Ocultar uma camada só muda o que vê e imprime; o ficheiro não é modificado.</translation>
+            <translation>Ocultar uma camada só muda o que você vê e imprime; o arquivo não é modificado.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/layers.py" line="159" />
@@ -2527,7 +2527,7 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
         <message>
             <location filename="../blackpdf/ui/layers.py" line="166" />
             <source>Guarda el PDF para que se abra con estas capas.</source>
-            <translation>Guarde o PDF para que abra com estas camadas.</translation>
+            <translation>Salve o PDF para que ele abra com estas camadas.</translation>
         </message>
     </context>
     <context>
@@ -3598,7 +3598,7 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
         <message>
             <location filename="../blackpdf/ui/dialogs/page_labels.py" line="47" />
             <source>Numera como un libro (prólogo en romanos) o un juego de planos (A-101, A-102...). Cada regla empieza en una página y sigue hasta la siguiente regla.</source>
-            <translation>Numere como um livro (prefácio em romanos) ou um conjunto de plantas (A-101, A-102...). Cada regra começa numa página e continua até a regra seguinte.</translation>
+            <translation>Numere como um livro (prefácio em romanos) ou um conjunto de plantas (A-101, A-102...). Cada regra começa em uma página e continua até a regra seguinte.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/dialogs/page_labels.py" line="58" />
@@ -4416,7 +4416,7 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
         <message>
             <location filename="../blackpdf/ui/measure.py" line="71" />
             <source>Traza una línea sobre algo cuya medida sepas (una cota, una puerta...)</source>
-            <translation>Trace uma linha sobre algo cuja medida saiba (uma cota, uma porta...)</translation>
+            <translation>Trace uma linha sobre algo cuja medida você saiba (uma cota, uma porta...)</translation>
         </message>
     </context>
     <context>
@@ -4917,7 +4917,7 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
         <message>
             <location filename="../blackpdf/ui/dialogs/certificate.py" line="341" />
             <source>Firmado por {0}. Después se han añadido comentarios (permitido), pero el certificado no procede de una entidad de confianza reconocida.</source>
-            <translation>Assinado por {0}. Depois foram acrescentados comentários (permitido), mas o certificado não provém de uma entidade de confiança reconhecida.</translation>
+            <translation>Assinado por {0}. Depois foram adicionados comentários (permitido), mas o certificado não vem de uma entidade de confiança reconhecida.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/dialogs/certificate.py" line="344" />
@@ -4927,7 +4927,7 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
         <message>
             <location filename="../blackpdf/ui/dialogs/certificate.py" line="348" />
             <source>Firmado por {0}. La firma es válida; después se han añadido comentarios.</source>
-            <translation>Assinado por {0}. A assinatura é válida; depois foram acrescentados comentários.</translation>
+            <translation>Assinado por {0}. A assinatura é válida; depois foram adicionados comentários.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/dialogs/certificate.py" line="349" />
@@ -5184,7 +5184,7 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
         <message>
             <location filename="../blackpdf/ui/stamps.py" line="45" />
             <source>Revisado</source>
-            <translation>Revisto</translation>
+            <translation>Revisado</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/stamps.py" line="46" />
@@ -5239,7 +5239,7 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
         <message>
             <location filename="../blackpdf/ui/stamps.py" line="174" />
             <source>Añadir mi nombre, la fecha y la hora</source>
-            <translation>Adicionar o meu nome, a data e a hora</translation>
+            <translation>Adicionar meu nome, a data e a hora</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/stamps.py" line="179" />
@@ -5272,7 +5272,7 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
         <message>
             <location filename="../blackpdf/ui/dialogs/convert.py" line="255" />
             <source>Saca las tablas del PDF a una hoja de cálculo, con los números listos para sumar.</source>
-            <translation>Passa as tabelas do PDF para uma folha de cálculo, com os números prontos a somar.</translation>
+            <translation>Passa as tabelas do PDF para uma planilha, com os números prontos para somar.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/dialogs/convert.py" line="258" />
@@ -5297,7 +5297,7 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
         <message>
             <location filename="../blackpdf/ui/dialogs/convert.py" line="269" />
             <source>Excel: una hoja por tabla. CSV: un archivo por tabla, para cualquier programa.</source>
-            <translation>Excel: uma folha por tabela. CSV: um ficheiro por tabela, para qualquer programa.</translation>
+            <translation>Excel: uma planilha por tabela. CSV: um arquivo por tabela, para qualquer programa.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/dialogs/convert.py" line="271" />
@@ -5337,7 +5337,7 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
         <message>
             <location filename="../blackpdf/ui/dialogs/convert.py" line="315" />
             <source>Archivo: {0}</source>
-            <translation>Ficheiro: {0}</translation>
+            <translation>Arquivo: {0}</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/dialogs/convert.py" line="317" />
@@ -5609,7 +5609,7 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
         <message>
             <location filename="../blackpdf/ui/tools.py" line="51" />
             <source>Mete piezas STEP, STL, OBJ... para verlas en 3D en el PDF.</source>
-            <translation>Coloca peças STEP, STL, OBJ... no PDF para vê-las em 3D.</translation>
+            <translation>Coloque peças STEP, STL, OBJ... no PDF para vê-las em 3D.</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/tools.py" line="52" />
