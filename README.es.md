@@ -24,6 +24,8 @@ Disponible para **Windows 10/11** y **Linux**, en español, inglés, portugués 
 - Historial de navegación (Alt+Izquierda o botón Atrás del ratón) y enlaces internos y externos.
 - Vista dividida (Ctrl+\\): el mismo documento en dos puntos, otro PDF abierto o cualquier PDF del disco, con desplazamiento sincronizado opcional para comparar versiones.
 - Abre también imágenes, XPS y EPUB convirtiéndolos a PDF.
+- Panel de capas para planos: mostrar u ocultar cada capa y elegir cuáles se ven al abrir el PDF.
+- Etiquetas de página (i, ii, iii o A-101...) en el cuadro de página y las miniaturas, con editor y vista previa.
 
 **Organizar**
 - Arrastrar miniaturas para reordenar, en el panel lateral o en el modo Organizar a pantalla completa (Ctrl+G).
@@ -37,6 +39,10 @@ Disponible para **Windows 10/11** y **Linux**, en español, inglés, portugués 
 - Proteger con AES-256 y desbloquear, recortar márgenes (automático o manual), cambiar el tamaño de página.
 - Rellenar formularios y aplanar.
 - Reconocimiento de texto (OCR) en español, inglés, portugués y francés incluido, sin instalar nada más.
+- Tablas a Excel (.xlsx) o CSV, una hoja por tabla, con los números como números.
+- Extraer imágenes con su calidad original, cada una una sola vez.
+- Limpiar datos ocultos antes de compartir (metadatos, JavaScript, adjuntos, miniaturas y, si se quiere, comentarios, enlaces y formularios).
+- Propiedades del documento editables (título, autor, asunto, palabras clave), también en los metadatos XMP.
 
 **Comentarios**
 - Panel de comentarios por página con autor y fecha, cita del texto resaltado y respuestas en hilo.
@@ -44,7 +50,9 @@ Disponible para **Windows 10/11** y **Linux**, en español, inglés, portugués 
 - Compatibles con Acrobat y otros lectores (notas PDF estándar con respuestas /IRT).
 
 **Anotar y firmar**
-- Lápiz, resaltador, subrayado, tachado, rectángulo, elipse, flecha, línea, cuadro de texto y notas.
+- Lápiz, resaltador, subrayado, tachado, rectángulo, elipse, flecha, línea, polígono, cuadro de texto y notas.
+- Sellos (Aprobado, Borrador, Revisado... en el idioma de la interfaz, con nombre y fecha) y sellos personalizados.
+- Medir a escala: distancias, perímetros y áreas, ajustándose a lo dibujado, con la escala del propio PDF, las habituales de plano o calibrando con una medida conocida. Las medidas son anotaciones de medida estándar, como las de Acrobat.
 - Firma: se dibuja una vez, se guarda y se estampa donde se quiera.
 - Goma para borrar anotaciones y Censurar, que elimina de forma definitiva el contenido de una zona o todas las apariciones de un texto.
 - Todo se guarda como anotaciones PDF estándar, visibles en cualquier lector.
@@ -52,9 +60,14 @@ Disponible para **Windows 10/11** y **Linux**, en español, inglés, portugués 
 **Firma digital con certificado**
 - Firma PAdES con un certificado personal o de empresa (archivo .pfx / .p12, por ejemplo de la FNMT): sello visible con nombre, fecha, motivo y lugar, y opcionalmente la firma manuscrita guardada.
 - La firma se añade como revisión incremental, sin reescribir el documento: los lectores muestran que no se ha modificado después de firmar.
+- Los PDF firmados también se guardan de forma incremental: los comentarios añadidos después mantienen las firmas válidas.
 - Sello de tiempo opcional de un servidor TSA y verificación de las firmas de cualquier PDF (quién firmó, cuándo y si el documento sigue intacto).
 
+**Archivos adjuntos**
+- Ver, abrir, guardar, añadir y quitar los archivos que lleva un PDF (del documento y de sus páginas); un contador en la barra avisa cuando los hay.
+
 **Modelos 3D**
+- Meter piezas STEP, IGES, STL, OBJ, 3MF, glTF, PRC o U3D en un PDF como vista 3D interactiva, en un recuadro o en una página nueva.
 - Visor 3D para los PDF con modelos U3D y PRC (Acrobat, Tetra4D, exportaciones CAD, LaTeX/media9) y para archivos `.u3d` y `.prc` sueltos.
 - Vistas guardadas en el PDF, giro, desplazamiento y zoom al cursor, vistas estándar, modos sólido, contorno, alámbrico y transparente, iluminación, corte por plano, panel de piezas para ocultar o aislar, y captura a imagen.
 - Lector U3D propio en Python. El PRC usa nanoPRC (incluida teselación comprimida) con un lector propio de respaldo.

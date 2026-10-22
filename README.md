@@ -24,6 +24,8 @@ Available for **Windows 10/11** and **Linux**, in English, Spanish, Portuguese a
 - Navigation history (Alt+Left or the mouse Back button) and internal and external links.
 - Split view (Ctrl+\\): the same document at two places, another open PDF or any PDF on disk, with optional synchronized scrolling to compare versions.
 - Also opens images, XPS and EPUB by converting them to PDF.
+- Layers panel for drawings: show or hide each layer and choose which ones are visible when the PDF opens.
+- Page labels (i, ii, iii or A-101...) in the page box and the thumbnails, with an editor and live preview.
 
 **Organize**
 - Drag thumbnails to reorder pages, in the side panel or in full-screen Organize mode (Ctrl+G).
@@ -37,6 +39,10 @@ Available for **Windows 10/11** and **Linux**, in English, Spanish, Portuguese a
 - Protect with AES-256 and unlock, crop margins (automatic or manual), change the page size.
 - Fill in and flatten forms.
 - Built-in text recognition (OCR) in English, Spanish, Portuguese and French, with nothing else to install.
+- Tables to Excel (.xlsx) or CSV, one sheet per table, with numbers stored as numbers.
+- Extract images at their original quality, each one once.
+- Remove hidden data before sharing (metadata, JavaScript, attachments, thumbnails and, optionally, comments, links and forms).
+- Editable document properties (title, author, subject, keywords), also in the XMP metadata.
 
 **Comments**
 - Comments panel per page with author and date, quote of the highlighted text and threaded replies.
@@ -44,7 +50,9 @@ Available for **Windows 10/11** and **Linux**, in English, Spanish, Portuguese a
 - Compatible with Acrobat and other readers (standard PDF notes with /IRT replies).
 
 **Annotate and sign**
-- Pen, highlighter, underline, strikethrough, rectangle, ellipse, arrow, line, text box and notes.
+- Pen, highlighter, underline, strikethrough, rectangle, ellipse, arrow, line, polygon, text box and notes.
+- Stamps (Approved, Draft, Reviewed... in the interface language, with name and date) and custom stamps.
+- Measure to scale: distances, perimeters and areas, snapping to the drawing, with the PDF's own scale, the usual drawing scales or a calibration with a known length. Measurements are standard measurement annotations, like Acrobat's.
 - Signature: draw it once, save it and stamp it wherever you want.
 - Eraser for annotations and Redact, which permanently removes the content of an area or every occurrence of a text.
 - Everything is saved as standard PDF annotations, visible in any reader.
@@ -52,9 +60,14 @@ Available for **Windows 10/11** and **Linux**, in English, Spanish, Portuguese a
 **Digital signature with a certificate**
 - PAdES signatures with a personal, national eID or company certificate (.pfx / .p12 file): visible stamp with name, date, reason and location, optionally with your saved handwritten signature.
 - The signature is added as an incremental revision, without rewriting the document, so readers show that it has not been modified after signing.
+- Signed PDFs are saved incrementally too: comments added later keep the signatures valid.
 - Optional timestamp from a TSA server, and verification of the signatures in any PDF (who signed, when and whether the document is still intact).
 
+**Attachments**
+- See, open, save, add and remove the files embedded in a PDF (document and page attachments); a counter in the toolbar shows when there are any.
+
 **3D models**
+- Insert STEP, IGES, STL, OBJ, 3MF, glTF, PRC or U3D parts into a PDF as an interactive 3D view, in a box or on a new page.
 - 3D viewer for PDFs with U3D and PRC models (Acrobat, Tetra4D, CAD exports, LaTeX/media9) and for standalone `.u3d` and `.prc` files.
 - Views saved in the PDF, rotate, pan and zoom to the cursor, standard views, solid, outline, wireframe and transparent modes, lighting, section plane, parts panel to hide or isolate parts, and export to an image.
 - Own U3D reader in Python. PRC uses nanoPRC (including compressed tessellation) plus an own reader for exact geometry (B-rep, NURBS and Bézier surfaces from Asymptote).
