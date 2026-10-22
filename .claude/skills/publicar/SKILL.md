@@ -30,7 +30,12 @@ Es lo único que sale del ordenador del usuario. Cada paso hacia fuera, solo con
    despliega). Enlaza a `releases/latest`, así que normalmente no hay que tocarla. Si conviene
    contar alguna novedad, propón el cambio aparte y espera otro OK. Reglas de la web: para todo el
    mundo, sin temática de robótica, sin capturas nuevas sin aprobar y sin preguntas frecuentes.
-10. **Si CI falla**: lee el fallo (en Windows, el final del registro sale como anotación del paso),
-    arréglalo en un commit nuevo y pregunta antes de mover o volver a crear la etiqueta.
+10. **Si CI falla**: el registro completo pide iniciar sesión, pero en Windows y en Linux el final
+    sale como anotación, legible sin ella: busca el job en
+    `https://api.github.com/repos/Black-Robots/BlackPDF/actions/runs/RUN/jobs` y lee
+    `https://api.github.com/repos/Black-Robots/BlackPDF/check-runs/JOB/annotations`. Arréglalo en un
+    commit nuevo y pregunta antes de mover o volver a crear la etiqueta.
+11. **Dependencias del sistema en Linux**: gmsh necesita libGLU, libXcursor, libXft y libXinerama.
+    Si cambian las bibliotecas nativas, revisa los `apt-get install` de CI y el `Depends` del .deb.
 
 Commits y etiquetas van como `DiegoRayado <hello@blackrobots.org>`; nunca con el correo personal.

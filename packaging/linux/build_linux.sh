@@ -73,7 +73,7 @@ Section: office
 Priority: optional
 Architecture: amd64
 Installed-Size: $SIZE
-Depends: libc6 (>= 2.35), libgl1, libegl1, libfontconfig1, libxkbcommon0
+Depends: libc6 (>= 2.35), libgl1, libegl1, libfontconfig1, libxkbcommon0, libxinerama1
 Maintainer: The Black Robots Foundation <hello@blackrobots.org>
 Homepage: https://blackrobots.org/blackpdf
 Description: Visor y editor de PDF libre y sin conexión
