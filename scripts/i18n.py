@@ -1,8 +1,14 @@
 """Traducciones de la interfaz de BlackPDF.
 
-    python scripts/i18n.py update   extrae los textos y actualiza translations/*.ts
-    python scripts/i18n.py build    compila los .ts en blackpdf/resources/i18n/*.qm
-    python scripts/i18n.py check    textos sin traducir o con marcadores distintos
+    python scripts/i18n.py update            extrae los textos y actualiza translations/*.ts
+    python scripts/i18n.py pending [FILE]    lista lo que falta por traducir (y lo deja en FILE como plantilla)
+    python scripts/i18n.py fill [FILE]       aplica las traducciones de FILE y reutiliza las que ya existen
+    python scripts/i18n.py build             compila los .ts en blackpdf/resources/i18n/*.qm
+    python scripts/i18n.py check             textos sin traducir o con marcadores distintos
+
+FILE es un JSON {"texto original": {"en": "...", "pt": "...", "fr": "..."}}. Lo que ya
+está traducido igual en otro contexto se reutiliza solo; FILE solo necesita lo nuevo
+(y lo que se quiera corregir: lo que trae FILE sustituye a lo que hubiera).
 
 Los textos se extraen del código con el analizador de Python (no con
 lupdate) para usar el mismo contexto que PySide6 en ejecución: la clase en
@@ -17,6 +23,7 @@ Los .ts son el formato de Qt Linguist: se pueden editar con
 from __future__ import annotations
 
 import ast
+import json
 import re
 import shutil
 import subprocess
@@ -222,10 +229,76 @@ def build(output: Path = QM_DIR) -> int:
     return 0
 
 
+def _memory(current: dict) -> dict[str, dict[str, set[str]]]:
+    """Traducciones ya terminadas de cada texto, en cualquier contexto."""
+    memory: dict[str, dict[str, set[str]]] = {language: {} for language in LANGUAGES}
+    for language in LANGUAGES:
+        for (_context, source), (text, done) in current[language].items():
+            if done and text:
+                memory[language].setdefault(source, set()).add(text)
+    return memory
+
+
+def _resolve(new: dict) -> tuple[list[Message], dict, list[tuple[str, str]]]:
+    """Aplica ``new`` y la memoria de traducciones; devuelve los .ts resultantes y lo que sigue faltando."""
+    messages, _problems = extract()
+    current = {language: read_ts(ts_path(language)) for language in LANGUAGES}
+    memory = _memory(current)
+    missing: list[tuple[str, str]] = []
+    for language in LANGUAGES:
+        for message in messages:
+            key = (message.context, message.source)
+            text, done = current[language].get(key, ("", False))
+            proposal = (new.get(message.source) or {}).get(language, "")
+            if not proposal:
+                if done and text:
+                    continue
+                options = memory[language].get(message.source, set())
+                proposal = next(iter(options)) if len(options) == 1 else ""
+            if not proposal:
+                missing.append((language, message.source))
+                continue
+            if placeholders(proposal) != placeholders(message.source):
+                raise SystemExit(f"{language}: marcadores distintos: {message.source!r} -> {proposal!r}")
+            current[language][key] = (proposal, True)
+    return messages, current, missing
+
+
+def pending(output: Path | None = None) -> int:
+    _messages, _current, missing = _resolve({})
+    sources = sorted({source for _language, source in missing})
+    for source in sources:
+        print(source)
+    if output is not None:
+        template = {source: {language: "" for language in LANGUAGES} for source in sources}
+        output.write_text(json.dumps(template, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"{len(sources)} textos por traducir" + (f" (plantilla en {output})" if output is not None else ""))
+    return 0
+
+
+def fill(path: Path | None = None) -> int:
+    new = json.loads(path.read_text(encoding="utf-8")) if path is not None else {}
+    messages, current, missing = _resolve(new)
+    for language in LANGUAGES:
+        write_ts(ts_path(language), language, messages, current[language])
+    if missing:
+        print("Faltan traducciones:")
+        for language, source in missing:
+            print(f"  [{language}] {source}")
+        return 1
+    print("Todo traducido.")
+    return 0
+
+
 def main() -> int:
     command = sys.argv[1] if len(sys.argv) > 1 else ""
+    argument = Path(sys.argv[2]) if len(sys.argv) > 2 else None
     if command == "update":
         return update()
+    if command == "pending":
+        return pending(argument)
+    if command == "fill":
+        return fill(argument)
     if command == "build":
         return build()
     if command == "check":
