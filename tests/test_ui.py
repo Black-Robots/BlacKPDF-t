@@ -1301,6 +1301,21 @@ def test_attachments_badge_and_initial_panel(qapp, window, tmp_path):
     assert wait_until(qapp, lambda: tab.sidebar_switch.badge("attachments") == "3", 5), \
         "se actualiza aunque el panel esté cerrado"
 
+    # El clip de la barra de arriba no depende del panel lateral: con él cerrado, sigue a la vista.
+    clip = tab.attachments_button
+    assert clip.isVisibleTo(tab) and clip.badge() == "3"
+    tab.toggle_sidebar()
+    pump(qapp, 0.4)
+    assert tab.splitter.sizes()[0] < 20 and clip.isVisibleTo(tab)
+    clip.click()
+    pump(qapp, 0.4)
+    assert tab.splitter.sizes()[0] >= 20 and tab.sidebar_switch.value() == "attachments"
+    clip.click()
+    pump(qapp, 0.4)
+    assert tab.splitter.sizes()[0] < 20, "volver a pulsarlo cierra el panel"
+    clip.click()
+    pump(qapp, 0.4)
+
     outline = build_pdf(3)
     outline.set_toc([[1, "Introducción", 1], [1, "Anexo", 3]])
     outline.set_pagemode("UseOutlines")
@@ -1310,6 +1325,7 @@ def test_attachments_badge_and_initial_panel(qapp, window, tmp_path):
     pump(qapp, 0.8)
     tab = window.current_tab()
     assert tab.sidebar_switch.value() == "outline" and tab.sidebar_switch.badge("attachments") == ""
+    assert not tab.attachments_button.isVisibleTo(tab), "sin adjuntos, el clip de arriba no estorba"
 
 
 def test_clicking_the_active_tool_again_goes_back_to_select(qapp, opened):

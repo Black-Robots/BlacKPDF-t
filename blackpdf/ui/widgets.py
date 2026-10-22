@@ -224,6 +224,37 @@ class IconButton(QToolButton):
         self._icon_name = name
         self.setIcon(icons.icon(name, role))
 
+    def set_badge(self, text: str) -> None:
+        """Número pequeño en la esquina del botón (vacío lo quita)."""
+        badge = getattr(self, "_badge", None)
+        if badge is None:
+            if not text:
+                return
+            badge = self._badge = QLabel(self)
+            badge.setProperty("role", "badge")
+            badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            badge.setFixedHeight(16)
+            badge.setMinimumWidth(16)
+            badge.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        badge.setText(text)
+        badge.adjustSize()
+        badge.setVisible(bool(text))
+        self._place_badge()
+
+    def badge(self) -> str:
+        badge = getattr(self, "_badge", None)
+        return badge.text() if badge is not None and not badge.isHidden() else ""
+
+    def _place_badge(self) -> None:
+        badge = getattr(self, "_badge", None)
+        if badge is not None:
+            badge.move(self.width() - badge.width(), 0)
+            badge.raise_()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._place_badge()
+
 
 class SplitButton(QFrame):
     """Botón con una flechita al lado que despliega más opciones (Abrir y recientes, Guardar y Guardar como)."""

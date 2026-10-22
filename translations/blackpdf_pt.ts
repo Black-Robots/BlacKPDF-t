@@ -1144,7 +1144,7 @@
         </message>
         <message>
             <location filename="../blackpdf/ui/document_tab.py" line="259" />
-            <location filename="../blackpdf/ui/document_tab.py" line="615" />
+            <location filename="../blackpdf/ui/document_tab.py" line="632" />
             <source>Organizar páginas</source>
             <translation>Organizar páginas</translation>
         </message>
@@ -1161,16 +1161,16 @@
         <message>
             <location filename="../blackpdf/ui/document_tab.py" line="267" />
             <location filename="../blackpdf/ui/document_tab.py" line="270" />
-            <location filename="../blackpdf/ui/document_tab.py" line="355" />
+            <location filename="../blackpdf/ui/document_tab.py" line="358" />
             <source>Guardar como...</source>
             <translation>Salvar como...</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/document_tab.py" line="272" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1078" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1204" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1300" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1628" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1095" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1221" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1317" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1645" />
             <source>Deshacer</source>
             <translation>Desfazer</translation>
         </message>
@@ -1196,27 +1196,27 @@
         </message>
         <message>
             <location filename="../blackpdf/ui/document_tab.py" line="310" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1380" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1397" />
             <source>Ajustar al ancho</source>
             <translation>Ajustar à largura</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/document_tab.py" line="313" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1381" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1398" />
             <source>Página completa</source>
             <translation>Página inteira</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/document_tab.py" line="321" />
-            <location filename="../blackpdf/ui/document_tab.py" line="638" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1320" />
+            <location filename="../blackpdf/ui/document_tab.py" line="655" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1337" />
             <source>Girar a la izquierda</source>
             <translation>Girar para a esquerda</translation>
         </message>
         <message>
             <location filename="../blackpdf/ui/document_tab.py" line="322" />
-            <location filename="../blackpdf/ui/document_tab.py" line="639" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1319" />
+            <location filename="../blackpdf/ui/document_tab.py" line="656" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1336" />
             <source>Girar a la derecha</source>
             <translation>Girar para a direita</translation>
         </message>
@@ -1227,470 +1227,473 @@
         </message>
         <message>
             <location filename="../blackpdf/ui/document_tab.py" line="328" />
-            <location filename="../blackpdf/ui/document_tab.py" line="467" />
+            <location filename="../blackpdf/ui/document_tab.py" line="470" />
             <source>Comentarios</source>
             <translation>Comentários</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="329" />
-            <source>Buscar</source>
-            <translation>Pesquisar</translation>
-        </message>
-        <message>
             <location filename="../blackpdf/ui/document_tab.py" line="330" />
-            <source>Modo noche</source>
-            <translation>Modo noturno</translation>
-        </message>
-        <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="331" />
-            <source>Pantalla completa</source>
-            <translation>Tela cheia</translation>
-        </message>
-        <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="339" />
-            <location filename="../blackpdf/ui/document_tab.py" line="339" />
-            <source>Herramientas</source>
-            <translation>Ferramentas</translation>
-        </message>
-        <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="345" />
-            <source>Más opciones</source>
-            <translation>Mais opções</translation>
-        </message>
-        <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="356" />
-            <source>Imprimir...</source>
-            <translation>Imprimir...</translation>
-        </message>
-        <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="358" />
-            <source>Copiar texto seleccionado</source>
-            <translation>Copiar texto selecionado</translation>
-        </message>
-        <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="359" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1374" />
-            <source>Seleccionar texto de la página</source>
-            <translation>Selecionar texto da página</translation>
-        </message>
-        <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="362" />
-            <source>Etiquetas de página...</source>
-            <translation>Rótulos de página...</translation>
-        </message>
-        <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="363" />
-            <source>Propiedades del documento</source>
-            <translation>Propriedades do documento</translation>
-        </message>
-        <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="386" />
-            <location filename="../blackpdf/ui/document_tab.py" line="392" />
-            <location filename="../blackpdf/ui/document_tab.py" line="445" />
-            <source>Páginas</source>
-            <translation>Páginas</translation>
-        </message>
-        <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="386" />
-            <location filename="../blackpdf/ui/document_tab.py" line="445" />
-            <source>Índice</source>
-            <translation>Sumário</translation>
-        </message>
-        <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="386" />
-            <location filename="../blackpdf/ui/document_tab.py" line="445" />
-            <source>Capas</source>
-            <translation>Camadas</translation>
-        </message>
-        <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="387" />
-            <location filename="../blackpdf/ui/document_tab.py" line="517" />
+            <location filename="../blackpdf/ui/document_tab.py" line="390" />
+            <location filename="../blackpdf/ui/document_tab.py" line="521" />
             <source>Archivos adjuntos</source>
             <translation>Anexos</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="428" />
-            <location filename="../blackpdf/ui/document_tab.py" line="627" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1228" />
+            <location filename="../blackpdf/ui/document_tab.py" line="332" />
+            <source>Buscar</source>
+            <translation>Pesquisar</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/document_tab.py" line="333" />
+            <source>Modo noche</source>
+            <translation>Modo noturno</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/document_tab.py" line="334" />
+            <source>Pantalla completa</source>
+            <translation>Tela cheia</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/document_tab.py" line="342" />
+            <location filename="../blackpdf/ui/document_tab.py" line="342" />
+            <source>Herramientas</source>
+            <translation>Ferramentas</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/document_tab.py" line="348" />
+            <source>Más opciones</source>
+            <translation>Mais opções</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/document_tab.py" line="359" />
+            <source>Imprimir...</source>
+            <translation>Imprimir...</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/document_tab.py" line="361" />
+            <source>Copiar texto seleccionado</source>
+            <translation>Copiar texto selecionado</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/document_tab.py" line="362" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1391" />
+            <source>Seleccionar texto de la página</source>
+            <translation>Selecionar texto da página</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/document_tab.py" line="365" />
+            <source>Etiquetas de página...</source>
+            <translation>Rótulos de página...</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/document_tab.py" line="366" />
+            <source>Propiedades del documento</source>
+            <translation>Propriedades do documento</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/document_tab.py" line="389" />
+            <location filename="../blackpdf/ui/document_tab.py" line="395" />
+            <location filename="../blackpdf/ui/document_tab.py" line="448" />
+            <source>Páginas</source>
+            <translation>Páginas</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/document_tab.py" line="389" />
+            <location filename="../blackpdf/ui/document_tab.py" line="448" />
+            <source>Índice</source>
+            <translation>Sumário</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/document_tab.py" line="389" />
+            <location filename="../blackpdf/ui/document_tab.py" line="448" />
+            <source>Capas</source>
+            <translation>Camadas</translation>
+        </message>
+        <message>
+            <location filename="../blackpdf/ui/document_tab.py" line="431" />
+            <location filename="../blackpdf/ui/document_tab.py" line="644" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1245" />
             <source>Añadir PDF</source>
             <translation>Adicionar PDF</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="429" />
+            <location filename="../blackpdf/ui/document_tab.py" line="432" />
             <source>Añade las páginas de otro PDF o de imágenes al final. También puedes soltar archivos sobre las miniaturas.</source>
             <translation>Adiciona ao final as páginas de outro PDF ou de imagens. Você também pode soltar arquivos sobre as miniaturas.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="434" />
+            <location filename="../blackpdf/ui/document_tab.py" line="437" />
             <source>Mantén pulsada una página y arrástrala para moverla</source>
             <translation>Mantenha uma página pressionada e arraste-a para movê-la</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="446" />
+            <location filename="../blackpdf/ui/document_tab.py" line="449" />
             <source>Adjuntos</source>
             <translation>Anexos</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="472" />
+            <location filename="../blackpdf/ui/document_tab.py" line="475" />
             <source>Ocultar comentarios</source>
             <translation>Ocultar comentários</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="502" />
+            <location filename="../blackpdf/ui/document_tab.py" line="505" />
             <source>Este documento no tiene capas.</source>
             <translation>Este documento não tem camadas.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="517" />
+            <location filename="../blackpdf/ui/document_tab.py" line="521" />
             <source>Archivos adjuntos ({0})</source>
             <translation>Anexos ({0})</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="536" />
+            <location filename="../blackpdf/ui/document_tab.py" line="525" />
+            <location filename="../blackpdf/ui/document_tab.py" line="553" />
             <source>Este PDF lleva un archivo adjunto</source>
             <translation>Este PDF tem um arquivo anexado</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="537" />
+            <location filename="../blackpdf/ui/document_tab.py" line="526" />
+            <location filename="../blackpdf/ui/document_tab.py" line="554" />
             <source>Este PDF lleva {0} archivos adjuntos</source>
             <translation>Este PDF tem {0} arquivos anexados</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="538" />
+            <location filename="../blackpdf/ui/document_tab.py" line="555" />
             <source>Ver</source>
             <translation>Ver</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="617" />
+            <location filename="../blackpdf/ui/document_tab.py" line="634" />
             <source>Arrastra las páginas para reordenarlas. Ctrl+rueda cambia el tamaño. Doble clic abre la página.</source>
             <translation>Arraste as páginas para reordená-las. Ctrl+roda altera o tamanho. Clique duplo abre a página.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="628" />
+            <location filename="../blackpdf/ui/document_tab.py" line="645" />
             <source>Página en blanco</source>
             <translation>Página em branco</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="640" />
+            <location filename="../blackpdf/ui/document_tab.py" line="657" />
             <source>Duplicar</source>
             <translation>Duplicar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="641" />
+            <location filename="../blackpdf/ui/document_tab.py" line="658" />
             <source>Extraer a un PDF nuevo</source>
             <translation>Extrair para um PDF novo</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="642" />
+            <location filename="../blackpdf/ui/document_tab.py" line="659" />
             <source>Eliminar</source>
             <translation>Excluir</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="648" />
+            <location filename="../blackpdf/ui/document_tab.py" line="665" />
             <source>Volver al documento</source>
             <translation>Voltar ao documento</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="821" />
+            <location filename="../blackpdf/ui/document_tab.py" line="838" />
             <source>Comprobando las firmas digitales...</source>
             <translation>Verificando as assinaturas digitais...</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="846" />
+            <location filename="../blackpdf/ui/document_tab.py" line="863" />
             <source>{0} firmas digitales. Todas son válidas y el documento no se ha modificado.</source>
             <translation>{0} assinaturas digitais. Todas são válidas e o documento não foi alterado.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="847" />
+            <location filename="../blackpdf/ui/document_tab.py" line="864" />
             <source>{0} firmas digitales. Revisa los detalles: alguna requiere atención.</source>
             <translation>{0} assinaturas digitais. Confira os detalhes: alguma requer atenção.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="848" />
+            <location filename="../blackpdf/ui/document_tab.py" line="865" />
             <source>{0} firmas digitales. Al menos una no es válida.</source>
             <translation>{0} assinaturas digitais. Pelo menos uma não é válida.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="856" />
+            <location filename="../blackpdf/ui/document_tab.py" line="873" />
             <source>Al guardar, tus cambios se añadirán al final del documento firmado sin tocar lo firmado. Los comentarios están permitidos; cualquier otro cambio constará como hecho después de firmar.</source>
             <translation>Ao guardar, as suas alterações serão acrescentadas ao final do documento assinado sem tocar no que foi assinado. Os comentários são permitidos; qualquer outra alteração ficará registada como feita depois da assinatura.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="860" />
+            <location filename="../blackpdf/ui/document_tab.py" line="877" />
             <source>Has modificado un documento firmado: al guardar, sus firmas dejarán de ser válidas. Si guardas con otro nombre, el archivo original las conserva intactas.</source>
             <translation>Você alterou um documento assinado: ao salvar, as assinaturas deixarão de ser válidas. Se salvar com outro nome, o arquivo original as mantém intactas.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="891" />
+            <location filename="../blackpdf/ui/document_tab.py" line="908" />
             <source>Deshacer {0} ({1})</source>
             <translation>Desfazer {0} ({1})</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="892" />
+            <location filename="../blackpdf/ui/document_tab.py" line="909" />
             <source>Deshacer ({0})</source>
             <translation>Desfazer ({0})</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="896" />
+            <location filename="../blackpdf/ui/document_tab.py" line="913" />
             <source>Rehacer {0} ({1})</source>
             <translation>Refazer {0} ({1})</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="897" />
+            <location filename="../blackpdf/ui/document_tab.py" line="914" />
             <source>Rehacer ({0})</source>
             <translation>Refazer ({0})</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="919" />
+            <location filename="../blackpdf/ui/document_tab.py" line="936" />
             <source>({0} de {1})</source>
             <translation>({0} de {1})</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="923" />
+            <location filename="../blackpdf/ui/document_tab.py" line="940" />
             <source>de {0}</source>
             <translation>de {0}</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1078" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1095" />
             <source>Contenido censurado de forma definitiva</source>
             <translation>Conteúdo censurado definitivamente</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1087" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1104" />
             <source>Haz clic en cada vértice. Para cerrar el polígono, doble clic, Intro o clic en el primer vértice.</source>
             <translation>Clique em cada vértice. Para fechar o polígono, faça duplo clique, prima Enter ou clique no primeiro vértice.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1124" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1141" />
             <source>Traza una línea sobre algo cuya medida conozcas, por ejemplo una cota del plano.</source>
             <translation>Trace uma linha sobre algo cuja medida conheça, por exemplo uma cota do desenho.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1127" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1144" />
             <source>Haz clic en cada vértice. Para terminar, doble clic o Intro.</source>
             <translation>Clique em cada vértice. Para terminar, faça duplo clique ou prima Enter.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1157" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1174" />
             <source>Escala calibrada: {0}</source>
             <translation>Escala calibrada: {0}</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1193" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1210" />
             <source>Girar páginas</source>
             <translation>Girar páginas</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1198" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1335" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1215" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1352" />
             <source>Eliminar páginas</source>
             <translation>Excluir páginas</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1203" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1220" />
             <source>Página eliminada</source>
             <translation>Página excluída</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1203" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1220" />
             <source>{0} páginas eliminadas</source>
             <translation>{0} páginas excluídas</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1208" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1322" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1225" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1339" />
             <source>Duplicar páginas</source>
             <translation>Duplicar páginas</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1215" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1232" />
             <source>Mover páginas</source>
             <translation>Mover páginas</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1222" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1239" />
             <source>Insertar página en blanco</source>
             <translation>Inserir página em branco</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1235" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1252" />
             <source>Insertar páginas de otro archivo</source>
             <translation>Inserir páginas de outro arquivo</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1267" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1284" />
             <source>Insertar páginas</source>
             <translation>Inserir páginas</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1273" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1290" />
             <source>1 página añadida</source>
             <translation>1 página adicionada</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1273" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1290" />
             <source>{0} páginas añadidas</source>
             <translation>{0} páginas adicionadas</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1274" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1291" />
             <source>Arrastra las miniaturas para colocarlas.</source>
             <translation>Arraste as miniaturas para posicioná-las.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1286" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1292" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1296" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1303" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1309" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1313" />
             <source>Censurar</source>
             <translation>Censurar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1287" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1304" />
             <source>¿Censurar {0} apariciones de «{1}»?</source>
             <translation>Censurar {0} ocorrências de “{1}”?</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1288" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1305" />
             <source>El texto se eliminará del documento y quedará un recuadro negro en su lugar. Puedes deshacerlo con Ctrl+Z mientras no cierres el documento.</source>
             <translation>O texto será removido do documento e ficará uma caixa preta no lugar. Você pode desfazer com Ctrl+Z enquanto não fechar o documento.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1293" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1582" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1310" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1599" />
             <source>Cancelar</source>
             <translation>Cancelar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1299" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1316" />
             <source>{0} apariciones censuradas</source>
             <translation>{0} ocorrências censuradas</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1322" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1339" />
             <source>Duplicar página</source>
             <translation>Duplicar página</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1323" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1340" />
             <source>Insertar página en blanco detrás</source>
             <translation>Inserir página em branco depois</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1324" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1341" />
             <source>Insertar página en blanco delante</source>
             <translation>Inserir página em branco antes</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1325" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1342" />
             <source>Insertar desde archivo...</source>
             <translation>Inserir de um arquivo...</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1327" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1344" />
             <source>Numerar desde esta página...</source>
             <translation>Numerar a partir desta página...</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1330" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1347" />
             <source>Extraer páginas...</source>
             <translation>Extrair páginas...</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1331" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1348" />
             <source>Exportar como imagen...</source>
             <translation>Exportar como imagem...</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1335" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1352" />
             <source>Eliminar página</source>
             <translation>Excluir página</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1351" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1368" />
             <source>Copiar</source>
             <translation>Copiar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1352" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1409" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1369" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1426" />
             <source>Resaltar</source>
             <translation>Destacar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1353" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1370" />
             <source>Resaltar y comentar</source>
             <translation>Destacar e comentar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1355" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1409" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1372" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1426" />
             <source>Subrayar</source>
             <translation>Sublinhar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1356" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1409" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1373" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1426" />
             <source>Tachar</source>
             <translation>Riscar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1357" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1374" />
             <source>Buscar en el documento</source>
             <translation>Pesquisar no documento</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1361" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1378" />
             <source>Ver el modelo 3D</source>
             <translation>Ver o modelo 3D</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1369" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1386" />
             <source>Comentar esta anotación</source>
             <translation>Comentar esta anotação</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1371" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1388" />
             <source>Añadir comentario aquí</source>
             <translation>Adicionar comentário aqui</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1373" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1390" />
             <source>Insertar modelo 3D...</source>
             <translation>Inserir modelo 3D...</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1389" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1406" />
             <source>Nuevo comentario</source>
             <translation>Novo comentário</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1390" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1407" />
             <source>Comentario en la página {0}:</source>
             <translation>Comentário na página {0}:</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1394" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1411" />
             <source>Añadir comentario</source>
             <translation>Adicionar comentário</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1425" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1428" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1442" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1445" />
             <source>Texto copiado</source>
             <translation>Texto copiado</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1441" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1458" />
             <source>No hay cambios que guardar</source>
             <translation>Não há alterações para salvar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1445" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1462" />
             <source>Documento firmado</source>
             <translation>Documento assinado</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1446" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1463" />
             <source>Este documento tiene firmas digitales. Si lo guardas con cambios, sus firmas dejarán de ser válidas.
 
 ¿Guardar de todos modos? Con «Guardar como» el original conserva las firmas.</source>
@@ -1699,68 +1702,68 @@
 Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1457" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1474" />
             <source>Guardar como</source>
             <translation>Salvar como</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1478" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1495" />
             <source>Guardado en {0}</source>
             <translation>Salvo em {0}</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1529" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1546" />
             <source>Página {0}</source>
             <translation>Página {0}</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1539" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1556" />
             <source>Este documento no contiene modelos 3D</source>
             <translation>Este documento não contém modelos 3D</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1546" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1563" />
             <source>Página {0} · {1}</source>
             <translation>Página {0} · {1}</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1575" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1592" />
             <source>Arrastra un recuadro donde quieras la vista 3D (Esc para cancelar)</source>
             <translation>Arraste um retângulo onde quiser a vista 3D (Esc para cancelar)</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1582" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1599" />
             <source>Preparando el modelo 3D...</source>
             <translation>Preparando o modelo 3D...</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1583" />
-            <location filename="../blackpdf/ui/document_tab.py" line="1623" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1600" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1640" />
             <source>Insertar modelo 3D</source>
             <translation>Inserir modelo 3D</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1620" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1637" />
             <source>Archivo original del modelo 3D</source>
             <translation>Arquivo original do modelo 3D</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1627" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1644" />
             <source>Modelo 3D insertado. Haz clic en él para verlo en 3D.</source>
             <translation>Modelo 3D inserido. Clique nele para vê-lo em 3D.</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1641" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1658" />
             <source>Etiquetas de página</source>
             <translation>Rótulos de página</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1650" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1667" />
             <source>Cambiar propiedades</source>
             <translation>Alterar propriedades</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/document_tab.py" line="1651" />
+            <location filename="../blackpdf/ui/document_tab.py" line="1668" />
             <source>Propiedades cambiadas. Guarda el PDF para conservarlas.</source>
             <translation>Propriedades alteradas. Salve o PDF para mantê-las.</translation>
         </message>
@@ -6014,82 +6017,82 @@ Salvar mesmo assim? Com “Salvar como” o original mantém as assinaturas.</tr
             <translation>Imagens (*.png *.jpg *.jpeg *.bmp *.gif *.tif *.tiff *.webp *.pnm *.jxr *.psd)</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="441" />
+            <location filename="../blackpdf/ui/widgets.py" line="472" />
             <source>Personalizado...</source>
             <translation>Personalizado...</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="450" />
+            <location filename="../blackpdf/ui/widgets.py" line="481" />
             <source>Elegir color</source>
             <translation>Escolher cor</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="470" />
+            <location filename="../blackpdf/ui/widgets.py" line="501" />
             <source>Color</source>
             <translation>Cor</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="684" />
+            <location filename="../blackpdf/ui/widgets.py" line="715" />
             <source>Arrastra archivos aquí o pulsa Añadir</source>
             <translation>Arraste arquivos para cá ou clique em Adicionar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="691" />
+            <location filename="../blackpdf/ui/widgets.py" line="722" />
             <source>Añadir</source>
             <translation>Adicionar</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="695" />
+            <location filename="../blackpdf/ui/widgets.py" line="726" />
             <source>Subir</source>
             <translation>Subir</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="696" />
+            <location filename="../blackpdf/ui/widgets.py" line="727" />
             <source>Bajar</source>
             <translation>Descer</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="697" />
+            <location filename="../blackpdf/ui/widgets.py" line="728" />
             <source>Ordenar por nombre</source>
             <translation>Ordenar por nome</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="698" />
+            <location filename="../blackpdf/ui/widgets.py" line="729" />
             <source>Quitar</source>
             <translation>Remover</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="725" />
+            <location filename="../blackpdf/ui/widgets.py" line="756" />
             <source>Añadir archivos</source>
             <translation>Adicionar arquivos</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="791" />
+            <location filename="../blackpdf/ui/widgets.py" line="822" />
             <source>Examinar...</source>
             <translation>Procurar...</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="804" />
+            <location filename="../blackpdf/ui/widgets.py" line="835" />
             <source>Elegir carpeta</source>
             <translation>Escolher pasta</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="806" />
+            <location filename="../blackpdf/ui/widgets.py" line="837" />
             <source>Guardar como</source>
             <translation>Salvar como</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="810" />
+            <location filename="../blackpdf/ui/widgets.py" line="841" />
             <source>Abrir archivo</source>
             <translation>Abrir arquivo</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="826" />
+            <location filename="../blackpdf/ui/widgets.py" line="857" />
             <source>Todas las páginas</source>
             <translation>Todas as páginas</translation>
         </message>
         <message>
-            <location filename="../blackpdf/ui/widgets.py" line="826" />
+            <location filename="../blackpdf/ui/widgets.py" line="857" />
             <source>Ejemplo: 1-3, 5, 8-10</source>
             <translation>Exemplo: 1-3, 5, 8-10</translation>
         </message>

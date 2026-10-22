@@ -326,11 +326,14 @@ class DocumentTab(QWidget):
 
         self.annotate_button = self._button("pen-line", self.tr("Barra de anotación"), self.toggle_annotation_bar, "Ctrl+E", True)
         self.comments_button = self._button("message-square", self.tr("Comentarios"), self.toggle_comments, "", True)
+        # Solo con adjuntos: así no se olvidan aunque el panel lateral esté cerrado.
+        self.attachments_button = self._button("paperclip", self.tr("Archivos adjuntos"), self.toggle_attachments)
+        self.attachments_button.setVisible(False)
         self.search_button = self._button("search", self.tr("Buscar"), self.find, "Ctrl+F")
         self.night_button = self._button("moon", self.tr("Modo noche"), lambda: self.set_night_mode(not self.viewer.night_mode), "Ctrl+M", True)
         self.fullscreen_button = self._button("expand", self.tr("Pantalla completa"), self.fullscreenRequested.emit, "F11")
-        for button in (self.annotate_button, self.comments_button, self.search_button, self.night_button,
-                       self.fullscreen_button):
+        for button in (self.annotate_button, self.comments_button, self.attachments_button, self.search_button,
+                       self.night_button, self.fullscreen_button):
             layout.addWidget(button)
         layout.addSpacing(4)
         layout.addWidget(separator(True))
@@ -512,10 +515,24 @@ class DocumentTab(QWidget):
     def _refresh_attachments_badge(self) -> None:
         """Los adjuntos pasan desapercibidos: el clip del panel lateral lleva cuántos hay."""
         count = self.attachments.count()
-        self.sidebar_switch.set_badge("attachments", "" if not count else "99+" if count > 99 else str(count))
+        text = "" if not count else "99+" if count > 99 else str(count)
+        self.sidebar_switch.set_badge("attachments", text)
         button = self.sidebar_switch._buttons["attachments"]
         button.setToolTip(self.tr("Archivos adjuntos ({0})").format(count) if count else self.tr("Archivos adjuntos"))
+        if hasattr(self, "attachments_button"):
+            self.attachments_button.set_badge(text)
+            self.attachments_button.setVisible(count > 0)
+            self.attachments_button.setToolTip(self.tr("Este PDF lleva un archivo adjunto") if count == 1
+                                               else self.tr("Este PDF lleva {0} archivos adjuntos").format(count))
         self._update_sidebar_header()
+
+    def toggle_attachments(self) -> None:
+        """El clip de la barra: abre los adjuntos y, si ya se están viendo, cierra el panel lateral."""
+        if (self.splitter.sizes()[0] >= 20 and not self._organizing
+                and self.sidebar_switch.value() == "attachments"):
+            self.toggle_sidebar()
+        else:
+            self.show_attachments()
 
     def _open_initial_panel(self) -> None:
         """Panel con el que el PDF pide abrirse (/PageMode); si trae adjuntos y no pide nada, se avisa."""
